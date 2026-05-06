@@ -323,7 +323,17 @@ public class FileParser {
 					}
 					openState(tempList);
 				}
-				
+				else if(line.equals("<fork>"))
+				{
+					while((line = reader.readLine()) != null && !line.equals("</fork>"))
+					{
+						if(line.startsWith("##"))
+							continue;
+						tempList.add(line);
+					}
+					openFork(tempList);
+				}
+
 				else if(line.equals("<transition>"))
 				{
 					while((line = reader.readLine()) != null && !line.equals("</transition>"))
@@ -390,6 +400,21 @@ public class FileParser {
 
 		tempList.clear();
 		
+	}
+
+	private void openFork(ArrayList<String> tempList3) {
+		String name = tempList3.get(1);
+		int x0 = Integer.parseInt(tempList3.get(4));
+		int y0 = Integer.parseInt(tempList3.get(7));
+		int x1 = Integer.parseInt(tempList3.get(10));
+		int y1 = Integer.parseInt(tempList3.get(13));
+		int page = Integer.parseInt(tempList3.get(16));
+		Color currColor = Color.black;
+		if(tempList3.size() > 19)
+			currColor = new Color(Integer.parseInt(tempList3.get(19)));
+		ForkObj fork = new ForkObj(x0,y0,x1,y1,name,page,currColor);
+		objList.add(fork);
+		tempList.clear();
 	}
 
 	private void openTrans(ArrayList<String> tempList3) {

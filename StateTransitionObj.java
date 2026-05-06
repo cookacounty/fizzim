@@ -155,7 +155,7 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj obj = (GeneralObj)objList.get(i);
-			if(obj.getType() == 0)
+			if(obj.getType() == 0 || obj.getType() == 4)
 			{
 				if(obj.getName().equals(startS))
 				{

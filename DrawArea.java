@@ -302,14 +302,14 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				e.printStackTrace();
 			}
 				
-			//if a state, create clone of children transitions
-			if(oldObj.getType() == 0)
+			//if a transition endpoint, create clone of children transitions
+			if(isTransitionEndpoint(oldObj))
 			{
 				for(int j = 1; j < objList.size(); j++)
 				{
 					GeneralObj s = (GeneralObj) objList.elementAt(j);
 					//check all objects that have to be modified state as a parent
-					if(s.getType() != 0 && s.containsParent(oldObj))
+					if(!isTransitionEndpoint(s) && s.containsParent(oldObj))
 					{
 						GeneralObj clonedObj2 = null;
 						try {
@@ -356,7 +356,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				
 			//if a state, create clone of children transitions
 
-			if(type == 0)
+			if(isTransitionEndpointType(type))
 			{
 				FizzimGui fgui = (FizzimGui) frame;
 				fgui.updateGlobal(setUndoPoint());
@@ -364,7 +364,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				{
 					GeneralObj s = (GeneralObj) objList.elementAt(i);
 					//check all objects that have to be modified state as a parent
-					if(s.getType() != 0 && s.containsParent(oldObj))
+					if(!isTransitionEndpoint(s) && s.containsParent(oldObj))
 					{
 						GeneralObj clonedObj2 = null;
 						try {
@@ -450,7 +450,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			for(int i = 1; i < objList.size(); i++)
 			{
 				GeneralObj obj = (GeneralObj) objList.get(i);
-				if(obj.getType() == 0 || obj.getType() == 3)
+				if(isTransitionEndpoint(obj) || obj.getType() == 3)
 				{
 					if(obj.getSelectStatus() != 0)
 					{
@@ -493,7 +493,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				for(int i = 0; i < selectedIndices.size(); i++)
 				{
 					GeneralObj obj = (GeneralObj) objList.get(selectedIndices.get(i).intValue());
-					if((obj.getType() == 0 || obj.getType() == 3) && obj.setBoxSelectStatus(e.getX(),e.getY()))
+					if((isTransitionEndpoint(obj) || obj.getType() == 3) && obj.setBoxSelectStatus(e.getX(),e.getY()))
 					{
 						move = true;
 					}
@@ -542,12 +542,12 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 						else if(s.getType() == 1)
 						{
 							Vector<StateObj> stateObjs = new Vector<StateObj>();
-				    		for(int j = 1; j < objList.size(); j++)
-				    		{
-				    			GeneralObj obj = (GeneralObj)objList.get(j);
-				    			if(obj.getType() == 0)
-				    				stateObjs.add((StateObj)obj);
-				    		}
+							for(int j = 1; j < objList.size(); j++)
+							{
+								GeneralObj obj = (GeneralObj)objList.get(j);
+								if(isTransitionEndpoint(obj))
+									stateObjs.add((StateObj)obj);
+							}
 				        	new TransProperties(this,frame, true, (StateTransitionObj) s,stateObjs,false,null)
 							.setVisible(true);
 						}
@@ -623,7 +623,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				for (int i = 1; i < objList.size(); i++)
 				{
 					GeneralObj s = (GeneralObj) objList.elementAt(i);
-					if(s.getType() == 0 && s.setSelectStatus(e.getX(),e.getY()))
+					if(isTransitionEndpoint(s) && s.setSelectStatus(e.getX(),e.getY()))
 					{
 						bestMatch = s;
 							
@@ -682,13 +682,13 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		{
 			GeneralObj t = (GeneralObj) objList.elementAt(i);
 			//check for modified state
-			if (t.isModified() && t.getType() == 0)
+			if (t.isModified() && isTransitionEndpoint(t))
 			{
 				toCommit = true;
 				for(int j = 1; j < objList.size(); j++)
 				{
 					GeneralObj obj = (GeneralObj) objList.elementAt(j);
-					if(obj.getType() != 0 && obj.isParentModified())
+					if(!isTransitionEndpoint(obj) && obj.isParentModified())
 						obj.updateObj();
 					obj.setParentModified(false);
 				}
@@ -725,7 +725,7 @@ public void updateTransitions()
 	for(int j = 1; j < objList.size(); j++)
 	{				
 		GeneralObj obj = (GeneralObj) objList.elementAt(j);
-		if(obj.getType() != 0 && obj.isParentModified())
+		if(!isTransitionEndpoint(obj) && obj.isParentModified())
 			obj.updateObj();
 		
 	}
@@ -759,7 +759,7 @@ public void updateTransitions()
 					for(int j = 1; j < objList.size(); j++)
 					{				
 						GeneralObj obj = (GeneralObj) objList.elementAt(j);
-						if(obj.getType() != 0 && obj.isParentModified())
+						if(!isTransitionEndpoint(obj) && obj.isParentModified())
 							obj.updateObj();
 						
 					}
@@ -801,7 +801,7 @@ public void updateTransitions()
 			for (int i = 1; i < objList.size(); i++)
 			{			
 				GeneralObj s = (GeneralObj) objList.elementAt(i);
-				if((s.getType() == 0 || s.getType() == 3) && s.setBoxSelectStatus(mX0,mY0,mX1,mY1))
+				if((isTransitionEndpoint(s) || s.getType() == 3) && s.setBoxSelectStatus(mX0,mY0,mX1,mY1))
 				{
 					tempNumb++;
 					selectedIndices.add(new Integer(i));
@@ -848,33 +848,39 @@ public void updateTransitions()
         if(obj == null)
         	popup.add(pages);
         
-        if(obj != null && obj.getType() == 0)
+        if(obj != null && isTransitionEndpoint(obj))
         {
-        	menuItem = new JMenuItem("Add Loopback Transition");
-        	menuItem.setMnemonic(KeyEvent.VK_L);
-	        menuItem.addActionListener(this);
-	        popup.add(menuItem);
-	        
-	        JMenu states = new JMenu("Add State Transition to...");
-	        states.setMnemonic(KeyEvent.VK_T);
-	        states.setDisplayedMnemonicIndex(10);
-	        for(int j = 1; j < objList.size(); j++)
-	        {
-	        	GeneralObj obj1 = (GeneralObj)objList.get(j);
-	        	if(obj1.getType() == 0 && !obj.getName().equals(obj1.getName()))
-	        	{
-	        		menuItem = new JMenuItem(obj1.getName());
-	        		menuItem.addActionListener(this);
-	        		states.add(menuItem);
-	        	}
-	        }
-	        popup.add(states);
-	        
-        	menuItem = new JMenuItem("Edit State Properties");
-        	menuItem.setMnemonic(KeyEvent.VK_E);
-	        menuItem.addActionListener(this);
-	        popup.add(menuItem);
-	        popup.add(pages);
+			if(obj.getType() == 0)
+			{
+				menuItem = new JMenuItem("Add Loopback Transition");
+				menuItem.setMnemonic(KeyEvent.VK_L);
+				menuItem.addActionListener(this);
+				popup.add(menuItem);
+			}
+
+			JMenu states = new JMenu("Add State Transition to...");
+			states.setMnemonic(KeyEvent.VK_T);
+			states.setDisplayedMnemonicIndex(10);
+			for(int j = 1; j < objList.size(); j++)
+			{
+				GeneralObj obj1 = (GeneralObj)objList.get(j);
+				if(isTransitionEndpoint(obj1) && !obj.getName().equals(obj1.getName()))
+				{
+					menuItem = new JMenuItem(obj1.getName());
+					menuItem.addActionListener(this);
+					states.add(menuItem);
+				}
+			}
+			popup.add(states);
+
+			if(obj.getType() == 0)
+			{
+				menuItem = new JMenuItem("Edit State Properties");
+				menuItem.setMnemonic(KeyEvent.VK_E);
+				menuItem.addActionListener(this);
+				popup.add(menuItem);
+			}
+			popup.add(pages);
         }
         if(obj != null && obj.getType() == 1)
         {
@@ -937,6 +943,10 @@ public void updateTransitions()
         menuItem.setMnemonic(KeyEvent.VK_S);
         menuItem.addActionListener(this);
         popup.add(menuItem);
+        menuItem = new JMenuItem("New Fork");
+        menuItem.setMnemonic(KeyEvent.VK_K);
+        menuItem.addActionListener(this);
+        popup.add(menuItem);
         menuItem = new JMenuItem("New State Transition");
         menuItem.setMnemonic(KeyEvent.VK_T);
         menuItem.setDisplayedMnemonicIndex(10);
@@ -982,8 +992,8 @@ public void updateTransitions()
     		for(int i = 1; i < objList.size(); i++)
     		{
     			GeneralObj obj = (GeneralObj)objList.get(i);
-    			if(obj.getType() == 0)
-    				stateObjs.add((StateObj)obj);
+				if(obj.getType() == 0)
+					stateObjs.add((StateObj)obj);
     		}
         	new TransProperties(this,frame, true, (LoopbackTransitionObj) tempObj,stateObjs,true,null)
 			.setVisible(true);
@@ -994,8 +1004,8 @@ public void updateTransitions()
     		for(int i = 1; i < objList.size(); i++)
     		{
     			GeneralObj obj = (GeneralObj)objList.get(i);
-    			if(obj.getType() == 0)
-    				stateObjs.add((StateObj)obj);
+				if(isTransitionEndpoint(obj))
+					stateObjs.add((StateObj)obj);
     		}
         	new TransProperties(this,frame, true, (StateTransitionObj) tempObj,stateObjs,false,null)
 			.setVisible(true);
@@ -1011,26 +1021,33 @@ public void updateTransitions()
         }
         else if(input == "New State")
         {
-    		GeneralObj state = new StateObj(rXTemp-StateW/2,rYTemp-StateH/2,rXTemp+StateW/2,rYTemp+StateH/2,createSCounter, currPage, defSC,grid,gridS);
-    		createSCounter++;
-    		objList.add(state);
-    		state.updateAttrib(globalList,3);
-    		new StateProperties(this,frame, true, (StateObj) state)
+			GeneralObj state = new StateObj(rXTemp-StateW/2,rYTemp-StateH/2,rXTemp+StateW/2,rYTemp+StateH/2,createSCounter, currPage, defSC,grid,gridS);
+			createSCounter++;
+			objList.add(state);
+			state.updateAttrib(globalList,3);
+			new StateProperties(this,frame, true, (StateObj) state)
 			.setVisible(true);
+        }
+        else if(input == "New Fork")
+        {
+			GeneralObj fork = new ForkObj(rXTemp,rYTemp,createSCounter, currPage, defSTC,grid,gridS);
+			createSCounter++;
+			objList.add(fork);
+			commitUndo();
         }
         else if(input == "New State Transition")
         {
-        	Vector<StateObj> stateObjs = new Vector<StateObj>();
-    		for(int i = 1; i < objList.size(); i++)
-    		{
-    			GeneralObj obj = (GeneralObj)objList.get(i);
-    			
-    			if(obj.getType() == 0)
-    			{
-    				stateObjs.add((StateObj)obj);	
-    			}
-    			
-    		}
+			Vector<StateObj> stateObjs = new Vector<StateObj>();
+			for(int i = 1; i < objList.size(); i++)
+			{
+				GeneralObj obj = (GeneralObj)objList.get(i);
+
+				if(isTransitionEndpoint(obj))
+				{
+					stateObjs.add((StateObj)obj);
+				}
+
+			}
     		if(stateObjs.size() > 1)
     		{
 	        	GeneralObj trans = new StateTransitionObj(createTCounter,currPage,this, defSTC);
@@ -1139,7 +1156,7 @@ public void updateTransitions()
 		        	for(int j = 1; j < objList.size(); j++)
 					{
 						GeneralObj obj = (GeneralObj) objList.elementAt(j);
-						if(obj.getType() != 0 && obj.isParentModified())
+						if(!isTransitionEndpoint(obj) && obj.isParentModified())
 							obj.updateObj();
 						obj.setParentModified(false);
 					}
@@ -1154,17 +1171,17 @@ public void updateTransitions()
 	        		for(int i = 0; i < selectedIndices.size(); i++)
 					{
 	        			GeneralObj obj = (GeneralObj) objList.get(selectedIndices.get(i).intValue());
-						if(obj.getType() == 0 || obj.getType() == 3)
+						if(isTransitionEndpoint(obj) || obj.getType() == 3)
 						{
 							obj.setPage(page);
-							if(obj.getType() == 0)
+							if(isTransitionEndpoint(obj))
 								obj.setModified(true);
 						}
 					}
 	        		for(int j = 1; j <objList.size(); j++)
 	        		{
 	        			GeneralObj obj = (GeneralObj) objList.elementAt(j);
-	        			if(obj.getType() != 0 && obj.isParentModified())
+						if(!isTransitionEndpoint(obj) && obj.isParentModified())
 	        			{
 							TransitionObj trans = (TransitionObj) obj;
 	        				trans.updateObjPages(page);
@@ -1174,7 +1191,7 @@ public void updateTransitions()
 	        		for(int k = 0; k < selectedIndices.size(); k++)
 					{
 	        			GeneralObj obj = (GeneralObj) objList.get(selectedIndices.get(k).intValue());
-						if(obj.getType() == 0)
+						if(isTransitionEndpoint(obj))
 						{
 							obj.setModified(false);
 						}
@@ -1204,8 +1221,8 @@ public void updateTransitions()
     	for(int j = 1; j < objList.size(); j++)
         {
         	GeneralObj obj1 = (GeneralObj)objList.get(j);
-        	if(obj1.getType() == 0 && obj1.getName().equals(name))
-        		return (StateObj) obj1;
+			if(isTransitionEndpoint(obj1) && obj1.getName().equals(name))
+				return (StateObj) obj1;
         }
         return null;
     }
@@ -1215,10 +1232,20 @@ public void updateTransitions()
         for(int j = 1; j < objList.size(); j++)
         {
         	GeneralObj obj1 = (GeneralObj)objList.get(j);
-        	if(obj1.getType() == 0 && obj1.getName().equals(input))
-        		return true;
+			if(isTransitionEndpoint(obj1) && obj1.getName().equals(input))
+				return true;
         }
         return false;
+    }
+
+    private boolean isTransitionEndpoint(GeneralObj obj)
+    {
+		return obj.getType() == 0 || obj.getType() == 4;
+    }
+
+    private boolean isTransitionEndpointType(int type)
+    {
+		return type == 0 || type == 4;
     }
 
     // update state attribute lists when global list is updated
@@ -1437,7 +1464,7 @@ public void updateTransitions()
 				}
 	
 			//if state, add transitions to delete
-				if(obj.getType() == 0)
+				if(isTransitionEndpoint(obj))
 				{
 					for(int j = 1; j < objList.size(); j++)
 					{
@@ -1629,7 +1656,7 @@ public void updateTransitions()
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj s = (GeneralObj) objList.get(i);
-			if(s.getType() == 0)
+			if(isTransitionEndpoint(s))
 				names.add(s.getName());
 		}
 		String names1[] = names.toArray(new String[names.size()]);
@@ -1777,7 +1804,7 @@ public void updateTransitions()
 		for(int j = 1; j < objList.size(); j++)
 		{
 			GeneralObj obj = (GeneralObj) objList.get(j);
-			if(obj.getType() == 0)
+			if(isTransitionEndpoint(obj))
 			{
 				StateObj obj1 = (StateObj) obj;
 				obj1.setGrid(b,i);
@@ -1871,7 +1898,7 @@ public void updateTransitions()
 				TextObj text = (TextObj) obj;
 				text.moveIfNeeded(maxW,maxH);
 			}
-			if(obj.getType() == 0)
+			if(isTransitionEndpoint(obj))
 			{
 				StateObj state = (StateObj) obj;
 				state.moveIfNeeded(maxW,maxH);
