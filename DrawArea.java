@@ -162,9 +162,16 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			for (int i = 1; i < objList.size(); i++)
 			{
 				GeneralObj s = (GeneralObj) objList.elementAt(i);
-				s.paintComponent(g2D,currPage);
+				if(s.getType() == 5)
+					s.paintComponent(g2D,currPage);
 			}
-		}  
+			for (int i = 1; i < objList.size(); i++)
+			{
+				GeneralObj s = (GeneralObj) objList.elementAt(i);
+				if(s.getType() != 5)
+					s.paintComponent(g2D,currPage);
+			}
+		}
 		if(multipleSelect)
 		{
 			g2D.setColor(Color.RED);
@@ -534,7 +541,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 					}
 					else
 					{
-						if(s.getType() == 0)
+						if(s.getType() == 0 || s.getType() == 5)
 						{
 							new StateProperties(this,frame, true, (StateObj) s)
 							.setVisible(true);
@@ -873,9 +880,12 @@ public void updateTransitions()
 			}
 			popup.add(states);
 
-			if(obj.getType() == 0)
+			if(obj.getType() == 0 || obj.getType() == 5)
 			{
-				menuItem = new JMenuItem("Edit State Properties");
+				if(obj.getType() == 5)
+					menuItem = new JMenuItem("Edit State Group Properties");
+				else
+					menuItem = new JMenuItem("Edit State Properties");
 				menuItem.setMnemonic(KeyEvent.VK_E);
 				menuItem.addActionListener(this);
 				popup.add(menuItem);
@@ -947,6 +957,10 @@ public void updateTransitions()
         menuItem.setMnemonic(KeyEvent.VK_K);
         menuItem.addActionListener(this);
         popup.add(menuItem);
+        menuItem = new JMenuItem("New State Group");
+        menuItem.setMnemonic(KeyEvent.VK_U);
+        menuItem.addActionListener(this);
+        popup.add(menuItem);
         menuItem = new JMenuItem("New State Transition");
         menuItem.setMnemonic(KeyEvent.VK_T);
         menuItem.setDisplayedMnemonicIndex(10);
@@ -983,7 +997,12 @@ public void updateTransitions()
         }
         else if(input == "Edit State Properties")
         {
-        	new StateProperties(this,frame, true, (StateObj) tempObj)
+			new StateProperties(this,frame, true, (StateObj) tempObj)
+			.setVisible(true);
+        }
+        else if(input == "Edit State Group Properties")
+        {
+			new StateProperties(this,frame, true, (StateObj) tempObj)
 			.setVisible(true);
         }
         else if(input == "Edit Loopback Transition Properties")
@@ -1034,6 +1053,15 @@ public void updateTransitions()
 			createSCounter++;
 			objList.add(fork);
 			commitUndo();
+        }
+        else if(input == "New State Group")
+        {
+			GeneralObj stateGroup = new StateGroupObj(rXTemp-StateW,rYTemp-StateH,rXTemp+StateW,rYTemp+StateH,createSCounter, currPage, defSC,grid,gridS);
+			createSCounter++;
+			objList.add(stateGroup);
+			stateGroup.updateAttrib(globalList,3);
+			new StateProperties(this,frame, true, (StateObj) stateGroup)
+			.setVisible(true);
         }
         else if(input == "New State Transition")
         {
@@ -1240,12 +1268,12 @@ public void updateTransitions()
 
     private boolean isTransitionEndpoint(GeneralObj obj)
     {
-		return obj.getType() == 0 || obj.getType() == 4;
+		return obj.getType() == 0 || obj.getType() == 4 || obj.getType() == 5;
     }
 
     private boolean isTransitionEndpointType(int type)
     {
-		return type == 0 || type == 4;
+		return type == 0 || type == 4 || type == 5;
     }
 
     // update state attribute lists when global list is updated
@@ -1259,11 +1287,11 @@ public void updateTransitions()
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj o = (GeneralObj) objList.elementAt(i);
-			if(o.getType() == 0)
+			if(o.getType() == 0 || o.getType() == 5)
 			{
 				StateObj s = (StateObj) o;
 				s.updateAttrib(globalList,3);
-				if(s.getName().equals(resetName))
+				if(s.getType() == 0 && s.getName().equals(resetName))
 					s.setReset(true);
 				else
 					s.setReset(false);
@@ -1323,7 +1351,7 @@ public void updateTransitions()
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj obj = (GeneralObj)objList.get(i);
-			if(obj.getType() == 0)
+			if(obj.getType() == 0 || obj.getType() == 5)
 			{
 				stateSet.add(obj.getName());
 				stateCounter++;
@@ -1379,10 +1407,24 @@ public void updateTransitions()
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj obj = (GeneralObj) objList.get(i);
+			if(obj.getType() == 5)
+				updateStateGroupChildren((StateGroupObj)obj);
 			obj.save(writer);
 		}
 		writer.write("## END OBJECTS\n");
 
+	}
+
+	private void updateStateGroupChildren(StateGroupObj stateGroup)
+	{
+		LinkedList<String> children = new LinkedList<String>();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj) objList.get(i);
+			if(obj.getType() == 0 && stateGroup.containsState((StateObj)obj))
+				children.add(obj.getName());
+		}
+		stateGroup.setChildNames(children);
 	}
 
 
@@ -1656,7 +1698,7 @@ public void updateTransitions()
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj s = (GeneralObj) objList.get(i);
-			if(isTransitionEndpoint(s))
+			if(s.getType() == 0)
 				names.add(s.getName());
 		}
 		String names1[] = names.toArray(new String[names.size()]);

@@ -112,6 +112,10 @@ $pbuf[0] = "";
 # Rename hashes
 %states = %state; undef %state;
 %transitions = %transition; undef %transition;
+%stategroups = %stategroup; undef %stategroup;
+
+&apply_stategroups;
+&apply_forks;
 
 # Set clk, reset_signal
 $reset_signal = $globals{machine}{reset_signal}{value};
@@ -618,8 +622,11 @@ $last_statebit = $total_statebits - 1;
 # Figure out longest state name for formatting purposes
 foreach $state (@allstates) {
   $statename_length = length($state) if (length($state) > $statename_length);
+  $display_state = &display_state_name($state);
+  $statename_ascii_length = length($display_state) if (length($display_state) > $statename_ascii_length);
 }
-$statename_length = $statename_chars if ($statename_length < $statename_chars);
+$statename_ascii_length = $statename_length if ($statename_length > $statename_ascii_length);
+$statename_ascii_length = $statename_chars if ($statename_ascii_length < $statename_chars);
 # length of "state[IDLE]"
 $statename_length_onehot = $statename_length + length($statevar) +2; 
 $nextstatename_length_onehot = $statename_length + length($nextstatevar) +2; 
@@ -2000,7 +2007,7 @@ if ($simcode && !($language eq "vhdl")) {
   &print($indent, "${comm} This code allows you to see state names in simulation\n");
   #&print($indent, "${comm} synopsys translate_off\n");
   &print($indent, "`ifndef SYNTHESIS\n");
-  &print($indent, "reg [" . ($statename_length * 8 - 1) . ":0] $statenamevar;\n");
+  &print($indent, "reg [" . ($statename_ascii_length * 8 - 1) . ":0] $statenamevar;\n");
   &print($indent++, "always @* begin\n");
   
   # State "case" block
@@ -2020,14 +2027,15 @@ if ($simcode && !($language eq "vhdl")) {
         &print($indent++,sprintf("%-${statename_length_onehot}s:","$statevar\[$state\]") . "\n");
       }
     }
-    &print($indent++,"$statenamevar = \"$state\";\n");
+    $display_state = &display_state_name($state);
+    &print($indent++,"$statenamevar = \"$display_state\";\n");
     $indent--;
     $indent--;
   }
   # add default for X
   #&print($indent++,"default:\n");
   &print($indent++,sprintf("%-${statename_length}s:","default") . "\n");
-  &print($indent++,sprintf("$statenamevar = \"%s\";\n", "X" x ($statename_length)));
+  &print($indent++,sprintf("$statenamevar = \"%s\";\n", "X" x ($statename_ascii_length)));
   $indent--;
   $indent--;
   
@@ -2625,6 +2633,15 @@ sub parse_input {
         $value =~ s/"/\\"/g;  # escape quotes for next line
         $value =~ s/\$/\\\$/g; # escape $ signs (in case code has $time...)
 
+        if (($array eq "stategroup") && ($ptr =~ /^(.*\{"children"\})\{"child"\}$/)) {
+          $base_ptr = $1;
+          $child_index = $stategroup_child_index{"${array}${base_ptr}"}++;
+          $cmd = "\$${array}${base_ptr}{\"child${child_index}\"} = \"$value\";";
+          &debug("cmd is \"$cmd\"",0,"parse_input");
+          eval $cmd unless (!$array);
+          next;
+        }
+
         $cmd = "\$${array}${ptr} = \"$value\";";
         if ($keep) {
           &debug("cmd is \"$cmd\"",0,"parse_input");
@@ -2642,6 +2659,145 @@ sub parse_input {
   #&debug("state0 vis is $states{state0}{attributes}{vis}",0,"parse_input");
   #&debug("trans0 startState is $transitions{trans0}{startState}",0,"parse_input");
   #&debug("trans0 endState is $transitions{trans0}{endState}",0,"parse_input");
+}
+
+sub apply_stategroups {
+  my ($group, $child, $att, $trans, $newtrans);
+
+  foreach $group (keys %stategroups) {
+    next unless exists $stategroups{$group}{children};
+    foreach $childkey (sort keys %{ $stategroups{$group}{children} }) {
+      next unless $childkey =~ /^child/;
+      $child = $stategroups{$group}{children}{$childkey};
+      next unless $child;
+      $state_parent_group{$child} = $group;
+
+      if (exists $states{$child}) {
+        foreach $att (keys %{ $stategroups{$group}{attributes} }) {
+          next if ($att eq "name");
+          next unless exists $stategroups{$group}{attributes}{$att}{value};
+          next if ($stategroups{$group}{attributes}{$att}{value} eq "");
+          if (!exists $states{$child}{attributes}{$att}{value} || ($states{$child}{attributes}{$att}{value} eq "")) {
+            $states{$child}{attributes}{$att}{value} = $stategroups{$group}{attributes}{$att}{value};
+          }
+        }
+      } else {
+        &warning($indent,"State group $group lists unknown child state $child");
+      }
+    }
+  }
+
+  foreach $trans (keys %transitions) {
+    $group = $transitions{$trans}{startState};
+    next unless exists $stategroups{$group};
+    %group_transition = %{ $transitions{$trans} };
+    delete $transitions{$trans};
+    foreach $childkey (sort keys %{ $stategroups{$group}{children} }) {
+      next unless $childkey =~ /^child/;
+      $child = $stategroups{$group}{children}{$childkey};
+      next unless $child;
+      $newtrans = "${trans}__${child}";
+      %{ $transitions{$newtrans} } = %group_transition;
+      $transitions{$newtrans}{startState} = $child;
+    }
+  }
+}
+
+sub apply_forks {
+  my ($trans, $start, $end, $fork, $intrans, $outtrans, $newtrans);
+  my (%incoming, %outgoing, %new_transition);
+
+  foreach $trans (keys %transitions) {
+    $start = $transitions{$trans}{startState};
+    $end = $transitions{$trans}{endState};
+    push(@{ $incoming{$end} }, $trans) if ($end && !exists $states{$end} && !exists $stategroups{$end});
+    push(@{ $outgoing{$start} }, $trans) if ($start && !exists $states{$start} && !exists $stategroups{$start});
+  }
+
+  foreach $fork (keys %incoming) {
+    next unless exists $outgoing{$fork};
+
+    foreach $intrans (@{ $incoming{$fork} }) {
+      foreach $outtrans (@{ $outgoing{$fork} }) {
+        $newtrans = "${intrans}__${outtrans}";
+        %new_transition = &merge_fork_transition($transitions{$intrans}, $transitions{$outtrans});
+        $new_transition{startState} = $transitions{$intrans}{startState};
+        $new_transition{endState} = $transitions{$outtrans}{endState};
+        $transitions{$newtrans} = { %new_transition };
+      }
+    }
+
+    foreach $intrans (@{ $incoming{$fork} }) {
+      delete $transitions{$intrans};
+    }
+    foreach $outtrans (@{ $outgoing{$fork} }) {
+      delete $transitions{$outtrans};
+    }
+  }
+
+  foreach $trans (keys %transitions) {
+    $start = $transitions{$trans}{startState};
+    $end = $transitions{$trans}{endState};
+    if (($start && !exists $states{$start} && !exists $stategroups{$start}) ||
+        ($end && !exists $states{$end} && !exists $stategroups{$end})) {
+      &warning($indent,"Transition $trans references unresolved fork endpoint $start -> $end");
+    }
+  }
+}
+
+sub merge_fork_transition {
+  my ($inref, $outref) = @_;
+  my (%merged, $att, $in_equation, $out_equation);
+
+  %merged = %{ $inref };
+  $merged{attributes} = {};
+  if (exists $inref->{attributes}) {
+    foreach $att (keys %{ $inref->{attributes} }) {
+      if (ref($inref->{attributes}{$att}) eq "HASH") {
+        $merged{attributes}{$att} = { %{ $inref->{attributes}{$att} } };
+      } else {
+        $merged{attributes}{$att} = $inref->{attributes}{$att};
+      }
+    }
+  }
+  if (exists $outref->{attributes}) {
+    foreach $att (keys %{ $outref->{attributes} }) {
+      if (ref($outref->{attributes}{$att}) eq "HASH") {
+        $merged{attributes}{$att} = { %{ $outref->{attributes}{$att} } };
+      } else {
+        $merged{attributes}{$att} = $outref->{attributes}{$att};
+      }
+    }
+  }
+
+  $in_equation = $inref->{attributes}{equation}{value};
+  $out_equation = $outref->{attributes}{equation}{value};
+  $merged{attributes}{equation}{value} = &combine_fork_equations($in_equation, $out_equation);
+
+  return %merged;
+}
+
+sub combine_fork_equations {
+  my ($in_equation, $out_equation) = @_;
+
+  $in_equation =~ s/^\s+|\s+$//g;
+  $out_equation =~ s/^\s+|\s+$//g;
+
+  if (($in_equation ne "") && ($out_equation ne "")) {
+    return "($in_equation) && ($out_equation)";
+  } elsif ($in_equation ne "") {
+    return $in_equation;
+  } else {
+    return $out_equation;
+  }
+}
+
+sub display_state_name {
+  my ($state) = @_;
+  if (exists $state_parent_group{$state}) {
+    return "$state_parent_group{$state}.$state";
+  }
+  return $state;
 }
 
 sub assign_states_hero {
@@ -3774,6 +3930,9 @@ sub set_myattributes {
       'state{"*state*"}{"attributes"}{"*output*"}{"value"}' => 'Value of output signal *state* (if *output* is an output)',
       'state{"*state*"}{"attributes"}{"vis"}' => '<internal - forces state to be parsed even if no outputs',
       'state{"*state*"}{"attributes"}{"comment"}' => 'Comment for state *state*',
+      'stategroup{"*stategroup*"}{"attributes"}{"*output*"}{"value"}' => 'Value inherited by child states in state group *stategroup*',
+      'stategroup{"*stategroup*"}{"attributes"}{"vis"}' => '<internal - forces state group to be parsed',
+      'stategroup{"*stategroup*"}{"attributes"}{"comment"}' => 'Comment for state group *stategroup*',
 
       'transition{"*transition*"}{"attributes"}{"equation"}{"value"}' => 'Transition equation for transition *transition*',
       'transition{"*transition*"}{"attributes"}{"*output*"}{"value"}' => 'Value of output signal *output* (if *output* is an output) in transition *transition*',

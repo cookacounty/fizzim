@@ -333,6 +333,17 @@ public class FileParser {
 					}
 					openFork(tempList);
 				}
+				else if(line.equals("<stategroup>") || line.equals("<substate>"))
+				{
+					String endTag = line.equals("<stategroup>") ? "</stategroup>" : "</substate>";
+					while((line = reader.readLine()) != null && !line.equals(endTag))
+					{
+						if(line.startsWith("##"))
+							continue;
+						tempList.add(line);
+					}
+					openStateGroup(tempList);
+				}
 
 				else if(line.equals("<transition>"))
 				{
@@ -414,6 +425,40 @@ public class FileParser {
 			currColor = new Color(Integer.parseInt(tempList3.get(19)));
 		ForkObj fork = new ForkObj(x0,y0,x1,y1,name,page,currColor);
 		objList.add(fork);
+		tempList.clear();
+	}
+
+	private void openStateGroup(ArrayList<String> tempList3) {
+		int startAttributes = tempList3.indexOf("<attributes>");
+		int endAttributes = tempList3.indexOf("</attributes>");
+		LinkedList<ObjAttribute> newList = new LinkedList<ObjAttribute>();
+		openAttributeList(tempList3,startAttributes+1,endAttributes-1,newList);
+		Color currColor = Color.black;
+
+		int i = endAttributes;
+		int x0 = Integer.parseInt(tempList3.get(i+2));
+		int y0 = Integer.parseInt(tempList3.get(i+5));
+		int x1 = Integer.parseInt(tempList3.get(i+8));
+		int y1 = Integer.parseInt(tempList3.get(i+11));
+		int page = Integer.parseInt(tempList3.get(i+14));
+		if(tempList3.size() > i+17 && tempList3.get(i+16).equals("<color>"))
+			currColor = new Color(Integer.parseInt(tempList3.get(i+17)));
+
+		String name = newList.get(0).getValue();
+		StateGroupObj stateGroup = new StateGroupObj(x0,y0,x1,y1,newList,name,page,currColor);
+		int startChildren = tempList3.indexOf("<children>");
+		int endChildren = tempList3.indexOf("</children>");
+		if(startChildren >= 0 && endChildren > startChildren)
+		{
+			LinkedList<String> children = new LinkedList<String>();
+			for(int j = startChildren; j < endChildren; j++)
+			{
+				if(tempList3.get(j).equals("<child>") && j+1 < endChildren)
+					children.add(tempList3.get(j+1));
+			}
+			stateGroup.setChildNames(children);
+		}
+		objList.add(stateGroup);
 		tempList.clear();
 	}
 
