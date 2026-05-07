@@ -1,51 +1,53 @@
-# kill make's automatic rcs co rule
-% : RCS/%,v
-% : v
+# Fizzim GUI build and test helper
 
-SHELL = bash
+ifneq ($(strip $(JAVA_HOME)),)
+JAVAC ?= $(JAVA_HOME)/bin/javac
+JAR ?= $(JAVA_HOME)/bin/jar
+else
+JAVAC ?= javac
+JAR ?= jar
+endif
 
-SETVERSION ?= false
+BASH ?= bash
+JAVA_SOURCES := $(wildcard *.java)
+CLASS_FILES := $(patsubst %.java,%.class,$(JAVA_SOURCES))
+JAR_NAME ?= fizzim.jar
+MANIFEST ?= manifest.txt
+JAR_ASSETS := splash.png icon.png org
 
-all: 
-	   ls *.java > /dev/null \
-	&& if [ "${SETVERSION}" == "true" ]; then \
-	     ver=`date +%g.%m.%d`; \
-	     echo "Changing FizzimGui.java to set the version to $${ver}" ; \
-	     perl -p -i -e 's/(String\s+currVer\s+=\s+").*(".*$$)/$${1}'$${ver}'$${2}/' FizzimGui.java; \
-	   fi \
-	&& version=`perl -n -e 'if (m/currVer\s*=\s*"([\d\.]+)"/) {print "$$1";}' FizzimGui.java` \
-	&& echo "Creating $${version}_jar directory" \
-	&& if [ -d $${version}_jar ]; then \
-	     rm -fr $${version}_jar; \
-	   fi \
-	&& mkdir $${version}_jar \
-	&& cd $${version}_jar \
-	&& echo "Copying java files to $${version}_jar directory" \
-	&& cp -pr ../*.java ../org ../*.png ../Makefile ./ \
-	&& echo "Running javac " \
-	&& javac -target 1.5 *.java \
-	&& echo "Main-Class: FizzimGui" > manifest.txt \
-	&& echo "Creating jar file " \
-	&& mkdir src \
-	&& mv *.java src/ \
-	&& jar cvfm fizzim_v$${version}.jar manifest.txt *.class splash.png icon.png org/ src/ Makefile > jar.log \
-	&& echo "Copying jar file back to main directory" \
-	&& cp fizzim*.jar ../ \
-	&& echo done
+.PHONY: all jar clean test test-verilog test-production help
 
+all: jar
 
-help: 
-	@echo "Makefile for fizzim gui:"
-	@echo ""
-	@echo "  make or make all : build jar file"
-	@echo "  clean            : remove generated files"
-	@echo "  help             : this output"
-	@echo ""
-	@echo "  options:"
-	@echo "    SETVERSION=true|false  : Override the version (datestamp) in FizzimGui.java"
-	@echo "                             (defaults false)"
-	@echo ""
-	@echo ""
+jar: $(JAR_NAME)
+
+$(JAR_NAME): $(JAVA_SOURCES) $(MANIFEST) splash.png icon.png
+	$(JAVAC) $(JAVA_SOURCES)
+	$(JAR) cfm $(JAR_NAME) $(MANIFEST) *.class $(JAR_ASSETS)
 
 clean:
-	rm -fr *jar *errors.log
+	rm -f *.class *.jar jar.log
+	find . -maxdepth 1 -type d -name '*_jar' -exec rm -rf {} +
+
+test: test-verilog
+
+test-verilog:
+	$(BASH) testcases/run_backend_flow.sh
+
+test-production:
+	$(BASH) testcases_production/run_backend_flow.sh
+
+help:
+	@echo "Fizzim GUI build:"
+	@echo "  make              Build $(JAR_NAME)"
+	@echo "  make jar          Build $(JAR_NAME)"
+	@echo "  make clean        Remove generated Java build artifacts"
+	@echo "  make test         Run public Verilog/backend regression"
+	@echo "  make test-verilog Run public Verilog/backend regression"
+	@echo "  make test-production"
+	@echo "                    Run local private production regression"
+	@echo ""
+	@echo "Variables:"
+	@echo "  JAVA_HOME=/path/to/jdk"
+	@echo "  JAVAC=/path/javac JAR=/path/jar BASH=/path/bash JAR_NAME=fizzim.jar"
+	@echo "  OSS_CAD_SUITE=/path/to/oss-cad-suite PERL_BIN=/path/perl"

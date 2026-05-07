@@ -9,12 +9,38 @@ To compile, run:
 make
 ```
 
-This creates a jar file with a title based on the `currVer` variable in
-`FizzimGui.java`. Update this variable whenever building for a release, or set
-it to the current date by running:
+This creates `fizzim.jar`, which can be run on Linux or Windows with:
 
 ```sh
-make SETVERSION=true
+java -jar fizzim.jar
+```
+
+On Windows, run the same commands from Git Bash. If Java is not already on
+PATH, pass your JDK location:
+
+```sh
+make JAVA_HOME=/c/Users/MEA10713/Downloads/microsoft-jdk-25.0.3-windows-x64/jdk-25.0.3+9
+```
+
+If GNU Make is not installed on Windows, this repo also includes a small
+`make.cmd` fallback with the same common targets:
+
+```bat
+make.cmd jar
+make.cmd test
+make.cmd clean
+```
+
+To remove generated Java build artifacts:
+
+```sh
+make clean
+```
+
+To run the public backend regression:
+
+```sh
+make test
 ```
 
 Fizzim on the web: www.fizzim.com
@@ -37,17 +63,17 @@ intentionally large because this debug register is not synthesized.
 
 Backend regression scripts live under `testcases/`:
 
-```sh
-# Windows, using OSS CAD Suite / Icarus / Yosys
-powershell -ExecutionPolicy Bypass -File testcases/run_backend_flow.ps1
+Use `make test` from Linux or Windows Git Bash. The test runner uses `xrun`
+when available, otherwise it falls back to Icarus Verilog and Yosys from OSS
+CAD Suite when its `bin/` directory is on PATH or `OSS_CAD_SUITE` points at the
+suite directory.
 
-# Linux, using xrun / Yosys
-bash testcases/run_backend_flow.sh
-```
-
-Both scripts regenerate Verilog from `.fzm` files using the repo-local
+The test flow regenerates Verilog from `.fzm` files using the repo-local
 `fizzim.pl` before compiling or simulating, so stale generated RTL cannot hide
-backend regressions.
+backend regressions. See `testcases/README.md` for the public testcase layout,
+including the golden machine and the equivalent fork/state-group machine. Local
+or sensitive machines should live outside `testcases/`; this repo ignores
+`testcases_production/` for that purpose.
 
 Forked transitions
 ------------------

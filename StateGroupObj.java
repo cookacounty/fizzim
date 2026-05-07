@@ -2,6 +2,7 @@ import java.awt.*;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.Vector;
 
 // A state group is a one-level parent container around real states. It can carry
 // shared state attributes and transitions, while the real states remain the
@@ -29,7 +30,6 @@ public class StateGroupObj extends StateObj {
 		if (myPage == currPage) {
 			g.setColor(getColor());
 			g.drawRoundRect(x0, y0, x1 - x0, y1 - y0, ARC, ARC);
-			g.drawString(objName, x0 + 8, y0 + 16);
 			if (getSelectStatus() != NONE) {
 				g.setColor(Color.red);
 				g.drawRoundRect(x0, y0, x1 - x0, y1 - y0, ARC, ARC);
@@ -39,11 +39,6 @@ public class StateGroupObj extends StateObj {
 				g.fillRect(x1 - 3, y1 - 3, 7, 7);
 			}
 		}
-	}
-
-	public void paintComponent(Graphics g, int i) {
-		currPage = i;
-		paintComponent(g);
 	}
 
 	public boolean containsState(StateObj state) {
@@ -61,6 +56,27 @@ public class StateGroupObj extends StateObj {
 
 	public LinkedList<String> getChildNames() {
 		return childNames;
+	}
+
+	public Vector<Point> getBorderPts() {
+		Vector<Point> borderPts = new Vector<Point>(36);
+		double cx = x0 + (x1 - x0) / 2.0;
+		double cy = y0 + (y1 - y0) / 2.0;
+		double halfW = (x1 - x0) / 2.0;
+		double halfH = (y1 - y0) / 2.0;
+
+		for (int i = 0; i < 36; i++) {
+			double angle = (2 * Math.PI / 36) * i;
+			double cos = Math.cos(angle);
+			double sin = Math.sin(angle);
+			double scaleX = cos == 0 ? Double.MAX_VALUE : halfW / Math.abs(cos);
+			double scaleY = sin == 0 ? Double.MAX_VALUE : halfH / Math.abs(sin);
+			double scale = Math.min(scaleX, scaleY);
+			int x = (int) Math.round(cx + scale * cos);
+			int y = (int) Math.round(cy + scale * sin);
+			borderPts.add(i, new Point(x, y));
+		}
+		return borderPts;
 	}
 
 	public void save(BufferedWriter writer) throws IOException {
