@@ -133,6 +133,43 @@ end
 In the GUI, a fork is drawn as a small filled dot. It is a transition endpoint,
 not an encoded state.
 
+Fork priority rules:
+
+- The transition into the fork controls where the expanded forked transitions
+  sit relative to other transitions leaving the original source state.
+- Outgoing fork branches are then sorted by their own priority. Lower numeric
+  priority values are tested first.
+- If a branch equation is `1`, it is treated as the default/fallback branch and
+  is tested after conditional branches with the same priority.
+- If the incoming transition has a priority, generated branches keep that
+  priority with a tiny ordering offset so the branch order is stable without
+  moving the whole fork above or below unrelated transitions.
+- If the incoming transition has no priority, the outgoing branch priority is
+  used directly.
+
+For example, this fork:
+
+```text
+START -- rdy, priority 20 --> FORK_RESULT
+FORK_RESULT -- error, priority 0 --> ERROR
+FORK_RESULT -- 1, priority 1 --> FINISHED
+```
+
+behaves like:
+
+```verilog
+START: begin
+  if ((rdy) && (error))
+    nextstate = ERROR;
+  else if (rdy)
+    nextstate = FINISHED;
+end
+```
+
+The backend combines fork equations with logical AND. Empty equations are
+ignored, so an unconditional branch from a fork uses only the incoming
+condition.
+
 State groups
 ------------
 
@@ -193,3 +230,93 @@ end
 The state group itself is not an encoded state. The generated FSM still uses
 the original member states, so synthesis-visible behavior should match the
 ungrouped machine.
+
+State group behavior and priority
+---------------------------------
+
+![State group fork priority example](docs/images/state-group-fork-priority.svg)
+
+A state group is a diagram and code-generation convenience, not a real encoded
+state. It has three important behaviors:
+
+- Shared state outputs are inherited by child states only when the child state
+  leaves that output blank. A child state's explicit value wins over the group
+  value.
+- A transition out of a state group is expanded into one transition from each
+  child state.
+- A transition into a state group must enter a real child state. The group
+  property editor has a `Default entry` dropdown for this. Older diagrams that
+  do not store a default entry fall back to the first child state found in the
+  group.
+
+Group exit transitions intentionally have higher priority than transitions
+authored directly inside a child state. This means a group can define a common
+escape condition that always exits the group, even if a child state's local
+transition is also true in the same cycle.
+
+For example:
+
+```text
+G_RUN contains S_RUN_A and S_RUN_B
+G_RUN default entry = S_RUN_A
+
+S_IDLE  -- start --> G_RUN
+G_RUN   -- abort --> S_ERROR
+S_RUN_A -- step  --> S_RUN_B
+```
+
+generates behavior equivalent to:
+
+```verilog
+S_IDLE: begin
+  if (start)
+    nextstate = S_RUN_A; // default entry for G_RUN
+end
+
+S_RUN_A: begin
+  if (abort)
+    nextstate = S_ERROR; // group exit wins
+  else if (step)
+    nextstate = S_RUN_B;
+end
+
+S_RUN_B: begin
+  if (abort)
+    nextstate = S_ERROR;
+end
+```
+
+When a state group transition feeds a fork, both rules still apply: the group
+transition is expanded to each child state first, then each expanded transition
+is fork-expanded. The resulting transitions stay ahead of child-authored
+transitions from the same state, and the fork's outgoing branch priorities
+decide the order among the generated branch destinations:
+
+```text
+G_RUN -- done || fail, priority 5 --> FORK_RESULT
+FORK_RESULT -- fail, priority 0 --> S_ERROR
+FORK_RESULT -- done, priority 1 --> S_DONE
+S_RUN_A -- step, priority 0 --> S_RUN_B
+```
+
+behaves like:
+
+```verilog
+S_RUN_A: begin
+  if (((done || fail)) && (fail))
+    nextstate = S_ERROR;
+  else if (((done || fail)) && (done))
+    nextstate = S_DONE;
+  else if (step)
+    nextstate = S_RUN_B;
+end
+```
+
+So the mental model is:
+
+1. Resolve state-group entry destinations.
+2. Expand state-group exits to each child state.
+3. Expand forks by combining incoming and outgoing equations.
+4. Sort transitions from each real state: state-group exits first, then lower
+   numeric priority first, then unconditional `1` fallbacks, then transition
+   name for deterministic output.

@@ -1179,6 +1179,8 @@ class StateProperties extends javax.swing.JDialog {
 		SPTable = new javax.swing.JTable();
 		SPW = new javax.swing.JLabel();
 		SPH = new javax.swing.JLabel();
+		SPEntryStateLabel = new javax.swing.JLabel();
+		SPEntryState = new javax.swing.JComboBox();
 		SPC = new javax.swing.JLabel();
 		SPWField = new javax.swing.JFormattedTextField(NumberFormat.getIntegerInstance());
 		SPHField = new javax.swing.JFormattedTextField(NumberFormat.getIntegerInstance());
@@ -1218,6 +1220,20 @@ class StateProperties extends javax.swing.JDialog {
 
 		SPW.setText("Width:");
 		SPH.setText("Height:");
+		SPEntryStateLabel.setText("Default entry:");
+		if(state.getType() == 5)
+		{
+			LinkedList<String> childNames = drawArea.getStateGroupChildNames((StateGroupObj)state);
+			for(int i = 0; i < childNames.size(); i++)
+				SPEntryState.addItem(childNames.get(i));
+			if(((StateGroupObj)state).getEntryState() != null && !((StateGroupObj)state).getEntryState().equals(""))
+				SPEntryState.setSelectedItem(((StateGroupObj)state).getEntryState());
+		}
+		else
+		{
+			SPEntryStateLabel.setVisible(false);
+			SPEntryState.setVisible(false);
+		}
 		
 		SPC.setPreferredSize(new Dimension(50,20));
 		SPC.setMinimumSize(new Dimension(50,20));
@@ -1332,6 +1348,8 @@ class StateProperties extends javax.swing.JDialog {
 																								SPW)
 																						.add(
 																								SPH)
+																						.add(
+																								SPEntryStateLabel)
 																						)
 																		.addPreferredGap(
 																				org.jdesktop.layout.LayoutStyle.RELATED)
@@ -1346,6 +1364,11 @@ class StateProperties extends javax.swing.JDialog {
 																								org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
 																						.add(
 																								SPWField,
+																								org.jdesktop.layout.GroupLayout.PREFERRED_SIZE,
+																								org.jdesktop.layout.GroupLayout.DEFAULT_SIZE,
+																								org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+																						.add(
+																								SPEntryState,
 																								org.jdesktop.layout.GroupLayout.PREFERRED_SIZE,
 																								org.jdesktop.layout.GroupLayout.DEFAULT_SIZE,
 																								org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
@@ -1463,6 +1486,19 @@ class StateProperties extends javax.swing.JDialog {
 																								org.jdesktop.layout.GroupLayout.PREFERRED_SIZE,
 																								org.jdesktop.layout.GroupLayout.DEFAULT_SIZE,
 																								org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+																		.addPreferredGap(
+																				org.jdesktop.layout.LayoutStyle.RELATED)
+																		.add(
+																				layout
+																						.createParallelGroup(
+																								org.jdesktop.layout.GroupLayout.BASELINE)
+																						.add(
+																								SPEntryStateLabel)
+																						.add(
+																								SPEntryState,
+																								org.jdesktop.layout.GroupLayout.PREFERRED_SIZE,
+																								org.jdesktop.layout.GroupLayout.DEFAULT_SIZE,
+																								org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
 																		.addContainerGap()))));
 		pack();
 	}// </editor-fold>//GEN-END:initComponents
@@ -1529,6 +1565,8 @@ class StateProperties extends javax.swing.JDialog {
 			int width = ((Number) SPWField.getValue()).intValue();
 			int height = ((Number) SPHField.getValue()).intValue();
 			state.setSize(width,height);
+			if(state.getType() == 5 && SPEntryState.getSelectedItem() != null)
+				((StateGroupObj)state).setEntryState((String)SPEntryState.getSelectedItem());
 			//make transitions redraw
 			state.setStateModifiedTrue();
 			drawArea.updateTransitions();
@@ -1563,6 +1601,8 @@ class StateProperties extends javax.swing.JDialog {
 	private javax.swing.JButton SPDelete;
 	private javax.swing.JButton SPDown;
 	private javax.swing.JLabel SPH;
+	private javax.swing.JComboBox SPEntryState;
+	private javax.swing.JLabel SPEntryStateLabel;
 	private javax.swing.JFormattedTextField SPHField;
 	private javax.swing.JLabel SPLabel;
 	private javax.swing.JButton SPNew;

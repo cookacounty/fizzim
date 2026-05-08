@@ -10,6 +10,7 @@ import java.util.Vector;
 public class StateGroupObj extends StateObj {
 
 	private LinkedList<String> childNames = new LinkedList<String>();
+	private String entryState = "";
 	private static final int ARC = 30;
 
 	public StateGroupObj(int _x0, int _y0, int _x1, int _y1, int numb, int page, Color c, boolean b, int i) {
@@ -67,6 +68,14 @@ public class StateGroupObj extends StateObj {
 		return childNames;
 	}
 
+	public void setEntryState(String name) {
+		entryState = name == null ? "" : name;
+	}
+
+	public String getEntryState() {
+		return entryState;
+	}
+
 	public Vector<Point> getBorderPts() {
 		Vector<Point> borderPts = new Vector<Point>(36);
 		double cx = x0 + (x1 - x0) / 2.0;
@@ -105,6 +114,7 @@ public class StateGroupObj extends StateObj {
 		writer.write(i(1) + "<y1>\n" + i(1) + y1 + "\n" + i(1) + "</y1>\n");
 		writer.write(i(1) + "<page>\n" + i(1) + myPage + "\n" + i(1) + "</page>\n");
 		writer.write(i(1) + "<color>\n" + i(1) + getColor().getRGB() + "\n" + i(1) + "</color>\n");
+		writer.write(i(1) + "<entryState>\n" + i(1) + entryState + "\n" + i(1) + "</entryState>\n");
 		writer.write(i(1) + "<children>\n");
 		for (int j = 0; j < childNames.size(); j++) {
 			writer.write(i(2) + "<child>\n" + i(2) + childNames.get(j) + "\n" + i(2) + "</child>\n");

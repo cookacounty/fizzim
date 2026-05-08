@@ -1528,6 +1528,19 @@ public void updateTransitions()
 				children.add(obj.getName());
 		}
 		stateGroup.setChildNames(children);
+		if(!children.contains(stateGroup.getEntryState()))
+		{
+			if(children.size() > 0)
+				stateGroup.setEntryState(children.get(0));
+			else
+				stateGroup.setEntryState("");
+		}
+	}
+
+	public LinkedList<String> getStateGroupChildNames(StateGroupObj stateGroup)
+	{
+		updateStateGroupChildren(stateGroup);
+		return stateGroup.getChildNames();
 	}
 
 

@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="380" viewBox="0 0 860 380" role="img" aria-label="State group and fork priority diagram">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fbff"/>
+      <stop offset="1" stop-color="#eef6f2"/>
+    </linearGradient>
+    <linearGradient id="groupFill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e8fbf8"/>
+      <stop offset="1" stop-color="#fff6d8"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#24313d"/>
+    </marker>
+    <filter id="shadow" x="-15%" y="-25%" width="130%" height="150%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#12202a" flood-opacity="0.14"/>
+    </filter>
+    <style>
+      text { font-family: Inter, Segoe UI, Arial, Helvetica, sans-serif; fill: #17212b; }
+      .bg { fill: url(#bg); }
+      .group { fill: url(#groupFill); stroke: #2bb3a3; stroke-width: 3; }
+      .state { fill: #ffffff; stroke: #24313d; stroke-width: 2.4; filter: url(#shadow); }
+      .fork { fill: #f4c542; stroke: #24313d; stroke-width: 2.2; filter: url(#shadow); }
+      .line { fill: none; stroke: #24313d; stroke-width: 2.7; marker-end: url(#arrow); }
+      .exit { fill: none; stroke: #d86b4a; stroke-width: 3.5; marker-end: url(#arrow); }
+      .entry { fill: none; stroke: #2bb3a3; stroke-width: 3.5; marker-end: url(#arrow); }
+      .name { font-size: 16px; font-weight: 800; text-anchor: middle; dominant-baseline: middle; }
+      .label { font-size: 14px; font-weight: 800; }
+      .note { fill: #526272; font-size: 13px; font-weight: 700; }
+      .groupName { fill: #14786f; font-size: 16px; font-weight: 900; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="860" height="380" rx="20"/>
+  <text class="note" x="38" y="40">Transition into a group enters the default child; transition out of a group has exit priority over child transitions.</text>
+
+  <ellipse class="state" cx="88" cy="188" rx="58" ry="40"/>
+  <text class="name" x="88" y="188">S_IDLE</text>
+
+  <rect class="group" x="205" y="82" width="365" height="215" rx="26"/>
+  <text class="groupName" x="228" y="115">G_RUN</text>
+
+  <ellipse class="state" cx="330" cy="162" rx="74" ry="42"/>
+  <text class="name" x="330" y="162">S_RUN_A</text>
+  <text class="note" x="282" y="218">default entry</text>
+
+  <ellipse class="state" cx="458" cy="242" rx="74" ry="42"/>
+  <text class="name" x="458" y="242">S_RUN_B</text>
+
+  <circle class="fork" cx="650" cy="188" r="12"/>
+
+  <ellipse class="state" cx="775" cy="116" rx="58" ry="38"/>
+  <text class="name" x="775" y="116">DONE</text>
+
+  <ellipse class="state" cx="775" cy="260" rx="58" ry="38"/>
+  <text class="name" x="775" y="260">ERROR</text>
+
+  <path class="entry" d="M 146 188 C 178 188 196 164 257 162"/>
+  <text class="label" x="156" y="154">start</text>
+
+  <path class="line" d="M 397 177 C 430 190 438 206 448 203"/>
+  <text class="label" x="410" y="184">step</text>
+
+  <path class="exit" d="M 570 188 C 596 188 616 188 638 188"/>
+  <text class="label" x="575" y="166">done || fail</text>
+
+  <path class="line" d="M 662 181 C 700 154 724 126 718 121"/>
+  <text class="label" x="687" y="138">done</text>
+
+  <path class="line" d="M 662 195 C 700 222 724 250 718 255"/>
+  <text class="label" x="682" y="244">fail</text>
+
+  <text class="note" x="585" y="314">If G_RUN exit and S_RUN_A step are both true, the group exit wins.</text>
+</svg>

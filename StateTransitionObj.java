@@ -43,6 +43,7 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 	int sPage,ePage;
 	
 	private boolean stub = false;
+	private boolean routeModified = false;
 	
 
 	
@@ -788,6 +789,10 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		if(startState.getPage() == endState.getPage())
 			curve.setCurve(startPt.getX(),startPt.getY(),startCtrlPt.getX(),startCtrlPt.getY(),endCtrlPt.getX(),endCtrlPt.getY(),endPt.getX(),endPt.getY());
 
+		if(selectStatus == START || selectStatus == STARTCTRL || selectStatus == ENDCTRL || selectStatus == END
+				|| selectStatus == PAGES || selectStatus == PAGESC || selectStatus == PAGEEC || selectStatus == PAGEE)
+			routeModified = true;
+
 		if(selectStatus != ALL)
 			modified = true;
 	}
@@ -955,6 +960,8 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 				|| (endState.getSelectStatus() != StateObj.TXT && endState.getSelectStatus() != StateObj.NONE))
 		{
 			if(oldS != oldE && sPage == ePage)
+				setEndPts();
+			else if(!routeModified && sPage == ePage && !stub)
 				setEndPts();
 			else
 				moveEndPts();

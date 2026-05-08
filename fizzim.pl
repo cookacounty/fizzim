@@ -2783,7 +2783,7 @@ sub parse_input {
 }
 
 sub apply_stategroups {
-  my ($group, $child, $att, $trans, $newtrans);
+  my ($group, $child, $att, $trans, $newtrans, $end, $entry);
 
   foreach $group (keys %stategroups) {
     next unless exists $stategroups{$group}{children};
@@ -2809,6 +2809,18 @@ sub apply_stategroups {
   }
 
   foreach $trans (keys %transitions) {
+    $end = $transitions{$trans}{endState};
+    if (exists $stategroups{$end}) {
+      $entry = &get_stategroup_entry_state($end);
+      if ($entry) {
+        $transitions{$trans}{endState} = $entry;
+      } else {
+        &warning($indent,"Transition $trans targets state group $end, but the group has no default entry state");
+      }
+    }
+  }
+
+  foreach $trans (keys %transitions) {
     $group = $transitions{$trans}{startState};
     next unless exists $stategroups{$group};
     %group_transition = %{ $transitions{$trans} };
@@ -2823,6 +2835,29 @@ sub apply_stategroups {
       $transitions{$newtrans}{_stategroup_transition} = 1;
     }
   }
+}
+
+sub get_stategroup_entry_state {
+  my ($group) = @_;
+  my ($childkey, $child, $fallback);
+
+  if (exists $stategroups{$group}{entryState} && $stategroups{$group}{entryState} ne "") {
+    $child = $stategroups{$group}{entryState};
+    if (exists $states{$child}) {
+      return $child;
+    }
+    &warning($indent,"State group $group default entry state $child does not exist");
+  }
+
+  if (exists $stategroups{$group}{children}) {
+    foreach $childkey (sort keys %{ $stategroups{$group}{children} }) {
+      next unless $childkey =~ /^child/;
+      $fallback = $stategroups{$group}{children}{$childkey};
+      return $fallback if ($fallback && exists $states{$fallback});
+    }
+  }
+
+  return "";
 }
 
 sub apply_forks {
@@ -4077,6 +4112,7 @@ sub set_myattributes {
       'stategroup{"*stategroup*"}{"attributes"}{"*output*"}{"value"}' => 'Value inherited by child states in state group *stategroup*',
       'stategroup{"*stategroup*"}{"attributes"}{"vis"}' => '<internal - forces state group to be parsed',
       'stategroup{"*stategroup*"}{"attributes"}{"comment"}' => 'Comment for state group *stategroup*',
+      'stategroup{"*stategroup*"}{"entryState"}' => 'Default child state entered when a transition targets state group *stategroup*',
 
       'transition{"*transition*"}{"attributes"}{"equation"}{"value"}' => 'Transition equation for transition *transition*',
       'transition{"*transition*"}{"attributes"}{"*output*"}{"value"}' => 'Value of output signal *output* (if *output* is an output) in transition *transition*',

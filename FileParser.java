@@ -446,6 +446,10 @@ public class FileParser {
 
 		String name = newList.get(0).getValue();
 		StateGroupObj stateGroup = new StateGroupObj(x0,y0,x1,y1,newList,name,page,currColor);
+		int startEntry = tempList3.indexOf("<entryState>");
+		int endEntry = tempList3.indexOf("</entryState>");
+		if(startEntry >= 0 && endEntry > startEntry && startEntry + 1 < endEntry)
+			stateGroup.setEntryState(tempList3.get(startEntry + 1));
 		int startChildren = tempList3.indexOf("<children>");
 		int endChildren = tempList3.indexOf("</children>");
 		if(startChildren >= 0 && endChildren > startChildren)
