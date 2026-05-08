@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 
-public class DrawArea extends JPanel implements MouseListener, MouseMotionListener, ActionListener,Printable {
+public class DrawArea extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener, ActionListener,Printable {
 
 	//holds all objects to be currently drawn
 	private Vector<Object> objList;
@@ -114,6 +114,11 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	
 	// global table, default tab settings
 	private int space = 20;
+	private static final double MIN_ZOOM = 0.25;
+	private static final double MAX_ZOOM = 4.0;
+	private double zoom = 1.0;
+	private int logicalWidth = 936;
+	private int logicalHeight = 1296;
 	
 
 	
@@ -144,14 +149,30 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		setBackground(Color.blue);
 		addMouseListener(this);
 	    addMouseMotionListener(this);
+	    addMouseWheelListener(this);
 
 	}
 	    
 	public void paintComponent(Graphics g)
 	{
+		Graphics2D original = (Graphics2D) g;
+		super.paintComponent(original);
+		Graphics2D g2D = (Graphics2D) original.create();
+		g2D.scale(zoom, zoom);
+		paintDiagram(g2D);
+		g2D.dispose();
+	}
+
+	public void paintUnscaled(Graphics g)
+	{
 		Graphics2D g2D = (Graphics2D) g;
-		super.paintComponent(g2D);
-		
+		g2D.setColor(getBackground());
+		g2D.fillRect(0, 0, logicalWidth, logicalHeight);
+		paintDiagram(g2D);
+	}
+
+	private void paintDiagram(Graphics2D g2D)
+	{
 		g2D.setFont(currFont);
 		g2D.setStroke(new BasicStroke(getLineWidth()));
 		g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
@@ -185,6 +206,67 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			loading = false;
 			repaint();
 		}
+	}
+
+	public double getZoom()
+	{
+		return zoom;
+	}
+
+	public void setZoom(double newZoom)
+	{
+		zoom = clampZoom(newZoom);
+		updateZoomedSize();
+		repaint();
+		notifyZoomChanged();
+	}
+
+	public void setLogicalSize(int width, int height)
+	{
+		logicalWidth = width;
+		logicalHeight = height;
+		updateZoomedSize();
+	}
+
+	public int getLogicalWidth()
+	{
+		return logicalWidth;
+	}
+
+	public int getLogicalHeight()
+	{
+		return logicalHeight;
+	}
+
+	private double clampZoom(double value)
+	{
+		return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, value));
+	}
+
+	private void updateZoomedSize()
+	{
+		Dimension size = new Dimension((int)Math.ceil(logicalWidth * zoom), (int)Math.ceil(logicalHeight * zoom));
+		setPreferredSize(size);
+		setMinimumSize(size);
+		setMaximumSize(size);
+		setSize(size);
+		revalidate();
+	}
+
+	private int modelX(MouseEvent e)
+	{
+		return (int)Math.round(e.getX() / zoom);
+	}
+
+	private int modelY(MouseEvent e)
+	{
+		return (int)Math.round(e.getY() / zoom);
+	}
+
+	private void notifyZoomChanged()
+	{
+		if(frame instanceof FizzimGui)
+			((FizzimGui)frame).updateZoomControls();
 	}
 	
 	
@@ -428,6 +510,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 
 	private GeneralObj selectTransitionEndpoint(MouseEvent e, boolean stateGroupsOnly)
 	{
+		int x = modelX(e);
+		int y = modelY(e);
 		for (int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj s = (GeneralObj) objList.elementAt(i);
@@ -438,7 +522,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			if(!stateGroupsOnly && s.getType() == 5)
 				continue;
 
-			if(s.setSelectStatus(e.getX(),e.getY()))
+			if(s.setSelectStatus(x,y))
 			{
 				if(e.getButton() == MouseEvent.BUTTON3 || e.getModifiers() == 20)
 				{
@@ -469,6 +553,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	public void mousePressed(MouseEvent e) {
 		
 		//System.out.println("mousePressed:" + " Button:" + e.getButton() + " Modifiers:" + e.getModifiers() + " Popup Trigger:" + e.isPopupTrigger() + " ControlDown:" + e.isControlDown());
+		int x = modelX(e);
+		int y = modelY(e);
 		GeneralObj bestMatch = null;
 		boolean doubleClick = false;
 		//check for double click
@@ -491,7 +577,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 					if(obj.getSelectStatus() != 0)
 					{
 						// deselect if clicked on when selected
-						if(obj.setSelectStatus(e.getX(),e.getY()))
+						if(obj.setSelectStatus(x,y))
 						{
 							obj.unselect();
 						}
@@ -502,7 +588,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 							tempIndices.add(new Integer(i));
 						}
 					}
-					else if(obj.setSelectStatus(e.getX(),e.getY()))
+					else if(obj.setSelectStatus(x,y))
 					{
 						numbSel++;
 						tempIndices.add(new Integer(i));
@@ -529,7 +615,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				for(int i = 0; i < selectedIndices.size(); i++)
 				{
 					GeneralObj obj = (GeneralObj) objList.get(selectedIndices.get(i).intValue());
-					if((isTransitionEndpoint(obj) || obj.getType() == 3) && obj.setBoxSelectStatus(e.getX(),e.getY()))
+					if((isTransitionEndpoint(obj) || obj.getType() == 3) && obj.setBoxSelectStatus(x,y))
 					{
 						move = true;
 					}
@@ -552,7 +638,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			for (int i = 1; i < objList.size(); i++)
 			{
 				GeneralObj s = (GeneralObj) objList.elementAt(i);
-				if(s.getSelectStatus() != 0 && s.setSelectStatus(e.getX(),e.getY()))
+				if(s.getSelectStatus() != 0 && s.setSelectStatus(x,y))
 				{
 					bestMatch = s;
 						
@@ -614,7 +700,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				for (int i = 1; i < objList.size(); i++)
 				{
 					GeneralObj s = (GeneralObj) objList.elementAt(i);
-					if(s.getType() == 3 && s.setSelectStatus(e.getX(),e.getY()))
+					if(s.getType() == 3 && s.setSelectStatus(x,y))
 					{
 						bestMatch = s;
 							
@@ -636,7 +722,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				for (int i = 1; i < objList.size(); i++)
 				{
 					GeneralObj s = (GeneralObj) objList.elementAt(i);
-					if((s.getType() == 1 || s.getType() == 2) && s.setSelectStatus(e.getX(),e.getY()))
+					if((s.getType() == 1 || s.getType() == 2) && s.setSelectStatus(x,y))
 					{
 						bestMatch = s;
 						int type = s.getType();
@@ -673,8 +759,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			//now do multiple select if still nothing found
 			if(bestMatch == null && e.getButton() == MouseEvent.BUTTON1 && e.getModifiers() != 20)
 			{
-				mXTemp = e.getX();
-				mYTemp = e.getY();
+				mXTemp = x;
+				mYTemp = y;
 				mX0 = 0;
 				mY0 = 0;
 				mX1 = 0;
@@ -762,8 +848,8 @@ public void updateTransitions()
 	public void mouseDragged(MouseEvent arg0) {
 
 		//keep movement within page
-		int x = arg0.getX();
-		int y = arg0.getY();
+		int x = modelX(arg0);
+		int y = modelY(arg0);
 		if(x<0)
 			x=0;
 		if(y<0)
@@ -872,23 +958,66 @@ public void updateTransitions()
 
 	public void mouseMoved(MouseEvent arg0) {
 		setToolTipText(null);
+		int x = modelX(arg0);
+		int y = modelY(arg0);
 		for (int i = objList.size() - 1; i >= 1; i--)
 		{
 			GeneralObj obj = (GeneralObj) objList.elementAt(i);
-			if(obj.getType() == 4 && ((ForkObj)obj).containsPoint(arg0.getX(), arg0.getY()))
+			if(obj.getType() == 4 && ((ForkObj)obj).containsPoint(x, y))
 			{
 				setToolTipText(obj.getName());
 				break;
 			}
 		}
 	}
+
+	public void mouseWheelMoved(MouseWheelEvent e)
+	{
+		if(!e.isControlDown())
+		{
+			return;
+		}
+
+		e.consume();
+		double oldZoom = zoom;
+		double factor = Math.pow(1.1, -e.getPreciseWheelRotation());
+		double newZoom = clampZoom(oldZoom * factor);
+		if(newZoom == oldZoom)
+			return;
+
+		JViewport viewport = (JViewport)SwingUtilities.getAncestorOfClass(JViewport.class, this);
+		Point viewPosition = null;
+		double anchorX = 0;
+		double anchorY = 0;
+		if(viewport != null)
+		{
+			viewPosition = viewport.getViewPosition();
+			anchorX = (viewPosition.x + e.getX()) / oldZoom;
+			anchorY = (viewPosition.y + e.getY()) / oldZoom;
+		}
+
+		zoom = newZoom;
+		updateZoomedSize();
+
+		if(viewport != null && viewPosition != null)
+		{
+			int newViewX = (int)Math.round(anchorX * zoom - e.getX());
+			int newViewY = (int)Math.round(anchorY * zoom - e.getY());
+			newViewX = Math.max(0, Math.min(newViewX, Math.max(0, getWidth() - viewport.getWidth())));
+			newViewY = Math.max(0, Math.min(newViewY, Math.max(0, getHeight() - viewport.getHeight())));
+			viewport.setViewPosition(new Point(newViewX, newViewY));
+		}
+
+		repaint();
+		notifyZoomChanged();
+	}
 	
 	
 	public void createPopup(GeneralObj obj, MouseEvent e)
 	{
 		// store location of click and object that is clicked on
-		rXTemp = e.getX();
-		rYTemp = e.getY();
+		rXTemp = modelX(e);
+		rYTemp = modelY(e);
 		tempObj = obj;
 
         JMenuItem menuItem;
@@ -995,8 +1124,8 @@ public void updateTransitions()
 	
 	public void createPopup(MouseEvent e)
 	{
-		rXTemp = e.getX();
-		rYTemp = e.getY();
+		rXTemp = modelX(e);
+		rYTemp = modelY(e);
 		tempObj = null;
         JMenuItem menuItem;
 
@@ -2047,10 +2176,10 @@ public void updateTransitions()
 	  		}
 	        Graphics2D g2d = (Graphics2D)g;
 	        g2d.translate(pageFormat.getImageableX(), pageFormat.getImageableY());
-	        g2d.scale(pageFormat.getImageableWidth()/this.getWidth(),pageFormat.getImageableHeight()/this.getHeight());
+	        g2d.scale(pageFormat.getImageableWidth()/logicalWidth,pageFormat.getImageableHeight()/logicalHeight);
 	       
 	        disableDoubleBuffering((Component)this);
-	        this.paint(g2d);
+	        paintUnscaled(g2d);
 	        enableDoubleBuffering((Component)this);
 	        return(PAGE_EXISTS);
 	    }

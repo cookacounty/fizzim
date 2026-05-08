@@ -144,7 +144,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		drawArea1 = new DrawArea(globalList);
 
 		drawArea1.setBackground(new java.awt.Color(255, 255, 255));
-		drawArea1.setPreferredSize(new java.awt.Dimension(maxW, maxH));	
+		drawArea1.setLogicalSize(maxW, maxH);
 
 		initComponents();
 
@@ -213,6 +213,11 @@ public class FizzimGui extends javax.swing.JFrame {
 		FileSaveAction = new MyJFileChooser("fzm");
 		ExportChooser = new MyJFileChooser("png");
 		jPanel3 = new javax.swing.JPanel();
+		zoomPanel = new javax.swing.JPanel();
+		zoomOutButton = new javax.swing.JButton();
+		zoomInButton = new javax.swing.JButton();
+		zoomFitButton = new javax.swing.JButton();
+		zoomPercentLabel = new javax.swing.JLabel();
 		jTabbedPane1 = new MyJTabbedPane();
 		jScrollPane1 = new javax.swing.JScrollPane();
 		jPanel1 = new javax.swing.JPanel();
@@ -345,6 +350,37 @@ public class FizzimGui extends javax.swing.JFrame {
 		jPanel3.add(jTabbedPane1, gridBagConstraints);
 
 		getContentPane().add(jPanel3, java.awt.BorderLayout.CENTER);
+
+		zoomPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 4, 3));
+		zoomOutButton.setText("-");
+		zoomOutButton.setToolTipText("Zoom out");
+		zoomOutButton.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ZoomOutActionPerformed(evt);
+			}
+		});
+		zoomPanel.add(zoomOutButton);
+		zoomPercentLabel.setText("100%");
+		zoomPercentLabel.setPreferredSize(new java.awt.Dimension(48, 22));
+		zoomPercentLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+		zoomPanel.add(zoomPercentLabel);
+		zoomInButton.setText("+");
+		zoomInButton.setToolTipText("Zoom in");
+		zoomInButton.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ZoomInActionPerformed(evt);
+			}
+		});
+		zoomPanel.add(zoomInButton);
+		zoomFitButton.setText("Fit");
+		zoomFitButton.setToolTipText("Zoom to fit the current page");
+		zoomFitButton.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ZoomFitActionPerformed(evt);
+			}
+		});
+		zoomPanel.add(zoomFitButton);
+		getContentPane().add(zoomPanel, java.awt.BorderLayout.NORTH);
 		
 		
 		Dimension coord = getScrollPaneSize();
@@ -780,6 +816,29 @@ public class FizzimGui extends javax.swing.JFrame {
 		}
 	}
 
+	private void ZoomOutActionPerformed(ActionEvent evt) {
+		drawArea1.setZoom(drawArea1.getZoom() / 1.25);
+	}
+
+	private void ZoomInActionPerformed(ActionEvent evt) {
+		drawArea1.setZoom(drawArea1.getZoom() * 1.25);
+	}
+
+	private void ZoomFitActionPerformed(ActionEvent evt) {
+		Dimension viewport = jScrollPane1.getViewport().getExtentSize();
+		if(viewport.width <= 0 || viewport.height <= 0)
+			return;
+		double xZoom = viewport.getWidth() / drawArea1.getLogicalWidth();
+		double yZoom = viewport.getHeight() / drawArea1.getLogicalHeight();
+		drawArea1.setZoom(Math.min(xZoom, yZoom));
+		jScrollPane1.getViewport().setViewPosition(new Point(0, 0));
+	}
+
+	public void updateZoomControls() {
+		if(zoomPercentLabel != null)
+			zoomPercentLabel.setText(Integer.toString((int)Math.round(drawArea1.getZoom() * 100)) + "%");
+	}
+
 	protected void FileExportPNGActionPerformed(ActionEvent evt) {
 		
 		try {
@@ -816,7 +875,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		BufferedImage bufferedImage = new BufferedImage(maxW,maxH, BufferedImage.TYPE_INT_RGB);
 		Graphics2D tempG = bufferedImage.createGraphics();
 		drawArea1.unselectObjs();
-		drawArea1.paintComponent(tempG);
+		drawArea1.paintUnscaled(tempG);
 		
 		//get rid of white space
 		int lX = -1;
@@ -869,7 +928,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	{
 		BufferedImage bufferedImage = new BufferedImage(maxW,maxH, BufferedImage.TYPE_INT_RGB);
 		Graphics2D tempG = bufferedImage.createGraphics();
-		drawArea1.paintComponent(tempG);
+		drawArea1.paintUnscaled(tempG);
 		
 		return bufferedImage;
 	}
@@ -953,7 +1012,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			coord.setSize(coord.width, maxH);
 		if (coord.width > maxW)
 			coord.setSize(maxW + 23, coord.height);
-		drawArea1.setSize(maxW,maxH);
+		drawArea1.setLogicalSize(maxW,maxH);
 		jTabbedPane1.setMinimumSize(coord);
 		jTabbedPane1.setSize(coord);
 		jPanel3.doLayout();
@@ -1698,6 +1757,11 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JMenuBar MenuBar;
 	private javax.swing.JPanel jPanel1;
 	private javax.swing.JPanel jPanel3;
+	private javax.swing.JPanel zoomPanel;
+	private javax.swing.JButton zoomOutButton;
+	private javax.swing.JButton zoomInButton;
+	private javax.swing.JButton zoomFitButton;
+	private javax.swing.JLabel zoomPercentLabel;
 	private javax.swing.JScrollPane jScrollPane1;
 	private javax.swing.JSeparator jSeparator1;
 	private javax.swing.JSeparator jSeparator2;
@@ -1755,10 +1819,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		maxW = w;
 		maxH = h;
 		
-		drawArea1.setPreferredSize(new java.awt.Dimension(maxW, maxH));
-		drawArea1.setMaximumSize(new java.awt.Dimension(maxW, maxH));
-		drawArea1.setMinimumSize(new java.awt.Dimension(maxW, maxH));
-		drawArea1.setSize(maxW,maxH);
+		drawArea1.setLogicalSize(maxW, maxH);
 		
 		//try to clean up resized page
 		drawArea1.updatePageConn();
