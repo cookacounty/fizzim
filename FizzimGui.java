@@ -129,9 +129,9 @@ public class FizzimGui extends javax.swing.JFrame {
 		globalStateAttributes = new LinkedList<ObjAttribute>();
 		globalTransAttributes = new LinkedList<ObjAttribute>();
 		
+		globalList.add(globalMachineAttributes);
 		globalList.add(globalInputsAttributes);
 		globalList.add(globalOutputsAttributes);
-		globalList.add(globalMachineAttributes);
 		globalList.add(globalStateAttributes);
 		globalList.add(globalTransAttributes);
 		
@@ -158,11 +158,24 @@ public class FizzimGui extends javax.swing.JFrame {
 		// set up required global attributes
                 // 0=machine, 1=inputs, 2=outputs, 3=states, 4=trans
 		int[] editable = { ObjAttribute.ABS, ObjAttribute.GLOBAL_VAR,
-				ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR };
+				ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR };
+		int[] inputEditable = { ObjAttribute.GLOBAL_FIXED, ObjAttribute.GLOBAL_VAR,
+				ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR };
 		globalList.get(0).add(new ObjAttribute("name", "def_name", 0, "","",Color.black,"","",
 				editable));
 		globalList.get(0).add(new ObjAttribute("clock", "clk", 0,
 				"posedge","",Color.black,"","",editable));
+		globalList.get(0).add(new ObjAttribute("reset_signal", "rst_l", 0,
+				"negedge","",Color.black,"","",editable));
+		globalList.get(0).add(new ObjAttribute("reset_state", "state0", 0,
+				"anyvalue","",Color.black,"","",editable));
+		globalList.get(0).add(new ObjAttribute("implied_loopback", "1", 0,
+				"attribute","",Color.black,"","",editable));
+
+		globalList.get(1).add(new ObjAttribute("clk", "", 0,
+				"","",Color.black,"","",inputEditable));
+		globalList.get(1).add(new ObjAttribute("rst_l", "", 0,
+				"","",Color.black,"","",inputEditable));
 
 		globalList.get(3).add(new ObjAttribute("name", "def_name", 1,
 				"def_type","",Color.black,"","",editable));

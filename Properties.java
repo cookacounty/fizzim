@@ -2196,7 +2196,7 @@ class GlobalProperties extends javax.swing.JDialog {
 				
 				if(!checkNames(currTable,"reset_signal"))
 				{
-					globalLists.get(0).add(new ObjAttribute("reset_signal", "resetN", 0, "negedge","",Color.black,"","",
+					globalLists.get(0).add(new ObjAttribute("reset_signal", "rst_l", 0, "negedge","",Color.black,"","",
                                         editable2));
 				}
 				if(!checkNames(currTable,"reset_state"))
