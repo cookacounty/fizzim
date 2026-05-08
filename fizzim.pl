@@ -2564,6 +2564,7 @@ sub parse_input {
 
   while (<>) {
     chomp;
+    s/\r$//;   # Handle CRLF .fzm files when parsed by Unix-style Perl.
     s/##.*$// ;# Remove comments
     s/^\s*//;  # Remove leading whitespace
 
@@ -2717,10 +2718,12 @@ sub apply_forks {
   foreach $fork (keys %incoming) {
     next unless exists $outgoing{$fork};
 
-    foreach $intrans (@{ $incoming{$fork} }) {
-      foreach $outtrans (@{ $outgoing{$fork} }) {
+    foreach $intrans (sort sort_by_priority_then_equation_equal_1 @{ $incoming{$fork} }) {
+      my @sorted_outgoing = sort sort_by_priority_then_equation_equal_1 @{ $outgoing{$fork} };
+      for (my $out_index = 0; $out_index <= $#sorted_outgoing; $out_index++) {
+        $outtrans = $sorted_outgoing[$out_index];
         $newtrans = "${intrans}__${outtrans}";
-        %new_transition = &merge_fork_transition($transitions{$intrans}, $transitions{$outtrans});
+        %new_transition = &merge_fork_transition($transitions{$intrans}, $transitions{$outtrans}, $out_index, $#sorted_outgoing + 1);
         $new_transition{startState} = $transitions{$intrans}{startState};
         $new_transition{endState} = $transitions{$outtrans}{endState};
         $transitions{$newtrans} = { %new_transition };
@@ -2746,7 +2749,7 @@ sub apply_forks {
 }
 
 sub merge_fork_transition {
-  my ($inref, $outref) = @_;
+  my ($inref, $outref, $out_index, $out_count) = @_;
   my (%merged, $att, $in_equation, $out_equation);
 
   %merged = %{ $inref };
@@ -2773,8 +2776,28 @@ sub merge_fork_transition {
   $in_equation = $inref->{attributes}{equation}{value};
   $out_equation = $outref->{attributes}{equation}{value};
   $merged{attributes}{equation}{value} = &combine_fork_equations($in_equation, $out_equation);
+  $merged{attributes}{priority}{value} = &combine_fork_priorities(
+    $inref->{attributes}{priority}{value},
+    $outref->{attributes}{priority}{value},
+    $out_index,
+    $out_count
+  );
 
   return %merged;
+}
+
+sub combine_fork_priorities {
+  my ($in_priority, $out_priority, $out_index, $out_count) = @_;
+
+  $in_priority =~ s/^\s+|\s+$//g if defined $in_priority;
+  $out_priority =~ s/^\s+|\s+$//g if defined $out_priority;
+
+  if (defined $in_priority && ($in_priority ne "")) {
+    return $in_priority if (!defined $out_count || $out_count <= 1);
+    return sprintf("%.9f", $in_priority + (($out_index + 1) / 1000000000));
+  }
+  return $out_priority if (defined $out_priority);
+  return "";
 }
 
 sub combine_fork_equations {

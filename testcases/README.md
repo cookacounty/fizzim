@@ -22,6 +22,9 @@ The generic controller is intentionally small enough to read in the GUI:
   - `FORK_RESULT` routes shared run completion logic to retry, done, or error
 - shared group outputs: `G_RUN` owns `busy=1` and `op_enable=1`
 - a shared group transition through a fork: `G_RUN -> FORK_RESULT`
+- fork branch priority handling: the shared `G_RUN -> FORK_RESULT` priority
+  stays ahead of the direct `G_RUN -> S_ERROR` abort transition, even though
+  the fork's outgoing branch priorities vary
 - debug `statename` strings for grouped states, for example `G_RUN.S_RUN_A`
 
 The feature version should generate logic equivalent to the golden version.
