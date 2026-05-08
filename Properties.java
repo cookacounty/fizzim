@@ -7,6 +7,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.text.NumberFormat;
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Vector;
 import javax.swing.border.LineBorder;
@@ -463,6 +464,55 @@ class MyJComboBoxEditor extends DefaultCellEditor {
     }
 }
 
+class AttributeTableReorder {
+	static void moveSelectedRows(JTable table, LinkedList<ObjAttribute> attributes, int direction) {
+		if (table == null || attributes == null || attributes.size() < 2)
+			return;
+		if (table.isEditing())
+			table.getCellEditor().stopCellEditing();
+
+		int[] selectedRows = table.getSelectedRows();
+		if (selectedRows.length == 0)
+			return;
+
+		int[] modelRows = new int[selectedRows.length];
+		for (int i = 0; i < selectedRows.length; i++)
+			modelRows[i] = table.convertRowIndexToModel(selectedRows[i]);
+		Arrays.sort(modelRows);
+
+		if (direction < 0) {
+			for (int i = 0; i < modelRows.length; i++) {
+				int row = modelRows[i];
+				if (row <= 0)
+					continue;
+				ObjAttribute attr = attributes.remove(row);
+				attributes.add(row - 1, attr);
+				modelRows[i] = row - 1;
+			}
+		} else {
+			for (int i = modelRows.length - 1; i >= 0; i--) {
+				int row = modelRows[i];
+				if (row >= attributes.size() - 1)
+					continue;
+				ObjAttribute attr = attributes.remove(row);
+				attributes.add(row + 1, attr);
+				modelRows[i] = row + 1;
+			}
+		}
+
+		if (table.getModel() instanceof MyTableModel)
+			((MyTableModel)table.getModel()).fireTableDataChanged();
+		table.clearSelection();
+		for (int i = 0; i < modelRows.length; i++) {
+			int viewRow = table.convertRowIndexToView(modelRows[i]);
+			if (viewRow >= 0)
+				table.addRowSelectionInterval(viewRow, viewRow);
+		}
+		table.revalidate();
+		table.repaint();
+	}
+}
+
 
 
 class TransProperties extends javax.swing.JDialog {
@@ -511,6 +561,8 @@ class TransProperties extends javax.swing.JDialog {
 		TPTable = new javax.swing.JTable();
 		TPNew = new javax.swing.JButton();
 		TPDelete = new javax.swing.JButton();
+		TPUp = new javax.swing.JButton();
+		TPDown = new javax.swing.JButton();
 		TPCancel = new javax.swing.JButton();
 		TPOK = new javax.swing.JButton();
 		jLabel1 = new javax.swing.JLabel();
@@ -563,6 +615,22 @@ class TransProperties extends javax.swing.JDialog {
 		TPDelete.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				TPDeleteActionPerformed(evt);
+			}
+		});
+
+		TPUp.setText("\u2191");
+		TPUp.setToolTipText("Move selected attribute up");
+		TPUp.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				TPUpActionPerformed(evt);
+			}
+		});
+
+		TPDown.setText("\u2193");
+		TPDown.setToolTipText("Move selected attribute down");
+		TPDown.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				TPDownActionPerformed(evt);
 			}
 		});
 
@@ -776,7 +844,15 @@ class TransProperties extends javax.swing.JDialog {
 																										.addPreferredGap(
 																												org.jdesktop.layout.LayoutStyle.RELATED)
 																										.add(
-																												TPDelete)))
+																												TPDelete)
+																										.addPreferredGap(
+																												org.jdesktop.layout.LayoutStyle.RELATED)
+																										.add(
+																												TPUp)
+																										.addPreferredGap(
+																												org.jdesktop.layout.LayoutStyle.RELATED)
+																										.add(
+																												TPDown)))
 																		.add(
 																				layout
 																						.createParallelGroup(
@@ -836,7 +912,9 @@ class TransProperties extends javax.swing.JDialog {
 														.createParallelGroup(
 																org.jdesktop.layout.GroupLayout.BASELINE)
 														.add(TPNew).add(
-																TPDelete))
+																TPDelete).add(
+																		TPUp).add(
+																				TPDown))
 										.add(22, 22, 22)
 										.add(
 												layout
@@ -991,14 +1069,24 @@ class TransProperties extends javax.swing.JDialog {
 		TPTable.revalidate();
 	}//GEN-LAST:event_TPNewActionPerformed
 
+	private void TPUpActionPerformed(java.awt.event.ActionEvent evt) {
+		AttributeTableReorder.moveSelectedRows(TPTable, trans.getAttributeList(), -1);
+	}
+
+	private void TPDownActionPerformed(java.awt.event.ActionEvent evt) {
+		AttributeTableReorder.moveSelectedRows(TPTable, trans.getAttributeList(), 1);
+	}
+
 
 	//GEN-BEGIN:variables
 	// Variables declaration - do not modify
 	private javax.swing.JButton TPCancel;
 	private javax.swing.JButton TPDelete;
+	private javax.swing.JButton TPDown;
 	private javax.swing.JLabel TPLabel;
 	private javax.swing.JButton TPNew;
 	private javax.swing.JButton TPOK;
+	private javax.swing.JButton TPUp;
 	private javax.swing.JScrollPane TPScroll;
 	private javax.swing.JTable TPTable;
 	private javax.swing.JComboBox jComboBox1;
@@ -1045,6 +1133,8 @@ class StateProperties extends javax.swing.JDialog {
 		SPOK = new javax.swing.JButton();
 		SPNew = new javax.swing.JButton();
 		SPDelete = new javax.swing.JButton();
+		SPUp = new javax.swing.JButton();
+		SPDown = new javax.swing.JButton();
 
 		setResizable(false);
 
@@ -1141,6 +1231,22 @@ class StateProperties extends javax.swing.JDialog {
 			}
 		});
 
+		SPUp.setText("\u2191");
+		SPUp.setToolTipText("Move selected attribute up");
+		SPUp.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				SPUpActionPerformed(evt);
+			}
+		});
+
+		SPDown.setText("\u2193");
+		SPDown.setToolTipText("Move selected attribute down");
+		SPDown.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				SPDownActionPerformed(evt);
+			}
+		});
+
 		org.jdesktop.layout.GroupLayout layout = new org.jdesktop.layout.GroupLayout(
 				getContentPane());
 		getContentPane().setLayout(layout);
@@ -1213,7 +1319,15 @@ class StateProperties extends javax.swing.JDialog {
 																		.addPreferredGap(
 																				org.jdesktop.layout.LayoutStyle.RELATED)
 																		.add(
-																				SPDelete)))
+																				SPDelete)
+																		.addPreferredGap(
+																				org.jdesktop.layout.LayoutStyle.RELATED)
+																		.add(
+																				SPUp)
+																		.addPreferredGap(
+																				org.jdesktop.layout.LayoutStyle.RELATED)
+																		.add(
+																				SPDown)))
 										.addContainerGap()));
 		layout
 				.setVerticalGroup(layout
@@ -1238,7 +1352,9 @@ class StateProperties extends javax.swing.JDialog {
 														.createParallelGroup(
 																org.jdesktop.layout.GroupLayout.BASELINE)
 														.add(SPNew).add(
-																SPDelete))
+																SPDelete).add(
+																		SPUp).add(
+																				SPDown))
 										.add(
 												layout
 														.createParallelGroup(
@@ -1329,6 +1445,14 @@ class StateProperties extends javax.swing.JDialog {
 		//notify attribute list?
 	}//GEN-LAST:event_SPDeleteActionPerformed
 
+	private void SPUpActionPerformed(java.awt.event.ActionEvent evt) {
+		AttributeTableReorder.moveSelectedRows(SPTable, state.getAttributeList(), -1);
+	}
+
+	private void SPDownActionPerformed(java.awt.event.ActionEvent evt) {
+		AttributeTableReorder.moveSelectedRows(SPTable, state.getAttributeList(), 1);
+	}
+
 	//GEN-FIRST:event_SPOKActionPerformed
 	private void SPOKActionPerformed(java.awt.event.ActionEvent evt) {
 		SPTable.editCellAt(0,0);
@@ -1384,11 +1508,13 @@ class StateProperties extends javax.swing.JDialog {
 	// Variables declaration - do not modify
 	private javax.swing.JButton SPCancel;
 	private javax.swing.JButton SPDelete;
+	private javax.swing.JButton SPDown;
 	private javax.swing.JLabel SPH;
 	private javax.swing.JFormattedTextField SPHField;
 	private javax.swing.JLabel SPLabel;
 	private javax.swing.JButton SPNew;
 	private javax.swing.JButton SPOK;
+	private javax.swing.JButton SPUp;
 	private javax.swing.JScrollPane SPScroll;
 	private javax.swing.JTable SPTable;
 	private javax.swing.JLabel SPW;
@@ -1518,6 +1644,8 @@ class GlobalProperties extends javax.swing.JDialog {
 			GPOption4 = new javax.swing.JButton();
 			GPOption5 = new javax.swing.JButton();
 			GPOption6 = new javax.swing.JButton();
+			GPUp = new javax.swing.JButton();
+			GPDown = new javax.swing.JButton();
 			
 			setTitle("Edit Global Properties");
 			setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
@@ -1664,6 +1792,22 @@ class GlobalProperties extends javax.swing.JDialog {
 			});
 			GPOption6.setVisible(false);
 
+			GPUp.setText("\u2191");
+			GPUp.setToolTipText("Move selected attribute up");
+			GPUp.addActionListener(new java.awt.event.ActionListener() {
+				public void actionPerformed(java.awt.event.ActionEvent evt) {
+					GPUpActionPerformed(evt);
+				}
+			});
+
+			GPDown.setText("\u2193");
+			GPDown.setToolTipText("Move selected attribute down");
+			GPDown.addActionListener(new java.awt.event.ActionListener() {
+				public void actionPerformed(java.awt.event.ActionEvent evt) {
+					GPDownActionPerformed(evt);
+				}
+			});
+
 			org.jdesktop.layout.GroupLayout layout = new org.jdesktop.layout.GroupLayout(
 					getContentPane());
 			getContentPane().setLayout(layout);
@@ -1720,7 +1864,15 @@ class GlobalProperties extends javax.swing.JDialog {
 																									.addPreferredGap(
 																											org.jdesktop.layout.LayoutStyle.RELATED)
 																											.add(
-																													GPOption6)))
+																													GPOption6)
+																											.addPreferredGap(
+																													org.jdesktop.layout.LayoutStyle.RELATED)
+																											.add(
+																													GPUp)
+																											.addPreferredGap(
+																													org.jdesktop.layout.LayoutStyle.RELATED)
+																											.add(
+																													GPDown)))
 											.addContainerGap()));
 			layout
 					.setVerticalGroup(layout
@@ -1749,7 +1901,7 @@ class GlobalProperties extends javax.swing.JDialog {
 																	org.jdesktop.layout.GroupLayout.BASELINE)
 															.add(GPOption1).add(
 																	GPOption2).add(
-																			GPOption3).add(GPOption4).add(GPOption5).add(GPOption6))
+																			GPOption3).add(GPOption4).add(GPOption5).add(GPOption6).add(GPUp).add(GPDown))
 											.addPreferredGap(
 													org.jdesktop.layout.LayoutStyle.RELATED,
 													40, Short.MAX_VALUE)
@@ -2028,6 +2180,14 @@ class GlobalProperties extends javax.swing.JDialog {
 			
 			
 		}
+
+		private void GPUpActionPerformed(java.awt.event.ActionEvent evt) {
+			AttributeTableReorder.moveSelectedRows(currTable, globalLists.get(currTab), -1);
+		}
+
+		private void GPDownActionPerformed(java.awt.event.ActionEvent evt) {
+			AttributeTableReorder.moveSelectedRows(currTable, globalLists.get(currTab), 1);
+		}
 		
 		
 		private boolean checkNames(JTable currTable2, String string) {
@@ -2103,9 +2263,11 @@ class GlobalProperties extends javax.swing.JDialog {
 		private javax.swing.JButton GPOption4;
 		private javax.swing.JButton GPOption5;
 		private javax.swing.JButton GPOption6;
+		private javax.swing.JButton GPDown;
 		private javax.swing.JLabel GPLabel;
 		private javax.swing.JLabel GPLabel2;
 		private javax.swing.JButton GPOK;
+		private javax.swing.JButton GPUp;
 		private javax.swing.JScrollPane GPScrollMachine;
 		private javax.swing.JScrollPane GPScrollState;
 		private javax.swing.JScrollPane GPScrollTrans;

@@ -1,7 +1,15 @@
-fizzim
-======
+# Fizzim 2.0
 
-Finite State Machine design tool.
+Finite State Machine design tool for building readable FSM diagrams and
+generating Verilog/SystemVerilog.
+
+![Fizzim 2.0 overview](docs/images/fizzim-2-overview.svg)
+
+## Credits
+
+Fizzim was originally written by Michael Zimmer of Zimmer Design Services.
+Fizzim 2.0 feature updates, including forked transitions and state groups, were
+added by Aaron Cook.
 
 To compile, run:
 
