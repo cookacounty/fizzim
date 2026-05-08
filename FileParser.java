@@ -333,6 +333,17 @@ public class FileParser {
 					}
 					openFork(tempList);
 				}
+				else if(line.equals("<stategroup>") || line.equals("<substate>"))
+				{
+					String endTag = line.equals("<stategroup>") ? "</stategroup>" : "</substate>";
+					while((line = reader.readLine()) != null && !line.equals(endTag))
+					{
+						if(line.startsWith("##"))
+							continue;
+						tempList.add(line);
+					}
+					openStateGroup(tempList);
+				}
 
 				else if(line.equals("<transition>"))
 				{
@@ -414,6 +425,40 @@ public class FileParser {
 			currColor = new Color(Integer.parseInt(tempList3.get(19)));
 		ForkObj fork = new ForkObj(x0,y0,x1,y1,name,page,currColor);
 		objList.add(fork);
+		tempList.clear();
+	}
+
+	private void openStateGroup(ArrayList<String> tempList3) {
+		int startAttributes = tempList3.indexOf("<attributes>");
+		int endAttributes = tempList3.indexOf("</attributes>");
+		LinkedList<ObjAttribute> newList = new LinkedList<ObjAttribute>();
+		openAttributeList(tempList3,startAttributes+1,endAttributes-1,newList);
+		Color currColor = Color.black;
+
+		int i = endAttributes;
+		int x0 = Integer.parseInt(tempList3.get(i+2));
+		int y0 = Integer.parseInt(tempList3.get(i+5));
+		int x1 = Integer.parseInt(tempList3.get(i+8));
+		int y1 = Integer.parseInt(tempList3.get(i+11));
+		int page = Integer.parseInt(tempList3.get(i+14));
+		if(tempList3.size() > i+17 && tempList3.get(i+16).equals("<color>"))
+			currColor = new Color(Integer.parseInt(tempList3.get(i+17)));
+
+		String name = newList.get(0).getValue();
+		StateGroupObj stateGroup = new StateGroupObj(x0,y0,x1,y1,newList,name,page,currColor);
+		int startChildren = tempList3.indexOf("<children>");
+		int endChildren = tempList3.indexOf("</children>");
+		if(startChildren >= 0 && endChildren > startChildren)
+		{
+			LinkedList<String> children = new LinkedList<String>();
+			for(int j = startChildren; j < endChildren; j++)
+			{
+				if(tempList3.get(j).equals("<child>") && j+1 < endChildren)
+					children.add(tempList3.get(j+1));
+			}
+			stateGroup.setChildNames(children);
+		}
+		objList.add(stateGroup);
 		tempList.clear();
 	}
 
@@ -595,112 +640,132 @@ public class FileParser {
 
 	private void openAttributeList(ArrayList<String> list,
 			int start, int end, LinkedList<ObjAttribute> newList) {
-                        int pointer;
+		int pointer = start;
 
-		while(start < end-2)
+		while(pointer <= end)
 		{
-	
-                        // This is a little hokey.  Fields are grabbed using
-                        // absolute offsets.  As fields are added, the
-                        // pointers have to be adjusted accordingly.
-                        // These easiest way to understand this is to pull up a .fzm file in a editor with the line
-                        // numbers turned on.
-                        pointer = start;
-			String name = list.get(start).substring(1,list.get(start).length()-1);
-                        pointer += 2;
-			String nameStatus = list.get(pointer);
-                        pointer += 2; // skip over </status>
+			String line = list.get(pointer);
+			if(!isOpenTag(line))
+			{
+				pointer++;
+				continue;
+			}
 
-                        pointer += 1; // go to value
-			String value = list.get(pointer);
-                        pointer += 2; // go to status
-			String valueStatus = list.get(pointer);
-                        pointer += 3; // skip to next
+			String name = tagName(line);
+			int attrEnd = findMatchingEndTag(list, name, pointer, end);
+			if(attrEnd < 0)
+				break;
 
-                        pointer += 1; // go to value
-			String vis = list.get(pointer);
-                        pointer += 2; // go to status
-			String visStatus = list.get(pointer);
-                        pointer += 3; // skip over end
+			String nameStatus = firstStatus(list, pointer + 1, attrEnd, "ABS");
+			String value = tagValue(list, pointer, attrEnd, "value", "");
+			String valueStatus = tagStatus(list, pointer, attrEnd, "value", "GLOBAL_VAR");
+			String vis = tagValue(list, pointer, attrEnd, "vis", "0");
+			String visStatus = tagStatus(list, pointer, attrEnd, "vis", "GLOBAL_VAR");
+			String type = tagValue(list, pointer, attrEnd, "type", "");
+			String typeStatus = tagStatus(list, pointer, attrEnd, "type", "GLOBAL_VAR");
+			String comm = tagValue(list, pointer, attrEnd, "comment", "");
+			String commStatus = tagStatus(list, pointer, attrEnd, "comment", "GLOBAL_VAR");
+			String currColorStatus = tagStatus(list, pointer, attrEnd, "color", "GLOBAL_VAR");
+			String useratts = tagValue(list, pointer, attrEnd, "useratts", "");
+			String userattsStatus = tagStatus(list, pointer, attrEnd, "useratts", "GLOBAL_VAR");
+			String resetval = tagValue(list, pointer, attrEnd, "resetval", "");
+			String resetvalStatus = tagStatus(list, pointer, attrEnd, "resetval", "GLOBAL_VAR");
 
-                        pointer += 1; // go to value
-			String type = list.get(pointer);
-                        pointer += 2; // go to status
-			String typeStatus = list.get(pointer);
-                        pointer += 3; // skip over end
-
-
-                        // version dependent fields
-			String comm = "";
-			String commStatus = "GLOBAL_VAR";
 			Color currColor = Color.black;
-			String currColorStatus = "GLOBAL_VAR";
-                        String useratts = "";
-                        String userattsStatus = "GLOBAL_VAR";
-                        String resetval = "";
-                        String resetvalStatus = "GLOBAL_VAR";
-
-			if(ver >= 70925)
-			{
-	
-                                pointer += 1; // go to value
-				comm = list.get(pointer);
-                                pointer += 2; // go to status
-				commStatus = list.get(pointer);
-                                pointer += 3; // skip over end
-
-                                pointer += 1; // go to value
-				currColor = new Color(Integer.parseInt(list.get(pointer)));
-                                pointer += 2; // go to status
-				currColorStatus = list.get(pointer);
-                                pointer += 3; // skip over end
+			try {
+				currColor = new Color(Integer.parseInt(tagValue(list, pointer, attrEnd, "color", "-16777216")));
+			} catch (NumberFormatException nfe) {
+				currColor = Color.black;
 			}
 
-			if(ver >= 110222)
-			{
-                                pointer += 1; // go to value
-			        useratts = list.get(pointer); // includes the offset from ver changes above (while will always be there)
-                                pointer += 2; // go to status
-			        userattsStatus = list.get(pointer);
-                                pointer += 3; // skip over end
-			}
-			
-			if(ver >= 110302)
-			{
-                                pointer += 1; // go to value
-                                resetval = list.get(pointer); // includes the offset from ver changes above (while will always be there)
-                                pointer += 2; // go to status
-                                resetvalStatus = list.get(pointer);
-                                pointer += 3; // skip over end
-			}
-			
-			
-                        //System.out.println("before x stuff, pointer is " + pointer);
+			int x2Obj = intTagValue(list, pointer, attrEnd, "x2Obj", 0);
+			int y2Obj = intTagValue(list, pointer, attrEnd, "y2Obj", 0);
+			int page = intTagValue(list, pointer, attrEnd, "page", -1);
 
-                        pointer += 1; // go to value
-			int x2Obj = Integer.parseInt(list.get(pointer));
-                        pointer += 2; // skip over end
-
-                        pointer += 1; // go to value
-			int y2Obj = Integer.parseInt(list.get(pointer));
-                        pointer += 2; // skip over end
-
-                        pointer += 1; // go to value
-			int page = Integer.parseInt(list.get(pointer));
-                        pointer += 2; // skip over end
-
-	
 			ObjAttribute obj = new ObjAttribute(name,nameStatus,value,valueStatus,vis,visStatus,type,typeStatus,
 					comm,commStatus, currColor, currColorStatus,useratts,userattsStatus,resetval,resetvalStatus,x2Obj, y2Obj, page);
 
 			newList.add(obj);
-
-                        pointer += 1; // go to next
-                        //System.out.println("new pointer is " + pointer);
-			start = pointer;
-			
+			pointer = attrEnd + 1;
 		}
-		
-		
+	}
+
+	private boolean isOpenTag(String line) {
+		return line.startsWith("<") && line.endsWith(">") && !line.startsWith("</");
+	}
+
+	private String tagName(String line) {
+		return line.substring(1,line.length()-1);
+	}
+
+	private int findTag(ArrayList<String> list, String tag, int start, int end) {
+		for(int i = start; i <= end && i < list.size(); i++)
+			if(list.get(i).equals(tag))
+				return i;
+		return -1;
+	}
+
+	private int findMatchingEndTag(ArrayList<String> list, String tag, int start, int end) {
+		int depth = 0;
+		String openTag = "<" + tag + ">";
+		String closeTag = "</" + tag + ">";
+		for(int i = start; i <= end && i < list.size(); i++) {
+			String line = list.get(i);
+			if(line.equals(openTag))
+				depth++;
+			else if(line.equals(closeTag)) {
+				depth--;
+				if(depth == 0)
+					return i;
+			}
+		}
+		return -1;
+	}
+
+	private String firstStatus(ArrayList<String> list, int start, int end, String def) {
+		int status = findTag(list, "<status>", start, end);
+		if(status >= 0 && status + 1 <= end)
+			return list.get(status + 1);
+		return def;
+	}
+
+	private String tagValue(ArrayList<String> list, int start, int end, String tag, String def) {
+		int tagStart = findDirectChildTag(list, tag, start + 1, end - 1);
+		if(tagStart >= 0 && tagStart + 1 <= end)
+			return list.get(tagStart + 1);
+		return def;
+	}
+
+	private String tagStatus(ArrayList<String> list, int start, int end, String tag, String def) {
+		int tagStart = findDirectChildTag(list, tag, start + 1, end - 1);
+		if(tagStart < 0)
+			return def;
+		int tagEnd = findMatchingEndTag(list, tag, tagStart, end);
+		if(tagStart >= 0 && tagEnd >= 0)
+			return firstStatus(list, tagStart + 1, tagEnd - 1, def);
+		return def;
+	}
+
+	private int findDirectChildTag(ArrayList<String> list, String tag, int start, int end) {
+		int depth = 0;
+		String openTag = "<" + tag + ">";
+		for(int i = start; i <= end && i < list.size(); i++) {
+			String line = list.get(i);
+			if(depth == 0 && line.equals(openTag))
+				return i;
+			if(isOpenTag(line))
+				depth++;
+			else if(line.startsWith("</") && line.endsWith(">") && depth > 0)
+				depth--;
+		}
+		return -1;
+	}
+
+	private int intTagValue(ArrayList<String> list, int start, int end, String tag, int def) {
+		try {
+			return Integer.parseInt(tagValue(list, start, end, tag, Integer.toString(def)));
+		} catch (NumberFormatException nfe) {
+			return def;
+		}
 	}
 }

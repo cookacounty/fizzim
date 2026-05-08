@@ -2,4 +2,7 @@
 *.class
 
 # Local/sensitive testcase state machines
-testcases/
+testcases_production/
+
+# Generated public testcase outputs
+testcases/generated/

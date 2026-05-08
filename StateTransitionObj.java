@@ -155,7 +155,7 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj obj = (GeneralObj)objList.get(i);
-			if(obj.getType() == 0 || obj.getType() == 4)
+			if(obj.getType() == 0 || obj.getType() == 4 || obj.getType() == 5)
 			{
 				if(obj.getName().equals(startS))
 				{
@@ -167,10 +167,17 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 				}
 			}
 		}
+		if (startState == null || endState == null) {
+			return;
+		}
 		startBorderPts = startState.getBorderPts();
 		endBorderPts = endState.getBorderPts();
 		sPage = startState.getPage();
 		ePage = endState.getPage();
+		if (!stub && (startStateIndex < 0 || endStateIndex < 0
+				|| startState.getType() == 5 || endState.getType() == 5)) {
+			setEndPts();
+		}
 		
 		if(stub)
 		{
