@@ -445,6 +445,11 @@ public class ObjAttribute implements Cloneable {
 		}
 		
 	}
+
+	public void resetTextOffset() {
+		x2Obj = 0;
+		y2Obj = 0;
+	}
 	
 	public int getPage()
 	{

@@ -192,13 +192,62 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 	{
 		if(startState != start || endState != end)
 		{
+			int oldS = sPage;
+			int oldE = ePage;
 			startState = start;
 			endState = end;
 			setEndPts();
+			updateAttributePagesAfterEndpointChange(oldS, oldE);
+			resetAttributeTextOffsets();
 			ready = true;
 		}			
 		if(sPage != ePage)
 			drawArea.pageConnUpdate(startState,endState);
+	}
+
+	private void updateAttributePagesAfterEndpointChange(int oldS, int oldE)
+	{
+		if(attrib == null)
+			return;
+
+		if(oldS != sPage && oldS != oldE)
+		{
+			for(int i = 0; i < attrib.size();i++)
+			{
+				ObjAttribute obj = attrib.get(i);
+				if(obj.getPage() == oldS)
+					obj.setPage(sPage);
+			}
+		}
+		if(oldE != ePage && oldS != oldE)
+		{
+			for(int i = 0; i < attrib.size();i++)
+			{
+				ObjAttribute obj = attrib.get(i);
+				if(obj.getPage() == oldE)
+					obj.setPage(ePage);
+			}
+		}
+		if(sPage != ePage && oldS == oldE)
+		{
+			for(int i = 0; i < attrib.size();i++)
+			{
+				ObjAttribute obj = attrib.get(i);
+				obj.setPage(sPage);
+			}
+		}
+	}
+
+	private void resetAttributeTextOffsets()
+	{
+		if(attrib == null)
+			return;
+
+		for(int i = 0; i < attrib.size(); i++)
+		{
+			ObjAttribute obj = attrib.get(i);
+			obj.resetTextOffset();
+		}
 	}
 	
 	@SuppressWarnings("unchecked")
