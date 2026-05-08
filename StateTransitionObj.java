@@ -175,18 +175,63 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		endBorderPts = endState.getBorderPts();
 		sPage = startState.getPage();
 		ePage = endState.getPage();
-		if (!stub && (startStateIndex < 0 || endStateIndex < 0
+		if (!stub && shouldSnapLoadedEndpointsToBorder()) {
+			snapLoadedEndpointsToBorder();
+		}
+		else if (!stub && (startStateIndex < 0 || endStateIndex < 0
 				|| startState.getType() == 5 || endState.getType() == 5)) {
 			setEndPts();
 		}
 		
 		if(stub)
 		{
-			angle = getAngle(startPt,startState.getRealCenter(myPage));
-			len = (int) startPt.distance(pageS);
+			snapLoadedStubToBorder();
 		}
 		
 		
+	}
+
+	private boolean shouldSnapLoadedEndpointsToBorder()
+	{
+		return startStateIndex >= 0 && startStateIndex < startBorderPts.size()
+				&& endStateIndex >= 0 && endStateIndex < endBorderPts.size()
+				&& startPt != null && endPt != null
+				&& startCtrlPt != null && endCtrlPt != null
+				&& startState.getType() != 5 && endState.getType() != 5
+				&& sPage == ePage;
+	}
+
+	private void snapLoadedEndpointsToBorder()
+	{
+		Point oldStartPt = new Point(startPt);
+		Point oldEndPt = new Point(endPt);
+		Point newStartPt = startBorderPts.get(startStateIndex);
+		Point newEndPt = endBorderPts.get(endStateIndex);
+		int startDx = newStartPt.x - oldStartPt.x;
+		int startDy = newStartPt.y - oldStartPt.y;
+		int endDx = newEndPt.x - oldEndPt.x;
+		int endDy = newEndPt.y - oldEndPt.y;
+
+		startPt = new Point(newStartPt);
+		endPt = new Point(newEndPt);
+		startCtrlPt = new Point(startCtrlPt.x + startDx, startCtrlPt.y + startDy);
+		endCtrlPt = new Point(endCtrlPt.x + endDx, endCtrlPt.y + endDy);
+		curve = new CubicCurve2D.Double(startPt.getX(), startPt.getY(), startCtrlPt.getX(), startCtrlPt.getY(),
+				endCtrlPt.getX(), endCtrlPt.getY(), endPt.getX(), endPt.getY());
+	}
+
+	private void snapLoadedStubToBorder()
+	{
+		if(startStateIndex < 0 || startStateIndex >= startBorderPts.size())
+			startStateIndex = 0;
+		Point oldStartPt = startPt == null ? startBorderPts.get(startStateIndex) : startPt;
+		Point oldPageS = pageS == null ? new Point(oldStartPt.x + 60, oldStartPt.y) : pageS;
+		int pageDx = oldPageS.x - oldStartPt.x;
+		int pageDy = oldPageS.y - oldStartPt.y;
+		startPt = new Point(startBorderPts.get(startStateIndex));
+		pageS = new Point(startPt.x + pageDx, startPt.y + pageDy);
+		len = (int) startPt.distance(pageS);
+		angle = getAngle(pageS,startPt);
 	}
     
 	public void initTrans(StateObj start, StateObj end)

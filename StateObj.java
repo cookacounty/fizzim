@@ -40,6 +40,7 @@ public class StateObj extends GeneralObj implements Cloneable {
 	public static final int TXT = 6;
 	private boolean reset = false;
 	private boolean defaultGroupEntry = false;
+	private static final int ARC = 24;
 
 	// grid
 	private boolean grid = false;
@@ -98,12 +99,15 @@ public class StateObj extends GeneralObj implements Cloneable {
 			// this is safe because resizeObj makes sure y1 > y0 and x1 > x0
 			Graphics2D g2D = (Graphics2D) g;
 			Stroke oldStroke = g2D.getStroke();
+			g2D.setColor(Color.white);
+			g2D.fillRoundRect(x0, y0, x1 - x0, y1 - y0, ARC, ARC);
+			g2D.setColor(color);
 			if(defaultGroupEntry)
 				g2D.setStroke(new BasicStroke(3.0f));
-			g.drawOval(x0, y0, x1 - x0, y1 - y0);
+			g.drawRoundRect(x0, y0, x1 - x0, y1 - y0, ARC, ARC);
 			g2D.setStroke(oldStroke);
 			if (reset)
-				g.drawOval(x0 - 3, y0 - 3, x1 - x0 + 6, y1 - y0 + 6);
+				g.drawRoundRect(x0 - 3, y0 - 3, x1 - x0 + 6, y1 - y0 + 6, ARC, ARC);
 
 			// draw control points
 			if (selectStatus != NONE) {
@@ -278,16 +282,41 @@ public class StateObj extends GeneralObj implements Cloneable {
 		return 0;
 	}
 
-	// creats array of points around the circle
+	// creates array of points around the rounded rectangle boundary
 	public Vector<Point> getBorderPts() {
-		Vector<Point> borderPts = new Vector<Point>(36);
+		return getRectangleBorderPts(36);
+	}
+
+	protected Vector<Point> getRectangleBorderPts(int pointCount) {
+		Vector<Point> borderPts = new Vector<Point>(pointCount);
+		double cx = x0 + (x1 - x0) / 2.0;
+		double cy = y0 + (y1 - y0) / 2.0;
+		double halfW = (x1 - x0) / 2.0;
+		double halfH = (y1 - y0) / 2.0;
+
+		for (int i = 0; i < pointCount; i++) {
+			double angle = (2 * Math.PI / pointCount) * i;
+			double cos = Math.cos(angle);
+			double sin = Math.sin(angle);
+			double scaleX = cos == 0 ? Double.MAX_VALUE : halfW / Math.abs(cos);
+			double scaleY = sin == 0 ? Double.MAX_VALUE : halfH / Math.abs(sin);
+			double scale = Math.min(scaleX, scaleY);
+			int x = (int) Math.round(cx + scale * cos);
+			int y = (int) Math.round(cy + scale * sin);
+			borderPts.add(i, new Point(x, y));
+		}
+		return borderPts;
+	}
+
+	protected Vector<Point> getOvalBorderPts(int pointCount) {
+		Vector<Point> borderPts = new Vector<Point>(pointCount);
 		int w = x1 - x0;
 		int h = y1 - y0;
-		for (int i = 0; i < 36; i++) {
+		for (int i = 0; i < pointCount; i++) {
 			int x = (int) ((x0 + w / 2) + (w / 2)
-					* Math.cos((double) (2 * Math.PI / 36) * i));
+					* Math.cos((double) (2 * Math.PI / pointCount) * i));
 			int y = (int) ((y0 + h / 2) + (h / 2)
-					* Math.sin((double) (2 * Math.PI / 36) * i));
+					* Math.sin((double) (2 * Math.PI / pointCount) * i));
 			Point coord = new Point(x, y);
 			borderPts.add(i, coord);
 		}

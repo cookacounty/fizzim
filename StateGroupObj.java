@@ -12,6 +12,7 @@ public class StateGroupObj extends StateObj {
 	private LinkedList<String> childNames = new LinkedList<String>();
 	private String entryState = "";
 	private static final int ARC = 30;
+	private static final Color GROUP_FILL = new Color(240, 247, 255);
 
 	public StateGroupObj(int _x0, int _y0, int _x1, int _y1, int numb, int page, Color c, boolean b, int i) {
 		super(_x0, _y0, _x1, _y1, numb, page, c, b, i);
@@ -29,15 +30,22 @@ public class StateGroupObj extends StateObj {
 
 	public void paintComponent(Graphics g) {
 		if (myPage == currPage) {
-			g.setColor(getColor());
-			g.drawRoundRect(x0, y0, x1 - x0, y1 - y0, ARC, ARC);
+			Graphics2D g2D = (Graphics2D) g;
+			Stroke oldStroke = g2D.getStroke();
+			g2D.setColor(GROUP_FILL);
+			g2D.fillRoundRect(x0, y0, x1 - x0, y1 - y0, ARC, ARC);
+			g2D.setColor(getColor());
+			float width = oldStroke instanceof BasicStroke ? ((BasicStroke)oldStroke).getLineWidth() : 1.0f;
+			g2D.setStroke(new BasicStroke(width, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 10.0f, new float[] {8.0f, 5.0f}, 0.0f));
+			g2D.drawRoundRect(x0, y0, x1 - x0, y1 - y0, ARC, ARC);
+			g2D.setStroke(oldStroke);
 			if (getSelectStatus() != NONE) {
-				g.setColor(Color.red);
-				g.drawRoundRect(x0, y0, x1 - x0, y1 - y0, ARC, ARC);
-				g.fillRect(x0 - 3, y0 - 3, 7, 7);
-				g.fillRect(x1 - 3, y0 - 3, 7, 7);
-				g.fillRect(x0 - 3, y1 - 3, 7, 7);
-				g.fillRect(x1 - 3, y1 - 3, 7, 7);
+				g2D.setColor(Color.red);
+				g2D.drawRoundRect(x0, y0, x1 - x0, y1 - y0, ARC, ARC);
+				g2D.fillRect(x0 - 3, y0 - 3, 7, 7);
+				g2D.fillRect(x1 - 3, y0 - 3, 7, 7);
+				g2D.fillRect(x0 - 3, y1 - 3, 7, 7);
+				g2D.fillRect(x1 - 3, y1 - 3, 7, 7);
 			}
 		}
 	}
@@ -77,24 +85,7 @@ public class StateGroupObj extends StateObj {
 	}
 
 	public Vector<Point> getBorderPts() {
-		Vector<Point> borderPts = new Vector<Point>(36);
-		double cx = x0 + (x1 - x0) / 2.0;
-		double cy = y0 + (y1 - y0) / 2.0;
-		double halfW = (x1 - x0) / 2.0;
-		double halfH = (y1 - y0) / 2.0;
-
-		for (int i = 0; i < 36; i++) {
-			double angle = (2 * Math.PI / 36) * i;
-			double cos = Math.cos(angle);
-			double sin = Math.sin(angle);
-			double scaleX = cos == 0 ? Double.MAX_VALUE : halfW / Math.abs(cos);
-			double scaleY = sin == 0 ? Double.MAX_VALUE : halfH / Math.abs(sin);
-			double scale = Math.min(scaleX, scaleY);
-			int x = (int) Math.round(cx + scale * cos);
-			int y = (int) Math.round(cy + scale * sin);
-			borderPts.add(i, new Point(x, y));
-		}
-		return borderPts;
+		return getRectangleBorderPts(36);
 	}
 
 	public void save(BufferedWriter writer) throws IOException {

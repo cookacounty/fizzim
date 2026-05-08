@@ -2,6 +2,7 @@ import java.awt.*;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.LinkedList;
+import java.util.Vector;
 
 // A fork is a small transition endpoint used to share one incoming condition
 // across multiple outgoing branches without drawing it as a real state.
@@ -66,6 +67,10 @@ public class ForkObj extends StateObj {
 
 	public Point getStart() {
 		return getRealCenter(myPage);
+	}
+
+	public Vector<Point> getBorderPts() {
+		return getOvalBorderPts(36);
 	}
 
 	public void save(BufferedWriter writer) throws IOException {
