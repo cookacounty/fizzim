@@ -90,6 +90,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 public class FizzimGui extends javax.swing.JFrame {
 
 	private static final String APP_TITLE = "Fizzim 2.0";
+	private static int openWindowCount = 0;
 
 	String currVer = "14.02.28";
 	
@@ -110,6 +111,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	/** Creates new form FizzimGui */
 
 	public FizzimGui() {
+		openWindowCount++;
 
 		ImageIcon icon = new ImageIcon("icon.png");
 		this.setIconImage(icon.getImage());
@@ -183,6 +185,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		java.awt.GridBagConstraints gridBagConstraints;
 
 		FileOpenAction = new MyJFileChooser("fzm");
+		FileOpenAction.setMultiSelectionEnabled(true);
 		FileSaveAction = new MyJFileChooser("fzm");
 		ExportChooser = new MyJFileChooser("png");
 		jPanel3 = new javax.swing.JPanel();
@@ -944,10 +947,10 @@ public class FizzimGui extends javax.swing.JFrame {
 					if(FileSaveAction.getSelected())
 					{
 						if(tryToSave(FileSaveAction.getSelectedFile(), "fzm", true))
-							System.exit(0);
+							closeWindow();
 					}
 				} else if (n == JOptionPane.NO_OPTION) {
-					System.exit(0);
+					closeWindow();
 				}
 			} else {
 				Object[] options = { "Yes", "No", "Cancel" };
@@ -960,14 +963,24 @@ public class FizzimGui extends javax.swing.JFrame {
 								options[0]);
 				if (n == JOptionPane.YES_OPTION) {
 					if(saveFile(currFile))
-						System.exit(0);
+						closeWindow();
 				} else if (n == JOptionPane.NO_OPTION) {
-					System.exit(0);
+					closeWindow();
 				}
 			}
 		} else
-			System.exit(0);
+			closeWindow();
 	}//GEN-LAST:event_formWindowClosing
+
+	private void closeWindow() {
+		if(closed)
+			return;
+		closed = true;
+		openWindowCount--;
+		dispose();
+		if(openWindowCount <= 0)
+			System.exit(0);
+	}
 
 	//GEN-FIRST:event_FileItemPrintActionPerformed
 	private void FileItemPrintActionPerformed(java.awt.event.ActionEvent evt) {
@@ -1142,62 +1155,59 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	private void FileItemOpenActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_FileItemOpenActionPerformed
-		boolean open = true;
-		if (drawArea1.getFileModifed()) {
-			Object[] options = { "Yes", "No", "Cancel" };
-
-			int n = JOptionPane
-					.showOptionDialog(this, "Save file before opening file?",
-							APP_TITLE, JOptionPane.YES_NO_CANCEL_OPTION,
-							JOptionPane.QUESTION_MESSAGE, null, options,
-							options[0]);
-			if (n == JOptionPane.YES_OPTION) {
-				try {
-					FileSaveAction.setCurrentDirectory(currFile);
-					FileSaveAction.showSaveDialog(this);
-				} catch (java.awt.HeadlessException e1) {
-					e1.printStackTrace();
-				}
-				if(FileSaveAction.getSelected())
-				{
-					if(!tryToSave(FileSaveAction.getSelectedFile(),"fzm", true))
-						open = false;
-				}
-			}
-			else if(n == JOptionPane.CANCEL_OPTION || n == -1)
-				open = false;	
+		try {
+			if(currFile == null)
+				FileOpenAction.setCurrentDirectory(new java.io.File(System.getProperty("user.dir")).getAbsoluteFile());
+			else
+				FileOpenAction.setCurrentDirectory(currFile);
+			FileOpenAction.showOpenDialog(null);
+		} catch (java.awt.HeadlessException e1) {
+			e1.printStackTrace();
 		}
-		if(open)
+
+		if(FileOpenAction.getSelected())
 		{
-			try {
-				
-				if(currFile == null)
-                                        // Default to cwd
-					//FileOpenAction.setCurrentDirectory(new java.io.File("").getAbsoluteFile());
-					FileOpenAction.setCurrentDirectory(new java.io.File(System.getProperty("user.dir")).getAbsoluteFile());
-				else
-					FileOpenAction.setCurrentDirectory(currFile);
-				FileOpenAction.showOpenDialog(null);
-			} catch (java.awt.HeadlessException e1) {
-				e1.printStackTrace();
-			}
-	
-			if(FileOpenAction.getSelected())
+			File[] selectedFiles = FileOpenAction.getSelectedFiles();
+			if(selectedFiles == null || selectedFiles.length == 0)
+				selectedFiles = new File[] { FileOpenAction.getSelectedFile() };
+
+			for(int i = 0; i < selectedFiles.length; i++)
 			{
-				File tempFile = FileOpenAction.getSelectedFile();
-				String fileName = tempFile.getName().toLowerCase();
-				if (!tempFile.isDirectory() && fileName.endsWith(".fzm")) {
-					openFile(tempFile);
-					setTitle(APP_TITLE + " - " + currFile.getName());
-				} else {
+				File tempFile = selectedFiles[i];
+				if(!isFizzimFile(tempFile))
+				{
 					JOptionPane.showMessageDialog(this, "File must end with .fzm",
 							"error", JOptionPane.ERROR_MESSAGE);
+					continue;
 				}
+
+				if(i == 0 && canReuseThisWindowForOpen())
+					openFile(tempFile);
+				else
+					openFileInNewWindow(tempFile);
 			}
 		}
 
 		
 	}//GEN-LAST:event_FileItemOpenActionPerformed
+
+	private boolean isFizzimFile(File file) {
+		if(file == null || file.isDirectory())
+			return false;
+		return file.getName().toLowerCase().endsWith(".fzm");
+	}
+
+	private boolean canReuseThisWindowForOpen() {
+		return currFile == null && !drawArea1.getFileModifed();
+	}
+
+	private void openFileInNewWindow(File selectedFile) {
+		FizzimGui newWindow = new FizzimGui();
+		newWindow.setSize(getSize());
+		newWindow.setLocation(getX() + 30, getY() + 30);
+		newWindow.setVisible(true);
+		newWindow.openFile(selectedFile);
+	}
 
 	private void openFile(File selectedFile) {
 		loading = true;
@@ -1206,6 +1216,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		jTabbedPane1.setComponentAt(1,jScrollPane1);
 		jTabbedPane1.setSelectedIndex(1);
 		drawArea1.setCurrPage(1);
+		setTitle(APP_TITLE + " - " + currFile.getName());
 		loading = false;
 
 	}
@@ -1467,6 +1478,7 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	File currFile = null;
 	private DrawArea drawArea1;
+	private boolean closed = false;
 
 	public void updateGlobal(LinkedList<LinkedList<ObjAttribute>> globalList2) {
 		globalList = globalList2;

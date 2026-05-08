@@ -37,6 +37,10 @@ public class ForkObj extends StateObj {
 		return selected;
 	}
 
+	public boolean containsPoint(int x, int y) {
+		return myPage == currPage && x >= x0 && x <= x1 && y >= y0 && y <= y1;
+	}
+
 	public void setSize(int w, int h) {
 		normalizeSize();
 	}

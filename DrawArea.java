@@ -841,7 +841,16 @@ public void updateTransitions()
 	}
 
 	public void mouseMoved(MouseEvent arg0) {
-		
+		setToolTipText(null);
+		for (int i = objList.size() - 1; i >= 1; i--)
+		{
+			GeneralObj obj = (GeneralObj) objList.elementAt(i);
+			if(obj.getType() == 4 && ((ForkObj)obj).containsPoint(arg0.getX(), arg0.getY()))
+			{
+				setToolTipText(obj.getName());
+				break;
+			}
+		}
 	}
 	
 	
