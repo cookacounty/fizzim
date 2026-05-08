@@ -88,14 +88,14 @@ Backend regression scripts live under `testcases/`:
 Use `make test` from Linux or Windows Git Bash. The test runner uses `xrun`
 when available, otherwise it falls back to Icarus Verilog and Yosys from OSS
 CAD Suite when its `bin/` directory is on PATH or `OSS_CAD_SUITE` points at the
-suite directory.
+suite directory. It also uses `node` to generate the old-style compatibility
+diagram.
 
-The test flow regenerates Verilog from `.fzm` files using the repo-local
-`fizzim.pl` before compiling or simulating, so stale generated RTL cannot hide
-backend regressions. See `testcases/README.md` for the public testcase layout,
-including the golden machine and the equivalent fork/state-group machine. Local
-or sensitive machines should live outside `testcases/`; this repo ignores
-`testcases_production/` for that purpose.
+The test flow starts from one feature-rich generic diagram, generates a Fizzim
+1.0-compatible golden diagram from it, then regenerates Verilog from both
+diagrams before compiling or simulating. See `testcases/README.md` for the
+layout and the `FIZZIM1_BACKEND` override if you want to compare against an
+actual old backend.
 
 Forked transitions
 ------------------

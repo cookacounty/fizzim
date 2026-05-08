@@ -1,9 +1,6 @@
 # Java build outputs
 *.class
 
-# Local/sensitive testcase state machines
-testcases_production/
-
 # Generated public testcase outputs
 testcases/generated/
 

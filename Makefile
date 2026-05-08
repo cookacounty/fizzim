@@ -16,7 +16,7 @@ MANIFEST ?= manifest.txt
 JAVA_RELEASE ?= 11
 JAR_ASSETS := splash.png icon.png org
 
-.PHONY: all jar clean test test-verilog test-production help
+.PHONY: all jar clean test test-verilog help
 
 all: jar
 
@@ -35,9 +35,6 @@ test: test-verilog
 test-verilog:
 	$(BASH) testcases/run_backend_flow.sh
 
-test-production:
-	$(BASH) testcases_production/run_backend_flow.sh
-
 help:
 	@echo "Fizzim GUI build:"
 	@echo "  make              Build $(JAR_NAME)"
@@ -45,8 +42,6 @@ help:
 	@echo "  make clean        Remove generated Java build artifacts"
 	@echo "  make test         Run public Verilog/backend regression"
 	@echo "  make test-verilog Run public Verilog/backend regression"
-	@echo "  make test-production"
-	@echo "                    Run local private production regression"
 	@echo ""
 	@echo "Variables:"
 	@echo "  JAVA_HOME=/path/to/jdk"

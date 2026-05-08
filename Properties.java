@@ -177,20 +177,11 @@ class MyTableModel extends AbstractTableModel {
           value = new String("reg");
         }
         
-        // check for reserved words
-        // Not sure if this is really necessary
-        /*
-        if ( col == 1 && 
-          ( false 
-          || value.equals("output")  
-        )) {
-        	JOptionPane.showMessageDialog(dialog,
-                    "\"" + value + "\"" + " is a reserved word",
-                    "error",
-                    JOptionPane.ERROR_MESSAGE);
-        	value = attrib.get(row).get(col);
+        if(shouldCheckReservedWord(row, col) && VerilogNameValidator.showReservedWordError(dialog, (String)value, reservedWordNameType(row, col)))
+        {
+        	fireTableCellUpdated(row, col);
+        	return;
         }
-        */
 
         // only flag, regd can have reset values
         if ( false
@@ -361,6 +352,44 @@ class MyTableModel extends AbstractTableModel {
     			return true;
     	}
     	return false;
+    }
+
+    private boolean shouldCheckReservedWord(int row, int col)
+    {
+    	if(!(attrib.get(row).get(col) instanceof String))
+    		return false;
+    	if(global)
+    	{
+    		if(col == 0 && (attrib.equals(globalList.get(1)) || attrib.equals(globalList.get(2))))
+    			return true;
+    		return col == 1 && attrib.equals(globalList.get(0)) && attrib.get(row).getName().equals("name");
+    	}
+    	return col == 1 && attrib.get(row).getName().equals("name");
+    }
+
+    private String reservedWordNameType(int row, int col)
+    {
+    	if(global)
+    	{
+    		if(attrib.equals(globalList.get(1)))
+    			return "input name";
+    		if(attrib.equals(globalList.get(2)))
+    			return "output name";
+    		if(attrib.equals(globalList.get(0)) && col == 1)
+    			return "module name";
+    	}
+    	if(obj != null)
+    	{
+    		if(obj.getType() == 0)
+    			return "state name";
+    		if(obj.getType() == 1 || obj.getType() == 2)
+    			return "transition name";
+    		if(obj.getType() == 4)
+    			return "fork name";
+    		if(obj.getType() == 5)
+    			return "state group name";
+    	}
+    	return "name";
     }
 
 	private void renameAttribute(int t, String name, int col, Object value, int row) {
@@ -1045,7 +1074,15 @@ class TransProperties extends javax.swing.JDialog {
 	//GEN-FIRST:event_TPOKActionPerformed
 	private void TPOKActionPerformed(java.awt.event.ActionEvent evt) {
 		TPTable.editCellAt(0,0);
-		if(drawArea.checkTransNames())
+		if(!drawArea.checkTransNames())
+		{
+			JOptionPane.showMessageDialog(this,
+                    "Two different transitions cannot have the same name.",
+                    "error",
+                    JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		if(drawArea.checkReservedTransNames())
 		{
 			if(!loopback)
 			{
@@ -1082,13 +1119,6 @@ class TransProperties extends javax.swing.JDialog {
 				drawArea.commitUndo();
 				dispose();
 			}
-		}
-		else
-		{
-			JOptionPane.showMessageDialog(this,
-                    "Two different transitions cannot have the same name.",
-                    "error",
-                    JOptionPane.ERROR_MESSAGE);
 		}
 	}//GEN-LAST:event_TPOKActionPerformed
 
@@ -1545,43 +1575,43 @@ class StateProperties extends javax.swing.JDialog {
 	//GEN-FIRST:event_SPOKActionPerformed
 	private void SPOKActionPerformed(java.awt.event.ActionEvent evt) {
 		SPTable.editCellAt(0,0);
-		if(drawArea.checkStateNames())
-		{
-			//temp
-			try {
-				SPWField.commitEdit();
-				SPHField.commitEdit();
-			} catch (ParseException e) {
-				// TODsO Auto-generated catch block
-				e.printStackTrace();
-			}
-			for(int j = 0; j < globalList.get(0).size(); j++)
-			{
-				if(globalList.get(0).get(j).getName().equals("reset_state") && globalList.get(0).get(j).getValue().equals(oldName))
-				 {
-					globalList.get(0).get(j).setValue(state.getName());
-				 }
-			}
-			int width = ((Number) SPWField.getValue()).intValue();
-			int height = ((Number) SPHField.getValue()).intValue();
-			state.setSize(width,height);
-			if(state.getType() == 5 && SPEntryState.getSelectedItem() != null)
-				((StateGroupObj)state).setEntryState((String)SPEntryState.getSelectedItem());
-			//make transitions redraw
-			state.setStateModifiedTrue();
-			drawArea.updateTransitions();
-			drawArea.updateStates();
-			drawArea.updateGlobalTable();
-			drawArea.commitUndo();
-			dispose();
-		}
-		else
+		if(!drawArea.checkStateNames())
 		{
 			JOptionPane.showMessageDialog(this,
                     "Two different states cannot have the same name.",
                     "error",
                     JOptionPane.ERROR_MESSAGE);
+			return;
 		}
+		if(!drawArea.checkReservedStateNames())
+			return;
+		//temp
+		try {
+			SPWField.commitEdit();
+			SPHField.commitEdit();
+		} catch (ParseException e) {
+			// TODsO Auto-generated catch block
+			e.printStackTrace();
+		}
+		for(int j = 0; j < globalList.get(0).size(); j++)
+		{
+			if(globalList.get(0).get(j).getName().equals("reset_state") && globalList.get(0).get(j).getValue().equals(oldName))
+			 {
+				globalList.get(0).get(j).setValue(state.getName());
+			 }
+		}
+		int width = ((Number) SPWField.getValue()).intValue();
+		int height = ((Number) SPHField.getValue()).intValue();
+		state.setSize(width,height);
+		if(state.getType() == 5 && SPEntryState.getSelectedItem() != null)
+			((StateGroupObj)state).setEntryState((String)SPEntryState.getSelectedItem());
+		//make transitions redraw
+		state.setStateModifiedTrue();
+		drawArea.updateTransitions();
+		drawArea.updateStates();
+		drawArea.updateGlobalTable();
+		drawArea.commitUndo();
+		dispose();
 	}//GEN-LAST:event_SPOKActionPerformed
 
 	//GEN-FIRST:event_SPCancelActionPerformed
@@ -2301,6 +2331,8 @@ class GlobalProperties extends javax.swing.JDialog {
 			GPTableTrans.editCellAt(0,0);
 			GPTableInputs.editCellAt(0,0);
 			GPTableOutputs.editCellAt(0,0);
+			if(!checkReservedGlobalNames())
+				return;
 			int error = 0;
 			for(int i = 0; i < globalLists.size(); i++)
 			{
@@ -2339,6 +2371,26 @@ class GlobalProperties extends javax.swing.JDialog {
 			}
 	
 		}//GEN-LAST:event_GPOKActionPerformed
+
+		private boolean checkReservedGlobalNames() {
+			for(int i = 0; i < globalLists.get(0).size(); i++)
+			{
+				ObjAttribute obj = globalLists.get(0).get(i);
+				if(obj.getName().equals("name") && VerilogNameValidator.showReservedWordError(this, obj.getValue(), "module name"))
+					return false;
+			}
+			for(int i = 0; i < globalLists.get(1).size(); i++)
+			{
+				if(VerilogNameValidator.showReservedWordError(this, globalLists.get(1).get(i).getName(), "input name"))
+					return false;
+			}
+			for(int i = 0; i < globalLists.get(2).size(); i++)
+			{
+				if(VerilogNameValidator.showReservedWordError(this, globalLists.get(2).get(i).getName(), "output name"))
+					return false;
+			}
+			return true;
+		}
 
 		//GEN-FIRST:event_GPCancelActionPerformed
 		private void GPCancelActionPerformed(java.awt.event.ActionEvent evt) {

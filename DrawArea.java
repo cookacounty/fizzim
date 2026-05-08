@@ -1441,6 +1441,25 @@ public void updateTransitions()
 			return false;
 	}
 
+	public boolean checkReservedStateNames()
+	{
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 0)
+			{
+				if(VerilogNameValidator.showReservedWordError(frame, obj.getName(), "state name"))
+					return false;
+			}
+			else if(obj.getType() == 5)
+			{
+				if(VerilogNameValidator.showReservedWordError(frame, obj.getName(), "state group name"))
+					return false;
+			}
+		}
+		return true;
+	}
+
 	public boolean validateStateGroupMembership(boolean showMessage)
 	{
 		for(int i = 1; i < objList.size(); i++)
@@ -1511,6 +1530,20 @@ public void updateTransitions()
 			return true;
 		else
 			return false;
+	}
+
+	public boolean checkReservedTransNames()
+	{
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 1 || obj.getType() == 2)
+			{
+				if(VerilogNameValidator.showReservedWordError(frame, obj.getName(), "transition name"))
+					return false;
+			}
+		}
+		return true;
 	}
 	
 

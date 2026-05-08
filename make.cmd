@@ -11,7 +11,6 @@ if /I "%TARGET%"=="jar" goto :jar
 if /I "%TARGET%"=="clean" goto :clean
 if /I "%TARGET%"=="test" goto :test
 if /I "%TARGET%"=="test-verilog" goto :test
-if /I "%TARGET%"=="test-production" goto :test_production
 
 echo Unknown target: %TARGET%
 echo.
@@ -48,24 +47,18 @@ exit /b 0
 bash testcases/run_backend_flow.sh
 exit /b %errorlevel%
 
-:test_production
-bash testcases_production/run_backend_flow.sh
-exit /b %errorlevel%
-
 :help
 echo Fizzim build and test helper
 echo.
 echo   make jar              Build fizzim.jar with GNU Make
 echo   make clean            Remove Java build artifacts with GNU Make
 echo   make test             Run public backend regression with GNU Make
-echo   make test-production  Run private production regression with GNU Make
 echo.
 echo Windows fallback when GNU Make is not installed:
 echo.
 echo   make.cmd jar
 echo   make.cmd clean
 echo   make.cmd test
-echo   make.cmd test-production
 echo.
 echo JAVA_HOME may point at a JDK directory.
 echo JAVA_RELEASE defaults to 11 and may be overridden.

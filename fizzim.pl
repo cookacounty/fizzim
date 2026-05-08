@@ -2257,6 +2257,8 @@ sub print_regdp_transition_actions {
         next unless exists $transitions{$trans}{attributes}{$att}{value};
         $value = $transitions{$trans}{attributes}{$att}{value};
         next if ($value eq "");
+        next if (exists $regdp_outputs{$att}{default_value} &&
+                 ($value eq $regdp_outputs{$att}{default_value}));
         push(@assignments, "$att <= $value;\n");
       }
       next unless @assignments;
@@ -2318,7 +2320,9 @@ sub has_regdp_transition_actions {
       next unless exists $regdp_outputs{$att};
       next unless $transitions{$trans}{attributes}{$att}{type} eq "output";
       if (exists $transitions{$trans}{attributes}{$att}{value} &&
-          ($transitions{$trans}{attributes}{$att}{value} ne "")) {
+          ($transitions{$trans}{attributes}{$att}{value} ne "") &&
+          (!exists $regdp_outputs{$att}{default_value} ||
+           ($transitions{$trans}{attributes}{$att}{value} ne $regdp_outputs{$att}{default_value}))) {
         return 1;
       }
     }

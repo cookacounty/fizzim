@@ -1,4 +1,4 @@
-## File last modified by Fizzim: 1:58:39 PM on 5/8/26
+## File last modified by Fizzim: 3:12:36 PM on 5/8/26
 <version>
    14.02.28
 </version>
@@ -177,7 +177,7 @@
             ABS
             </status>
          <value>
-         S_WAIT
+         S1
             <status>
             GLOBAL_VAR
             </status>
@@ -398,7 +398,7 @@
          -1
          </page>
       </rst_l>
-      <break>
+      <break_req>
             <status>
             GLOBAL_FIXED
             </status>
@@ -453,7 +453,7 @@
          <page>
          -1
          </page>
-      </break>
+      </break_req>
       <option1>
             <status>
             GLOBAL_FIXED
@@ -792,7 +792,7 @@
          -1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -847,7 +847,7 @@
          <page>
          -1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </outputs>
    <state>
       <name>
@@ -1130,7 +1130,7 @@
          -1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -1185,7 +1185,7 @@
          <page>
          -1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </state>
    <trans>
       <name>
@@ -1361,7 +1361,7 @@
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -1529,7 +1529,7 @@
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -1580,7 +1580,7 @@
          -1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -1635,7 +1635,7 @@
          <page>
          -1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </trans>
 </globals>
 <tabs>
@@ -1646,7 +1646,7 @@
 52
 </SCounter>
 <TCounter>
-75
+77
 </TCounter>
 <TableVis>
 true
@@ -1981,7 +1981,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -2036,7 +2036,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <x0>
    141
@@ -2051,7 +2051,7 @@ fzm_globalTable
    594
    </y1>
    <reset>
-   false
+   true
    </reset>
    <page>
    1
@@ -2344,7 +2344,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -2399,19 +2399,19 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <x0>
-   404
+   371
    </x0>
    <y0>
-   452
+   427
    </y0>
    <x1>
-   647
+   614
    </x1>
    <y1>
-   590
+   565
    </y1>
    <reset>
    false
@@ -2600,7 +2600,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -2768,7 +2768,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -2819,7 +2819,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -2874,7 +2874,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <startState>
    S1
@@ -2883,34 +2883,34 @@ fzm_globalTable
    S2
    </endState>
    <startPtX>
-   270.0
+   267.0
    </startPtX>
    <startPtY>
-   517.0
+   506.0
    </startPtY>
    <endPtX>
-   405.0
+   371.0
    </endPtX>
    <endPtY>
-   509.0
+   496.0
    </endPtY>
    <startCtrlPtX>
-   308.0
+   294.0
    </startCtrlPtX>
    <startCtrlPtY>
-   515.0
+   504.0
    </startCtrlPtY>
    <endCtrlPtY>
-   365.0
+   339.0
    </endCtrlPtY>
    <endCtrlPtY>
-   508.0
+   494.0
    </endCtrlPtY>
    <startStateIndex>
-   35
+   34
    </startStateIndex>
    <endStateIndex>
-   19
+   18
    </endStateIndex>
    <page>
    1
@@ -3123,7 +3123,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -3291,7 +3291,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -3342,7 +3342,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -3397,7 +3397,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <startState>
    S2
@@ -3406,34 +3406,34 @@ fzm_globalTable
    S1
    </endState>
    <startPtX>
-   405.0
+   378.0
    </startPtX>
    <startPtY>
-   532.0
+   519.0
    </startPtY>
    <endPtX>
-   270.0
+   271.0
    </endPtX>
    <endPtY>
-   540.0
+   529.0
    </endPtY>
    <startCtrlPtX>
-   366.0
+   349.0
    </startCtrlPtX>
    <startCtrlPtY>
-   533.0
+   520.0
    </startCtrlPtY>
    <endCtrlPtY>
-   309.0
+   303.0
    </endCtrlPtY>
    <endCtrlPtY>
-   540.0
+   530.0
    </endCtrlPtY>
    <startStateIndex>
-   17
+   16
    </startStateIndex>
    <endStateIndex>
-   1
+   0
    </endStateIndex>
    <page>
    1
@@ -3753,7 +3753,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -3808,7 +3808,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <x0>
    841
@@ -3828,6 +3828,9 @@ fzm_globalTable
    <color>
    -16777216
    </color>
+   <entryState>
+   S_GREEN
+   </entryState>
    <children>
       <child>
       S_GREEN
@@ -4127,7 +4130,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -4182,7 +4185,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <x0>
    963
@@ -4490,7 +4493,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -4545,7 +4548,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <x0>
    968
@@ -4684,7 +4687,7 @@ fzm_globalTable
             ABS
             </status>
          <value>
-         break
+         break_req
             <status>
             LOCAL
             </status>
@@ -4796,7 +4799,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -4964,7 +4967,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -5015,7 +5018,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -5070,7 +5073,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <startState>
    SG_ACTIVE
@@ -5091,10 +5094,10 @@ fzm_globalTable
    735.0
    </endPtY>
    <startCtrlPtX>
-   777.0
+   791.0
    </startCtrlPtX>
    <startCtrlPtY>
-   867.0
+   844.0
    </startCtrlPtY>
    <endCtrlPtY>
    659.0
@@ -5426,7 +5429,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -5481,19 +5484,19 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <x0>
-   660
+   700
    </x0>
    <y0>
-   531
+   519
    </y0>
    <x1>
-   790
+   830
    </x1>
    <y1>
-   661
+   649
    </y1>
    <reset>
    false
@@ -5682,7 +5685,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -5850,7 +5853,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -5901,7 +5904,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -5956,7 +5959,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <startState>
    fork44
@@ -5971,28 +5974,28 @@ fzm_globalTable
    726.0
    </startPtY>
    <endPtX>
-   668.0
+   715.0
    </endPtX>
    <endPtY>
-   628.0
+   625.0
    </endPtY>
    <startCtrlPtX>
-   582.0
+   589.0
    </startCtrlPtX>
    <startCtrlPtY>
-   695.0
+   692.0
    </startCtrlPtY>
    <endCtrlPtY>
-   636.0
+   663.0
    </endCtrlPtY>
    <endCtrlPtY>
-   634.0
+   620.0
    </endCtrlPtY>
    <startStateIndex>
    31
    </startStateIndex>
    <endStateIndex>
-   15
+   14
    </endStateIndex>
    <page>
    1
@@ -6205,7 +6208,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -6373,7 +6376,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -6424,7 +6427,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -6479,7 +6482,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <startState>
    fork44
@@ -6494,28 +6497,28 @@ fzm_globalTable
    725.0
    </startPtY>
    <endPtX>
-   525.0
+   513.0
    </endPtX>
    <endPtY>
-   590.0
+   563.0
    </endPtY>
    <startCtrlPtX>
-   553.0
+   549.0
    </startCtrlPtX>
    <startCtrlPtY>
-   690.0
+   688.0
    </startCtrlPtY>
    <endCtrlPtY>
-   521.0
+   509.0
    </endCtrlPtY>
    <endCtrlPtY>
-   632.0
+   615.0
    </endCtrlPtY>
    <startStateIndex>
    24
    </startStateIndex>
    <endStateIndex>
-   9
+   8
    </endStateIndex>
    <page>
    1
@@ -6728,7 +6731,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -6896,7 +6899,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -6947,7 +6950,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -7002,7 +7005,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <startState>
    S2
@@ -7011,31 +7014,31 @@ fzm_globalTable
    fork48
    </endState>
    <startPtX>
-   585.0
+   569.0
    </startPtX>
    <startPtY>
-   461.0
+   443.0
    </startPtY>
    <endPtX>
-   684.0
+   667.0
    </endPtX>
    <endPtY>
-   312.0
+   299.0
    </endPtY>
    <startCtrlPtX>
-   589.0
+   575.0
    </startCtrlPtX>
    <startCtrlPtY>
-   412.0
+   396.0
    </startCtrlPtY>
    <endCtrlPtY>
-   653.0
+   636.0
    </endCtrlPtY>
    <endCtrlPtY>
-   330.0
+   313.0
    </endCtrlPtY>
    <startStateIndex>
-   30
+   31
    </startStateIndex>
    <endStateIndex>
    14
@@ -7251,7 +7254,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -7419,7 +7422,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -7470,7 +7473,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -7525,7 +7528,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <startState>
    S_GREEN
@@ -7881,7 +7884,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -7936,7 +7939,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <x0>
    937
@@ -8244,7 +8247,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -8299,7 +8302,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <x0>
    1185
@@ -8500,7 +8503,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -8668,7 +8671,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -8719,7 +8722,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -8774,7 +8777,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <startState>
    fork43
@@ -9023,7 +9026,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -9191,7 +9194,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -9242,7 +9245,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -9297,7 +9300,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <startState>
    fork43
@@ -9546,7 +9549,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -9714,7 +9717,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -9765,7 +9768,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -9820,7 +9823,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <startState>
    S_YELLOW
@@ -9899,16 +9902,16 @@ fzm_globalTable
    fork48
    </name>
    <x0>
-   682
+   665
    </x0>
    <y0>
-   296
+   283
    </y0>
    <x1>
-   702
+   685
    </x1>
    <y1>
-   316
+   303
    </y1>
    <page>
    1
@@ -10094,7 +10097,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -10313,7 +10316,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -10368,7 +10371,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <startState>
    fork48
@@ -10377,10 +10380,10 @@ fzm_globalTable
    SG_ACTIVE
    </endState>
    <startPtX>
-   701.0
+   684.0
    </startPtX>
    <startPtY>
-   309.0
+   294.0
    </startPtY>
    <endPtX>
    841.0
@@ -10389,19 +10392,19 @@ fzm_globalTable
    344.0
    </endPtY>
    <startCtrlPtX>
-   746.0
+   726.0
    </startCtrlPtX>
    <startCtrlPtY>
-   310.0
+   292.0
    </startCtrlPtY>
    <endCtrlPtY>
-   767.0
+   815.0
    </endCtrlPtY>
    <endCtrlPtY>
-   299.0
+   329.0
    </endCtrlPtY>
    <startStateIndex>
-   2
+   1
    </startStateIndex>
    <endStateIndex>
    22
@@ -10617,7 +10620,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -10785,7 +10788,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -10836,7 +10839,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -10891,7 +10894,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <startState>
    S3
@@ -10900,31 +10903,31 @@ fzm_globalTable
    fork48
    </endState>
    <startPtX>
-   702.0
+   732.0
    </startPtX>
    <startPtY>
-   534.0
+   527.0
    </startPtY>
    <endPtX>
-   690.0
+   673.0
    </endPtX>
    <endPtY>
-   315.0
+   302.0
    </endPtY>
    <startCtrlPtX>
-   699.0
+   718.0
    </startCtrlPtX>
    <startCtrlPtY>
-   475.0
+   476.0
    </startCtrlPtY>
    <endCtrlPtY>
-   688.0
+   668.0
    </endCtrlPtY>
    <endCtrlPtY>
-   381.0
+   375.0
    </endCtrlPtY>
    <startStateIndex>
-   25
+   24
    </startStateIndex>
    <endStateIndex>
    10
@@ -11196,6 +11199,62 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
+         0
+            <status>
+            GLOBAL_VAR
+            </status>
+         </value>
+         <vis>
+         2
+            <status>
+            GLOBAL_VAR
+            </status>
+         </vis>
+         <type>
+         output
+            <status>
+            GLOBAL_VAR
+            </status>
+         </type>
+         <comment>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </comment>
+         <color>
+         -16777216
+            <status>
+            GLOBAL_VAR
+            </status>
+         </color>
+         <useratts>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </useratts>
+         <resetval>
+         0
+            <status>
+            GLOBAL_VAR
+            </status>
+         </resetval>
+         <x2Obj>
+         0
+         </x2Obj>
+         <y2Obj>
+         0
+         </y2Obj>
+         <page>
+         1
+         </page>
+      </trigger>
+      <trigger1[1:0]>
+            <status>
+            GLOBAL_FIXED
+            </status>
+         <value>
          2
             <status>
             LOCAL
@@ -11246,75 +11305,19 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger>
-      <trigger1>
-            <status>
-            GLOBAL_FIXED
-            </status>
-         <value>
-         0
-            <status>
-            GLOBAL_VAR
-            </status>
-         </value>
-         <vis>
-         2
-            <status>
-            GLOBAL_VAR
-            </status>
-         </vis>
-         <type>
-         output
-            <status>
-            GLOBAL_VAR
-            </status>
-         </type>
-         <comment>
-         
-            <status>
-            GLOBAL_VAR
-            </status>
-         </comment>
-         <color>
-         -16777216
-            <status>
-            GLOBAL_VAR
-            </status>
-         </color>
-         <useratts>
-         
-            <status>
-            GLOBAL_VAR
-            </status>
-         </useratts>
-         <resetval>
-         0
-            <status>
-            GLOBAL_VAR
-            </status>
-         </resetval>
-         <x2Obj>
-         0
-         </x2Obj>
-         <y2Obj>
-         0
-         </y2Obj>
-         <page>
-         1
-         </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <x0>
-   195
+   206
    </x0>
    <y0>
-   760
+   753
    </y0>
    <x1>
-   283
+   294
    </x1>
    <y1>
-   824
+   817
    </y1>
    <reset>
    false
@@ -11610,7 +11613,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -11665,19 +11668,19 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <x0>
-   98
+   111
    </x0>
    <y0>
-   709
+   702
    </y0>
    <x1>
-   385
+   398
    </x1>
    <y1>
-   1000
+   993
    </y1>
    <page>
    1
@@ -11685,6 +11688,9 @@ fzm_globalTable
    <color>
    -16777216
    </color>
+   <entryState>
+   state51
+   </entryState>
    <children>
       <child>
       state49
@@ -11978,7 +11984,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -12033,19 +12039,19 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <x0>
-   205
+   200
    </x0>
    <y0>
-   898
+   878
    </y0>
    <x1>
-   311
+   306
    </x1>
    <y1>
-   968
+   948
    </y1>
    <reset>
    false
@@ -12234,7 +12240,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -12402,6 +12408,62 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
+         0
+            <status>
+            GLOBAL_VAR
+            </status>
+         </value>
+         <vis>
+         2
+            <status>
+            GLOBAL_VAR
+            </status>
+         </vis>
+         <type>
+         output
+            <status>
+            GLOBAL_VAR
+            </status>
+         </type>
+         <comment>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </comment>
+         <color>
+         -16777216
+            <status>
+            GLOBAL_VAR
+            </status>
+         </color>
+         <useratts>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </useratts>
+         <resetval>
+         0
+            <status>
+            GLOBAL_VAR
+            </status>
+         </resetval>
+         <x2Obj>
+         34
+         </x2Obj>
+         <y2Obj>
+         -5
+         </y2Obj>
+         <page>
+         1
+         </page>
+      </trigger>
+      <trigger1[1:0]>
+            <status>
+            GLOBAL_FIXED
+            </status>
+         <value>
          1
             <status>
             LOCAL
@@ -12444,71 +12506,15 @@ fzm_globalTable
             </status>
          </resetval>
          <x2Obj>
-         35
+         52
          </x2Obj>
          <y2Obj>
-         -5
+         -3
          </y2Obj>
          <page>
          1
          </page>
-      </trigger>
-      <trigger1>
-            <status>
-            GLOBAL_FIXED
-            </status>
-         <value>
-         0
-            <status>
-            GLOBAL_VAR
-            </status>
-         </value>
-         <vis>
-         2
-            <status>
-            GLOBAL_VAR
-            </status>
-         </vis>
-         <type>
-         output
-            <status>
-            GLOBAL_VAR
-            </status>
-         </type>
-         <comment>
-         
-            <status>
-            GLOBAL_VAR
-            </status>
-         </comment>
-         <color>
-         -16777216
-            <status>
-            GLOBAL_VAR
-            </status>
-         </color>
-         <useratts>
-         
-            <status>
-            GLOBAL_VAR
-            </status>
-         </useratts>
-         <resetval>
-         0
-            <status>
-            GLOBAL_VAR
-            </status>
-         </resetval>
-         <x2Obj>
-         0
-         </x2Obj>
-         <y2Obj>
-         0
-         </y2Obj>
-         <page>
-         1
-         </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <startState>
    state49
@@ -12517,10 +12523,10 @@ fzm_globalTable
    S1
    </endState>
    <startPtX>
-   223.0
+   227.0
    </startPtX>
    <startPtY>
-   761.0
+   757.0
    </startPtY>
    <endPtX>
    206.0
@@ -12529,19 +12535,19 @@ fzm_globalTable
    594.0
    </endPtY>
    <startCtrlPtX>
-   219.0
+   222.0
    </startCtrlPtX>
    <startCtrlPtY>
-   717.0
+   715.0
    </startCtrlPtY>
    <endCtrlPtY>
-   204.0
+   203.0
    </endCtrlPtY>
    <endCtrlPtY>
    644.0
    </endCtrlPtY>
    <startStateIndex>
-   25
+   24
    </startStateIndex>
    <endStateIndex>
    9
@@ -12757,7 +12763,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -12925,7 +12931,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -12976,7 +12982,7 @@ fzm_globalTable
          1
          </page>
       </trigger>
-      <trigger1>
+      <trigger1[1:0]>
             <status>
             GLOBAL_FIXED
             </status>
@@ -13031,7 +13037,7 @@ fzm_globalTable
          <page>
          1
          </page>
-      </trigger1>
+      </trigger1[1:0]>
    </attributes>
    <startState>
    SG_ACTIVE
@@ -13046,28 +13052,551 @@ fzm_globalTable
    947.0
    </startPtY>
    <endPtX>
-   385.0
+   398.0
    </endPtX>
    <endPtY>
-   880.0
+   765.0
    </endPtY>
    <startCtrlPtX>
-   731.0
+   736.0
    </startCtrlPtX>
    <startCtrlPtY>
-   965.0
+   974.0
    </startCtrlPtY>
    <endCtrlPtY>
-   446.0
+   543.0
    </endCtrlPtY>
    <endCtrlPtY>
-   912.0
+   780.0
    </endCtrlPtY>
    <startStateIndex>
    13
    </startStateIndex>
    <endStateIndex>
+   33
+   </endStateIndex>
+   <page>
    1
+   </page>
+   <color>
+   -16777216
+   </color>
+   <pageSX>
+   0.0
+   </pageSX>
+   <pageSY>
+   0.0
+   </pageSY>
+   <pageSCX>
+   0.0
+   </pageSCX>
+   <pageSCY>
+   0.0
+   </pageSCY>
+   <pageEX>
+   0.0
+   </pageEX>
+   <pageEY>
+   0.0
+   </pageEY>
+   <pageECX>
+   0.0
+   </pageECX>
+   <pageECY>
+   0.0
+   </pageECY>
+   <stub>
+   false
+   </stub>
+</transition>
+## END STATE TRANSITION OBJECT
+## START STATE TRANSITION OBJECT
+<transition>
+   <attributes>
+      <name>
+            <status>
+            ABS
+            </status>
+         <value>
+         trans76
+            <status>
+            LOCAL
+            </status>
+         </value>
+         <vis>
+         0
+            <status>
+            GLOBAL_VAR
+            </status>
+         </vis>
+         <type>
+         def_type
+            <status>
+            GLOBAL_VAR
+            </status>
+         </type>
+         <comment>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </comment>
+         <color>
+         -16777216
+            <status>
+            GLOBAL_VAR
+            </status>
+         </color>
+         <useratts>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </useratts>
+         <resetval>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </resetval>
+         <x2Obj>
+         0
+         </x2Obj>
+         <y2Obj>
+         0
+         </y2Obj>
+         <page>
+         1
+         </page>
+      </name>
+      <equation>
+            <status>
+            ABS
+            </status>
+         <value>
+         1
+            <status>
+            GLOBAL_VAR
+            </status>
+         </value>
+         <vis>
+         1
+            <status>
+            GLOBAL_VAR
+            </status>
+         </vis>
+         <type>
+         def_type
+            <status>
+            GLOBAL_VAR
+            </status>
+         </type>
+         <comment>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </comment>
+         <color>
+         -16777216
+            <status>
+            GLOBAL_VAR
+            </status>
+         </color>
+         <useratts>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </useratts>
+         <resetval>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </resetval>
+         <x2Obj>
+         0
+         </x2Obj>
+         <y2Obj>
+         0
+         </y2Obj>
+         <page>
+         1
+         </page>
+      </equation>
+      <priority>
+            <status>
+            GLOBAL_FIXED
+            </status>
+         <value>
+         1000
+            <status>
+            GLOBAL_VAR
+            </status>
+         </value>
+         <vis>
+         2
+            <status>
+            GLOBAL_VAR
+            </status>
+         </vis>
+         <type>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </type>
+         <comment>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </comment>
+         <color>
+         -16777216
+            <status>
+            GLOBAL_VAR
+            </status>
+         </color>
+         <useratts>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </useratts>
+         <resetval>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </resetval>
+         <x2Obj>
+         0
+         </x2Obj>
+         <y2Obj>
+         0
+         </y2Obj>
+         <page>
+         1
+         </page>
+      </priority>
+      <rdy>
+            <status>
+            GLOBAL_FIXED
+            </status>
+         <value>
+         0
+            <status>
+            GLOBAL_VAR
+            </status>
+         </value>
+         <vis>
+         2
+            <status>
+            GLOBAL_VAR
+            </status>
+         </vis>
+         <type>
+         output
+            <status>
+            GLOBAL_VAR
+            </status>
+         </type>
+         <comment>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </comment>
+         <color>
+         -16777216
+            <status>
+            GLOBAL_VAR
+            </status>
+         </color>
+         <useratts>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </useratts>
+         <resetval>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </resetval>
+         <x2Obj>
+         0
+         </x2Obj>
+         <y2Obj>
+         0
+         </y2Obj>
+         <page>
+         1
+         </page>
+      </rdy>
+      <busy>
+            <status>
+            GLOBAL_FIXED
+            </status>
+         <value>
+         0
+            <status>
+            GLOBAL_VAR
+            </status>
+         </value>
+         <vis>
+         2
+            <status>
+            GLOBAL_VAR
+            </status>
+         </vis>
+         <type>
+         output
+            <status>
+            GLOBAL_VAR
+            </status>
+         </type>
+         <comment>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </comment>
+         <color>
+         -16777216
+            <status>
+            GLOBAL_VAR
+            </status>
+         </color>
+         <useratts>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </useratts>
+         <resetval>
+         0
+            <status>
+            GLOBAL_VAR
+            </status>
+         </resetval>
+         <x2Obj>
+         0
+         </x2Obj>
+         <y2Obj>
+         0
+         </y2Obj>
+         <page>
+         1
+         </page>
+      </busy>
+      <color[100:0]>
+            <status>
+            GLOBAL_FIXED
+            </status>
+         <value>
+         "none"
+            <status>
+            GLOBAL_VAR
+            </status>
+         </value>
+         <vis>
+         2
+            <status>
+            GLOBAL_VAR
+            </status>
+         </vis>
+         <type>
+         output
+            <status>
+            GLOBAL_VAR
+            </status>
+         </type>
+         <comment>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </comment>
+         <color>
+         -16777216
+            <status>
+            GLOBAL_VAR
+            </status>
+         </color>
+         <useratts>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </useratts>
+         <resetval>
+         0
+            <status>
+            GLOBAL_VAR
+            </status>
+         </resetval>
+         <x2Obj>
+         0
+         </x2Obj>
+         <y2Obj>
+         0
+         </y2Obj>
+         <page>
+         1
+         </page>
+      </color[100:0]>
+      <trigger>
+            <status>
+            GLOBAL_FIXED
+            </status>
+         <value>
+         0
+            <status>
+            GLOBAL_VAR
+            </status>
+         </value>
+         <vis>
+         2
+            <status>
+            GLOBAL_VAR
+            </status>
+         </vis>
+         <type>
+         output
+            <status>
+            GLOBAL_VAR
+            </status>
+         </type>
+         <comment>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </comment>
+         <color>
+         -16777216
+            <status>
+            GLOBAL_VAR
+            </status>
+         </color>
+         <useratts>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </useratts>
+         <resetval>
+         0
+            <status>
+            GLOBAL_VAR
+            </status>
+         </resetval>
+         <x2Obj>
+         0
+         </x2Obj>
+         <y2Obj>
+         0
+         </y2Obj>
+         <page>
+         1
+         </page>
+      </trigger>
+      <trigger1[1:0]>
+            <status>
+            GLOBAL_FIXED
+            </status>
+         <value>
+         0
+            <status>
+            GLOBAL_VAR
+            </status>
+         </value>
+         <vis>
+         2
+            <status>
+            GLOBAL_VAR
+            </status>
+         </vis>
+         <type>
+         output
+            <status>
+            GLOBAL_VAR
+            </status>
+         </type>
+         <comment>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </comment>
+         <color>
+         -16777216
+            <status>
+            GLOBAL_VAR
+            </status>
+         </color>
+         <useratts>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </useratts>
+         <resetval>
+         0
+            <status>
+            GLOBAL_VAR
+            </status>
+         </resetval>
+         <x2Obj>
+         0
+         </x2Obj>
+         <y2Obj>
+         0
+         </y2Obj>
+         <page>
+         1
+         </page>
+      </trigger1[1:0]>
+   </attributes>
+   <startState>
+   state51
+   </startState>
+   <endState>
+   state49
+   </endState>
+   <startPtX>
+   243.0
+   </startPtX>
+   <startPtY>
+   878.0
+   </startPtY>
+   <endPtX>
+   242.0
+   </endPtX>
+   <endPtY>
+   816.0
+   </endPtY>
+   <startCtrlPtX>
+   243.0
+   </startCtrlPtX>
+   <startCtrlPtY>
+   860.0
+   </startCtrlPtY>
+   <endCtrlPtY>
+   242.0
+   </endCtrlPtY>
+   <endCtrlPtY>
+   833.0
+   </endCtrlPtY>
+   <startStateIndex>
+   26
+   </startStateIndex>
+   <endStateIndex>
+   10
    </endStateIndex>
    <page>
    1
