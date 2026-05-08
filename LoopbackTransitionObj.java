@@ -49,6 +49,7 @@ public class LoopbackTransitionObj extends TransitionObj  implements Cloneable {
 	public static final int END = 4;
 	public static final int ALL = 5;
 	public static final int TXT = 6;
+	private static final int HANDLE_HIT_RADIUS = 10;
 	
 private int xTemp, yTemp, tempSI,tempEI,lengthS,lengthE;
 
@@ -90,6 +91,25 @@ private double ctrlAngleS, ctrlAngleE;
 			loop = new CubicCurve2D.Double(startPt.getX(),startPt.getY(),startCtrlPt.getX(),startCtrlPt.getY(),endCtrlPt.getX(),endCtrlPt.getY(),endPt.getX(),endPt.getY());
 			ready = true;
 		}			
+	}
+
+	public void resetRoute()
+	{
+		StateObj currentState = state;
+		state = null;
+		initTrans(currentState);
+		modified = true;
+	}
+
+	private boolean nearPoint(Point point, int x, int y)
+	{
+		return Math.abs(point.getX() - x) <= HANDLE_HIT_RADIUS && Math.abs(point.getY() - y) <= HANDLE_HIT_RADIUS;
+	}
+
+	public boolean isRouteHandleHit(int x, int y)
+	{
+		return currPage == myPage && (nearPoint(startPt, x, y) || nearPoint(startCtrlPt, x, y)
+				|| nearPoint(endCtrlPt, x, y) || nearPoint(endPt, x, y));
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -377,13 +397,13 @@ private double ctrlAngleS, ctrlAngleE;
 				
 				
 				//check control points
-				if(startPt.getX()-x <= 4 && startPt.getX()-x >= -4 && startPt.getY()-y <= 4 && startPt.getY()-y >= -4)
+				if(nearPoint(startPt, x, y))
 					selectStatus = START;
-				if(startCtrlPt.getX()-x <= 4 && startCtrlPt.getX()-x >= -4 && startCtrlPt.getY()-y <= 4 && startCtrlPt.getY()-y >= -4)
+				if(nearPoint(startCtrlPt, x, y))
 		        	selectStatus = STARTCTRL;
-		        if(endCtrlPt.getX()-x <= 4 && endCtrlPt.getX()-x >= -4 && endCtrlPt.getY()-y <= 4 && endCtrlPt.getY()-y >= -4)
+		        if(nearPoint(endCtrlPt, x, y))
 		        	selectStatus = ENDCTRL;
-		        if(endPt.getX()-x <= 4 && endPt.getX()-x >= -4 && endPt.getY()-y <= 4 && endPt.getY()-y >= -4)
+		        if(nearPoint(endPt, x, y))
 		        	selectStatus = END;
 				// if not a control point, search around line
 		        if(selectStatus == NONE)

@@ -58,6 +58,7 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 	public static final int PAGESC = 8;
 	public static final int PAGEEC = 9;
 	public static final int PAGEE = 10;
+	private static final int HANDLE_HIT_RADIUS = 10;
 	
 	//pages
 	public Point pageS, pageSC, pageE, pageEC;
@@ -294,6 +295,29 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			ObjAttribute obj = attrib.get(i);
 			obj.resetTextOffset();
 		}
+	}
+
+	public void resetRoute()
+	{
+		routeModified = false;
+		setEndPts();
+		modified = true;
+	}
+
+	private boolean nearPoint(Point point, int x, int y)
+	{
+		return Math.abs(point.getX() - x) <= HANDLE_HIT_RADIUS && Math.abs(point.getY() - y) <= HANDLE_HIT_RADIUS;
+	}
+
+	public boolean isRouteHandleHit(int x, int y)
+	{
+		if(currPage != myPage)
+			return false;
+		if(!stub && (nearPoint(startCtrlPt, x, y) || nearPoint(endCtrlPt, x, y)
+				|| nearPoint(endPt, x, y) || nearPoint(pageSC, x, y)
+				|| nearPoint(pageEC, x, y) || nearPoint(pageE, x, y)))
+			return true;
+		return nearPoint(startPt, x, y) || nearPoint(pageS, x, y);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -877,17 +901,17 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
         	//check control points
         	if(!stub)
         	{
-        		if(startCtrlPt.getX()-x <= 3 && startCtrlPt.getX()-x >= -3 && startCtrlPt.getY()-y <= 3 && startCtrlPt.getY()-y >= -3)
+        		if(nearPoint(startCtrlPt, x, y))
     	        	selectStatus = STARTCTRL;
-    	        if(endCtrlPt.getX()-x <= 3 && endCtrlPt.getX()-x >= -3 && endCtrlPt.getY()-y <= 3 && endCtrlPt.getY()-y >= -3)
+    	        if(nearPoint(endCtrlPt, x, y))
     	        	selectStatus = ENDCTRL;
-    	        if(endPt.getX()-x <= 3 && endPt.getX()-x >= -3 && endPt.getY()-y <= 3 && endPt.getY()-y >= -3)
+    	        if(nearPoint(endPt, x, y))
     	        	selectStatus = END;
-    	        if(pageSC.getX()-x <= 3 && pageSC.getX()-x >= -3 && pageSC.getY()-y <= 3 && pageSC.getY()-y >= -3)
+    	        if(nearPoint(pageSC, x, y))
     	        	selectStatus = PAGESC;
-    	        if(pageEC.getX()-x <= 3 && pageEC.getX()-x >= -3 && pageEC.getY()-y <= 3 && pageEC.getY()-y >= -3)
+    	        if(nearPoint(pageEC, x, y))
     	        	selectStatus = PAGEEC;
-    	        if(pageE.getX()-x <= 3 && pageE.getX()-x >= -3 && pageE.getY()-y <= 3 && pageE.getY()-y >= -3)
+    	        if(nearPoint(pageE, x, y))
     	        	selectStatus = PAGEE;
     	        //check page connecter icon
     	        if(pageS.getX()-x <= 0 && pageS.getX()-x >= -40 && pageS.getY()-y <= 10 && pageS.getY()-y >= -10)
@@ -895,9 +919,9 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
     	        if(pageE.getX()-x <= 40 && pageE.getX()-x >= 0 && pageE.getY()-y <= 10 && pageE.getY()-y >= -10)
     	        	selectStatus = PAGEE;
         	}
-			if(startPt.getX()-x <= 3 && startPt.getX()-x >= -3 && startPt.getY()-y <= 3 && startPt.getY()-y >= -3)
+			if(nearPoint(startPt, x, y))
 				selectStatus = START;
-	        if(pageS.getX()-x <= 3 && pageS.getX()-x >= -3 && pageS.getY()-y <= 3 && pageS.getY()-y >= -3)
+	        if(nearPoint(pageS, x, y))
 	        	selectStatus = PAGES;
 	        
 			// if not a control point, search around line

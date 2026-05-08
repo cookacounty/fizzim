@@ -1048,6 +1048,7 @@ public void updateTransitions()
 		setToolTipText(null);
 		int x = modelX(arg0);
 		int y = modelY(arg0);
+		boolean overRouteHandle = false;
 		for (int i = objList.size() - 1; i >= 1; i--)
 		{
 			GeneralObj obj = (GeneralObj) objList.elementAt(i);
@@ -1056,7 +1057,18 @@ public void updateTransitions()
 				setToolTipText(obj.getName());
 				break;
 			}
+			if(obj.getType() == 1 && ((StateTransitionObj)obj).isRouteHandleHit(x, y))
+			{
+				overRouteHandle = true;
+				break;
+			}
+			if(obj.getType() == 2 && ((LoopbackTransitionObj)obj).isRouteHandleHit(x, y))
+			{
+				overRouteHandle = true;
+				break;
+			}
 		}
+		setCursor(Cursor.getPredefinedCursor(overRouteHandle ? Cursor.MOVE_CURSOR : Cursor.DEFAULT_CURSOR));
 	}
 
 	public void mouseWheelMoved(MouseWheelEvent e)
@@ -1172,6 +1184,9 @@ public void updateTransitions()
         	menuItem.setMnemonic(KeyEvent.VK_E);
 	        menuItem.addActionListener(this);
 	        popup.add(menuItem);
+	        menuItem = new JMenuItem("Reset Transition Route");
+	        menuItem.addActionListener(this);
+	        popup.add(menuItem);
 	        if(obj.getSelectStatus() == StateTransitionObj.TXT)
 	        {
 	        	JMenu pages2 = new JMenu("Move to Page...");
@@ -1193,6 +1208,9 @@ public void updateTransitions()
         {
 	        menuItem = new JMenuItem("Edit Loopback Transition Properties");
 	        menuItem.setMnemonic(KeyEvent.VK_E);
+	        menuItem.addActionListener(this);
+	        popup.add(menuItem);
+	        menuItem = new JMenuItem("Reset Transition Route");
 	        menuItem.addActionListener(this);
 	        popup.add(menuItem);
         }
@@ -1301,6 +1319,14 @@ public void updateTransitions()
     		}
         	new TransProperties(this,frame, true, (StateTransitionObj) tempObj,stateObjs,false,null)
 			.setVisible(true);
+        }
+        else if(input == "Reset Transition Route")
+        {
+			if(tempObj != null && tempObj.getType() == 1)
+				((StateTransitionObj) tempObj).resetRoute();
+			else if(tempObj != null && tempObj.getType() == 2)
+				((LoopbackTransitionObj) tempObj).resetRoute();
+			commitUndo();
         }
         else if(input == "Quick New State")
         {
