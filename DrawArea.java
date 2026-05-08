@@ -63,6 +63,14 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	private int mX0,mY0,mX1,mY1;
 	private LinkedList<Integer> selectedIndices = new LinkedList<Integer>();
 	private boolean ctrlDown = false;
+	private static final int PAN_DRAG_THRESHOLD = 4;
+	private boolean rightButtonDown = false;
+	private boolean rightButtonDragged = false;
+	private Point panScreenStart = null;
+	private Point panViewStart = null;
+	private MouseEvent pendingPopupEvent = null;
+	private GeneralObj pendingPopupObj = null;
+	private int pendingPopupType = 0;
 
 	//font
 	private Font currFont = new Font("Arial",Font.PLAIN,11);
@@ -267,6 +275,66 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	{
 		if(frame instanceof FizzimGui)
 			((FizzimGui)frame).updateZoomControls();
+	}
+
+	private boolean isPopupMouse(MouseEvent e)
+	{
+		return e.getButton() == MouseEvent.BUTTON3 || e.getModifiers() == 20 || e.isPopupTrigger();
+	}
+
+	private boolean isRightButtonDrag(MouseEvent e)
+	{
+		return (e.getModifiersEx() & MouseEvent.BUTTON3_DOWN_MASK) != 0;
+	}
+
+	private void startPanCandidate(MouseEvent e)
+	{
+		rightButtonDown = true;
+		rightButtonDragged = false;
+		panScreenStart = new Point(e.getXOnScreen(), e.getYOnScreen());
+		JViewport viewport = (JViewport)SwingUtilities.getAncestorOfClass(JViewport.class, this);
+		panViewStart = viewport == null ? null : viewport.getViewPosition();
+		pendingPopupEvent = null;
+		pendingPopupObj = null;
+		pendingPopupType = 0;
+	}
+
+	private void queuePopup(GeneralObj obj, MouseEvent e, int type)
+	{
+		pendingPopupObj = obj;
+		pendingPopupEvent = e;
+		pendingPopupType = type;
+	}
+
+	private void clearPendingPopup()
+	{
+		pendingPopupEvent = null;
+		pendingPopupObj = null;
+		pendingPopupType = 0;
+	}
+
+	private boolean panCanvas(MouseEvent e)
+	{
+		if(!rightButtonDown || !isRightButtonDrag(e) || panScreenStart == null || panViewStart == null)
+			return false;
+
+		int dx = e.getXOnScreen() - panScreenStart.x;
+		int dy = e.getYOnScreen() - panScreenStart.y;
+		if(!rightButtonDragged && Math.abs(dx) < PAN_DRAG_THRESHOLD && Math.abs(dy) < PAN_DRAG_THRESHOLD)
+			return true;
+
+		rightButtonDragged = true;
+		clearPendingPopup();
+		JViewport viewport = (JViewport)SwingUtilities.getAncestorOfClass(JViewport.class, this);
+		if(viewport == null)
+			return true;
+
+		int newX = panViewStart.x - dx;
+		int newY = panViewStart.y - dy;
+		newX = Math.max(0, Math.min(newX, Math.max(0, getWidth() - viewport.getWidth())));
+		newY = Math.max(0, Math.min(newY, Math.max(0, getHeight() - viewport.getHeight())));
+		viewport.setViewPosition(new Point(newX, newY));
+		return true;
 	}
 	
 	
@@ -510,6 +578,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 
 	private GeneralObj selectTransitionEndpoint(MouseEvent e, boolean stateGroupsOnly)
 	{
+		boolean popupMouse = isPopupMouse(e);
 		int x = modelX(e);
 		int y = modelY(e);
 		for (int i = 1; i < objList.size(); i++)
@@ -524,10 +593,10 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 
 			if(s.setSelectStatus(x,y))
 			{
-				if(e.getButton() == MouseEvent.BUTTON3 || e.getModifiers() == 20)
+				if(popupMouse)
 				{
 					setUndoPoint(i,s.getType());
-					createPopup(s,e);
+					queuePopup(s,e,1);
 				}
 				else
 					setUndoPoint(i,s.getType());
@@ -553,6 +622,9 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	public void mousePressed(MouseEvent e) {
 		
 		//System.out.println("mousePressed:" + " Button:" + e.getButton() + " Modifiers:" + e.getModifiers() + " Popup Trigger:" + e.isPopupTrigger() + " ControlDown:" + e.isControlDown());
+		boolean popupMouse = isPopupMouse(e);
+		if(popupMouse)
+			startPanCandidate(e);
 		int x = modelX(e);
 		int y = modelY(e);
 		GeneralObj bestMatch = null;
@@ -627,9 +699,9 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 					unselectObjs();
 				}
 			}
-			else if(e.getButton() == MouseEvent.BUTTON3 || e.getModifiers() == 20)
+			else if(popupMouse)
 			{
-				createPopup(null,e);
+				queuePopup(null,e,1);
 			}
 		}
 		else
@@ -645,10 +717,10 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 					if(!doubleClick)
 					{
 						//if right click, create popup menu
-						if(e.getButton() == MouseEvent.BUTTON3 || e.getModifiers() == 20)
+						if(popupMouse)
 						{
 							setUndoPoint(i,s.getType());
-							createPopup(s,e);
+							queuePopup(s,e,1);
 						}
 						else
 							setUndoPoint(i,s.getType());
@@ -704,10 +776,10 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 					{
 						bestMatch = s;
 							
-						if(e.getButton() == MouseEvent.BUTTON3 || e.getModifiers() == 20)
+						if(popupMouse)
 						{
 							setUndoPoint(i,3);
-							createPopup(s,e);
+							queuePopup(s,e,1);
 						}
 						else
 							setUndoPoint(i,3);
@@ -727,10 +799,10 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 						bestMatch = s;
 						int type = s.getType();
 	
-						if(e.getButton() == MouseEvent.BUTTON3 || e.getModifiers() == 20)
+						if(popupMouse)
 						{
 							setUndoPoint(i,type);
-							createPopup(s,e);
+							queuePopup(s,e,1);
 						}
 						else
 							setUndoPoint(i,type);
@@ -750,9 +822,9 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			}
 			
 			//if nothing is clicked on, and right click
-			if(bestMatch == null && (e.getButton() == MouseEvent.BUTTON3 || e.getModifiers() == 20))
+			if(bestMatch == null && popupMouse)
 			{
-				createPopup(e);
+				queuePopup(null,e,2);
 				setUndoPoint(-1,-1);
 			}
 			
@@ -776,6 +848,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 
 	public void mouseReleased(MouseEvent e) {
 		//System.out.println("mouseReleased:" + " Button:" + e.getButton() + " Modifiers:" + e.getModifiers() + " Popup Trigger:" + e.isPopupTrigger() + " ControlDown:" + e.isControlDown());	
+		boolean showPendingPopup = rightButtonDown && !rightButtonDragged && pendingPopupEvent != null;
 	
 		multipleSelect = false;
 		if(!objsSelected)
@@ -829,6 +902,19 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			commitUndo();
 			validateStateGroupMembership(true);
 		}
+
+		if(showPendingPopup)
+		{
+			if(pendingPopupType == 1)
+				createPopup(pendingPopupObj, pendingPopupEvent);
+			else if(pendingPopupType == 2)
+				createPopup(pendingPopupEvent);
+		}
+		rightButtonDown = false;
+		rightButtonDragged = false;
+		panScreenStart = null;
+		panViewStart = null;
+		clearPendingPopup();
 		
 		repaint();
 	}
@@ -846,6 +932,8 @@ public void updateTransitions()
 }
 
 	public void mouseDragged(MouseEvent arg0) {
+		if(panCanvas(arg0))
+			return;
 
 		//keep movement within page
 		int x = modelX(arg0);
@@ -986,23 +1074,22 @@ public void updateTransitions()
 			return;
 
 		JViewport viewport = (JViewport)SwingUtilities.getAncestorOfClass(JViewport.class, this);
-		Point viewPosition = null;
-		double anchorX = 0;
-		double anchorY = 0;
+		Point cursorInViewport = null;
+		double anchorModelX = e.getX() / oldZoom;
+		double anchorModelY = e.getY() / oldZoom;
 		if(viewport != null)
 		{
-			viewPosition = viewport.getViewPosition();
-			anchorX = (viewPosition.x + e.getX()) / oldZoom;
-			anchorY = (viewPosition.y + e.getY()) / oldZoom;
+			Point viewPosition = viewport.getViewPosition();
+			cursorInViewport = new Point(e.getX() - viewPosition.x, e.getY() - viewPosition.y);
 		}
 
 		zoom = newZoom;
 		updateZoomedSize();
 
-		if(viewport != null && viewPosition != null)
+		if(viewport != null && cursorInViewport != null)
 		{
-			int newViewX = (int)Math.round(anchorX * zoom - e.getX());
-			int newViewY = (int)Math.round(anchorY * zoom - e.getY());
+			int newViewX = (int)Math.round(anchorModelX * zoom - cursorInViewport.x);
+			int newViewY = (int)Math.round(anchorModelY * zoom - cursorInViewport.y);
 			newViewX = Math.max(0, Math.min(newViewX, Math.max(0, getWidth() - viewport.getWidth())));
 			newViewY = Math.max(0, Math.min(newViewY, Math.max(0, getHeight() - viewport.getHeight())));
 			viewport.setViewPosition(new Point(newViewX, newViewY));
