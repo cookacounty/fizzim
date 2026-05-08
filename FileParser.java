@@ -594,6 +594,7 @@ public class FileParser {
 		openAttributeList(list, oS, oE,globalOutputsAttributes);
 		openAttributeList(list, sS, sE,globalStateAttributes);
 		openAttributeList(list, tS, tE,globalTransAttributes);
+		ensureRegdpTransitionActions();
 		
 		/*
 		int counter = 0;
@@ -634,6 +635,32 @@ public class FileParser {
 		objList.add(globalList);
 		tempList.clear();	
 	
+	}
+
+	private void ensureRegdpTransitionActions() {
+		int[] editable = { ObjAttribute.GLOBAL_FIXED, ObjAttribute.GLOBAL_VAR,
+				ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR,
+				ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR };
+
+		for(int i = 0; i < globalOutputsAttributes.size(); i++) {
+			ObjAttribute output = globalOutputsAttributes.get(i);
+			if(!output.getType().equals("regdp"))
+				continue;
+			if(hasTransitionOutputAttribute(output.getName()))
+				continue;
+
+			globalTransAttributes.addLast(new ObjAttribute(output.getName(), "",
+					output.getVisibility(), "output", "", Color.black, "", "", editable));
+		}
+	}
+
+	private boolean hasTransitionOutputAttribute(String name) {
+		for(int i = 0; i < globalTransAttributes.size(); i++) {
+			ObjAttribute attribute = globalTransAttributes.get(i);
+			if(attribute.getName().equals(name) && attribute.getType().equals("output"))
+				return true;
+		}
+		return false;
 	}
 	
 

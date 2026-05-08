@@ -233,13 +233,38 @@ class MyTableModel extends AbstractTableModel {
 	        	ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR};
 	        	ObjAttribute newObj = new ObjAttribute(attrib.get(row).getName(),attrib.get(row).getValue(),
 	        			attrib.get(row).getVisibility(),"output","",Color.black,"","",editable);
-				globalList.get(3).addLast(newObj);      	
+				globalList.get(3).addLast(newObj);
+				if(value.equals("regdp"))
+				{
+		        	ObjAttribute newTransObj = new ObjAttribute(attrib.get(row).getName(),"",
+		        			attrib.get(row).getVisibility(),"output","",Color.black,"","",editable);
+					globalList.get(4).addLast(newTransObj);
+				}
+        }
+
+        if(global && col == 3 && attrib.equals(globalList.get(2)) && !attrib.get(row).get(col).equals(value)
+        		&& !attrib.get(row).get(col).equals(""))
+        {
+        	if(value.equals("regdp"))
+        	{
+	        	int[] editable = { ObjAttribute.GLOBAL_FIXED, ObjAttribute.GLOBAL_VAR,
+	        	ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR};
+	        	removeAttribute(4,attrib.get(row).getName());
+	        	ObjAttribute newTransObj = new ObjAttribute(attrib.get(row).getName(),"",
+	        			attrib.get(row).getVisibility(),"output","",Color.black,"","",editable);
+				globalList.get(4).addLast(newTransObj);
+        	}
+        	else if(attrib.get(row).getType().equals("regdp"))
+        	{
+        		removeAttribute(4,attrib.get(row).getName());
+        	}
         }
         
         //if rename something of type output
         if(global && col != 3 && globalList.get(2).equals(attrib) && !attrib.get(row).get(col).equals(value))
         {
         		renameAttribute(3,attrib.get(row).getName(),col,value,row);
+        		renameAttribute(4,attrib.get(row).getName(),col,value,row);
         }
         
 
@@ -356,6 +381,16 @@ class MyTableModel extends AbstractTableModel {
 			}
 		}
 		
+	}
+
+	private void removeAttribute(int tab, String name)
+	{
+		for(int i = globalList.get(tab).size() - 1; i >= 0; i--)
+		{
+			ObjAttribute obj = globalList.get(tab).get(i);
+			if(obj.getName().equals(name) && obj.getType().equals("output"))
+				globalList.get(tab).remove(i);
+		}
 	}
 
 	private boolean checkOutputs(ObjAttribute objAttribute) {
@@ -2019,6 +2054,7 @@ class GlobalProperties extends javax.swing.JDialog {
 					if(currTab == 2 && obj.getType().equals("regdp"))
 					{
 						removeAttribute(3,obj.getName());
+						removeAttribute(4,obj.getName());
 					}
 					if(currTab == 2 && obj.getType().equals("comb"))
 					{

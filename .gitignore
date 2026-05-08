@@ -6,3 +6,6 @@ testcases_production/
 
 # Generated public testcase outputs
 testcases/generated/
+
+# Local environment helpers
+setup_java.ps1

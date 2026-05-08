@@ -1982,9 +1982,14 @@ if (scalar(%regdp_outputs)) {
     }
   } else {
     pop(@pbuf);
-    &warning($indent,"Did not find any non-default values for any datapath outputs - suppressing case statement");
+    if (!&has_regdp_transition_actions) {
+      &warning($indent,"Did not find any non-default values for any datapath outputs - suppressing case statement");
+    }
     $indent--;
   }
+
+  &print_regdp_transition_actions;
+
   if ($language eq "vhdl") {
     if ($sync eq "sync") {
       &print(--$indent,"end if;\n"); # end of if rising edge
@@ -2207,6 +2212,118 @@ sub print_ifelse {
 
   } else {
   }
+}
+
+sub print_regdp_transition_actions {
+  my ($state, $trans, $att, $value, $equation, $keep_state, $keep_case);
+  my (@transitions_from_this_state, @assignments);
+
+  return unless &has_regdp_transition_actions;
+
+  &print($indent, "${comm} datapath transition actions\n");
+  &print_case_statement($statevar);
+
+  $keep_case = 0;
+  foreach $state (@allstates) {
+    $keep_state = 0;
+
+    if ($encoding eq "heros" || $encoding eq "none") {
+      &print($indent++,sprintf("%-${statename_length}s:",$state) . " begin\n");
+      &translate_last_line_to_vhdl_if_required("case item");
+    } elsif ($encoding eq "onehot") {
+      if ($language eq "systemverilog" || ($language eq "verilog" && $globals{machine}{default_state_is_x}{value})) {
+        &print($indent++,sprintf("%-${statename_length_onehot}s:","$statevar\[${state}_BIT\]") . " begin\n");
+      } elsif ($language eq "verilog") {
+        &print($indent++,sprintf("%-${statename_length_onehot}s:","$statevar\[$state\]") . " begin\n");
+      } elsif ($language eq "vhdl") {
+        &print($indent++,"if ($statevar(${state}_BIT) = '1') then" . "${comment}\n");
+      }
+    }
+
+    @transitions_from_this_state = ();
+    foreach $trans (keys %transitions) {
+      if ($transitions{$trans}{startState} eq $state) {
+        push(@transitions_from_this_state, $trans);
+      }
+    }
+    @transitions_from_this_state = sort sort_by_priority_then_equation_equal_1 @transitions_from_this_state;
+
+    @ifs = ();
+    foreach $trans (@transitions_from_this_state) {
+      @assignments = ();
+      foreach $att (sort keys %{ $transitions{$trans}{attributes} }) {
+        next unless exists $regdp_outputs{$att};
+        next unless $transitions{$trans}{attributes}{$att}{type} eq "output";
+        next unless exists $transitions{$trans}{attributes}{$att}{value};
+        $value = $transitions{$trans}{attributes}{$att}{value};
+        next if ($value eq "");
+        push(@assignments, "$att <= $value;\n");
+      }
+      next unless @assignments;
+
+      $equation = $transitions{$trans}{attributes}{equation}{value};
+      $equation =~ s/\n//g;
+      $equation = 1 if ($equation eq "");
+      push(@ifs, [$equation, @assignments]);
+    }
+
+    if (@ifs) {
+      &print_ifelse;
+      $keep_state = 1;
+      $keep_case = 1;
+    }
+
+    if ($keep_state) {
+      if ($language eq "vhdl") {
+        if ($encoding eq "onehot") {
+          &print(--$indent,"end if;\n");
+          &print(0,"\n");
+        } else {
+          $indent--;
+          &print(0,"\n");
+        }
+      } else {
+        &print(--$indent,"end\n");
+      }
+    } else {
+      $indent--;
+      pop(@pbuf);
+    }
+  }
+
+  if ($keep_case) {
+    if ($language eq "vhdl" && ($encoding eq "heros" || $encoding eq "none")) {
+      &print($indent,"when others =>\n");
+      &print(0,"\n");
+      &print(--$indent, "end case;\n");
+    } else {
+      if ($casedefault) {
+        &print($indent,"default: ; ${comm} added because -casedefault is set\n");
+      }
+      if ($language ne "vhdl") {
+        &print(--$indent, "endcase\n");
+      }
+    }
+  } else {
+    pop(@pbuf);
+    $indent--;
+  }
+}
+
+sub has_regdp_transition_actions {
+  my ($trans, $att);
+
+  foreach $trans (keys %transitions) {
+    foreach $att (keys %{ $transitions{$trans}{attributes} }) {
+      next unless exists $regdp_outputs{$att};
+      next unless $transitions{$trans}{attributes}{$att}{type} eq "output";
+      if (exists $transitions{$trans}{attributes}{$att}{value} &&
+          ($transitions{$trans}{attributes}{$att}{value} ne "")) {
+        return 1;
+      }
+    }
+  }
+  return 0;
 }
 
 # Translate an equation to vhdl format (or, try...)

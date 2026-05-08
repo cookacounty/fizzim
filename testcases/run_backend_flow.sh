@@ -10,8 +10,15 @@ FEATURE_FZM="$SCRIPT_DIR/generic_ctrl_fsm_features.fzm"
 GOLDEN_SV="$GENERATED_DIR/generic_ctrl_fsm.sv"
 FEATURE_SV="$GENERATED_DIR/generic_ctrl_fsm_features.sv"
 TESTBENCH="$SCRIPT_DIR/tb_generic_ctrl_equiv.sv"
+STATE_ACTION_FZM="$SCRIPT_DIR/generic_state_action.fzm"
+STATE_ACTION_FEATURE_FZM="$GENERATED_DIR/generic_state_action_transition_actions.fzm"
+STATE_ACTION_SV="$GENERATED_DIR/generic_state_action.sv"
+STATE_ACTION_FEATURE_SV="$GENERATED_DIR/generic_state_action_transition_actions.sv"
+STATE_ACTION_TESTBENCH="$SCRIPT_DIR/tb_generic_state_action_transition_actions.sv"
 GOLDEN_SV_YOSYS="testcases/generated/generic_ctrl_fsm.sv"
 FEATURE_SV_YOSYS="testcases/generated/generic_ctrl_fsm_features.sv"
+STATE_ACTION_SV_YOSYS="testcases/generated/generic_state_action.sv"
+STATE_ACTION_FEATURE_SV_YOSYS="testcases/generated/generic_state_action_transition_actions.sv"
 
 PERL_BIN="${PERL_BIN:-${FIZZIM_PERL:-perl}}"
 SIM="${SIM:-xrun}"
@@ -80,14 +87,88 @@ for occurrence in 1 2; do
   fi
 done
 
+echo "Generating transition-actions example RTL"
+"$PERL_BIN" "$BACKEND" -noaddversion "$STATE_ACTION_FZM" > "$STATE_ACTION_SV"
+"$PERL_BIN" -0pe '
+my $action = q{
+      <rdy>
+            <status>
+            GLOBAL_FIXED
+            </status>
+         <value>
+         1
+            <status>
+            LOCAL
+            </status>
+         </value>
+         <vis>
+         1
+            <status>
+            GLOBAL_VAR
+            </status>
+         </vis>
+         <type>
+         output
+            <status>
+            GLOBAL_VAR
+            </status>
+         </type>
+         <comment>
+         transition action
+            <status>
+            LOCAL
+            </status>
+         </comment>
+         <color>
+         -16777216
+            <status>
+            GLOBAL_VAR
+            </status>
+         </color>
+         <useratts>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </useratts>
+         <resetval>
+         
+            <status>
+            GLOBAL_VAR
+            </status>
+         </resetval>
+         <x2Obj>
+         0
+         </x2Obj>
+         <y2Obj>
+         0
+         </y2Obj>
+         <page>
+         1
+         </page>
+      </rdy>
+};
+s/generic_state_action/generic_state_action_transition_actions/g;
+s/state==S1 && nextstate==S2/0/g;
+s/(<transition>\s*<attributes>\s*<name>.*?<value>\s*trans59\s*<status>.*?)(\s*<priority>)/$1\n$action$2/s;
+' "$STATE_ACTION_FZM" > "$STATE_ACTION_FEATURE_FZM"
+"$PERL_BIN" "$BACKEND" -noaddversion "$STATE_ACTION_FEATURE_FZM" > "$STATE_ACTION_FEATURE_SV"
+grep -q '// datapath transition actions' "$STATE_ACTION_FEATURE_SV"
+grep -q 'rdy <= 1;' "$STATE_ACTION_FEATURE_SV"
+
 echo "Compiling and simulating generic equivalence"
 if [[ "$SIM" == "xrun" ]] && command -v xrun >/dev/null 2>&1; then
   xrun -64bit -sv -clean -access +rwc -top tb_generic_ctrl_equiv \
     "$GOLDEN_SV" "$FEATURE_SV" "$TESTBENCH"
+  xrun -64bit -sv -clean -access +rwc -top tb_generic_state_action_transition_actions \
+    "$STATE_ACTION_SV" "$STATE_ACTION_FEATURE_SV" "$STATE_ACTION_TESTBENCH"
 elif command -v iverilog >/dev/null 2>&1 && command -v vvp >/dev/null 2>&1; then
   iverilog -g2012 -Wall -o "$GENERATED_DIR/generic_ctrl_equiv.vvp" \
     "$GOLDEN_SV" "$FEATURE_SV" "$TESTBENCH"
   vvp "$GENERATED_DIR/generic_ctrl_equiv.vvp"
+  iverilog -g2012 -Wall -o "$GENERATED_DIR/generic_state_action_transition_actions.vvp" \
+    "$STATE_ACTION_SV" "$STATE_ACTION_FEATURE_SV" "$STATE_ACTION_TESTBENCH"
+  vvp "$GENERATED_DIR/generic_state_action_transition_actions.vvp"
 else
   echo "Could not find xrun or iverilog/vvp for simulation." >&2
   exit 1
@@ -109,8 +190,24 @@ proc
 opt
 check
 YOSYS
+  cat > "$GENERATED_DIR/yosys_check_state_action.ys" <<YOSYS
+read_verilog -sv "$STATE_ACTION_SV_YOSYS"
+hierarchy -check -top generic_state_action
+proc
+opt
+check
+YOSYS
+  cat > "$GENERATED_DIR/yosys_check_state_action_transition_actions.ys" <<YOSYS
+read_verilog -sv "$STATE_ACTION_FEATURE_SV_YOSYS"
+hierarchy -check -top generic_state_action_transition_actions
+proc
+opt
+check
+YOSYS
   yosys -q -s "$GENERATED_DIR/yosys_check_golden.ys"
   yosys -q -s "$GENERATED_DIR/yosys_check_features.ys"
+  yosys -q -s "$GENERATED_DIR/yosys_check_state_action.ys"
+  yosys -q -s "$GENERATED_DIR/yosys_check_state_action_transition_actions.ys"
 fi
 
 echo "PASS generic backend flow"
