@@ -85,7 +85,9 @@ public class StateGroupObj extends StateObj {
 	}
 
 	public Vector<Point> getBorderPts() {
-		return getRectangleBorderPts(36);
+		Vector<Point> borderPts = getRectangleBorderPts(36);
+		appendScaledRectangleBorderPts(borderPts);
+		return borderPts;
 	}
 
 	public void save(BufferedWriter writer) throws IOException {

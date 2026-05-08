@@ -11,6 +11,8 @@ Fizzim was originally written by Michael Zimmer of Zimmer Design Services.
 Fizzim 2.0 feature updates, including forked transitions and state groups, were
 added by Aaron Cook.
 
+See [CHANGELOG.md](CHANGELOG.md) for a summary of the Fizzim 2.0 changes.
+
 To compile, run:
 
 ```sh

@@ -450,6 +450,11 @@ public class ObjAttribute implements Cloneable {
 		x2Obj = 0;
 		y2Obj = 0;
 	}
+
+	public void moveTextOffset(int dx, int dy) {
+		x2Obj += dx;
+		y2Obj += dy;
+	}
 	
 	public int getPage()
 	{

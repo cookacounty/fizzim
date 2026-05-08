@@ -294,7 +294,9 @@ public class StateObj extends GeneralObj implements Cloneable {
 
 	// creates array of points around the rounded rectangle boundary
 	public Vector<Point> getBorderPts() {
-		return getRectangleBorderPts(36);
+		Vector<Point> borderPts = getRectangleBorderPts(36);
+		appendScaledRectangleBorderPts(borderPts);
+		return borderPts;
 	}
 
 	public void moveBy(int dx, int dy) {
@@ -324,6 +326,26 @@ public class StateObj extends GeneralObj implements Cloneable {
 			borderPts.add(i, new Point(x, y));
 		}
 		return borderPts;
+	}
+
+	protected void appendScaledRectangleBorderPts(Vector<Point> borderPts) {
+		int w = Math.max(1, x1 - x0);
+		int h = Math.max(1, y1 - y0);
+		int spacing = 35;
+		addEdgeBorderPts(borderPts, x0, y0, x1, y0, Math.max(0, w / spacing - 1));
+		addEdgeBorderPts(borderPts, x1, y0, x1, y1, Math.max(0, h / spacing - 1));
+		addEdgeBorderPts(borderPts, x1, y1, x0, y1, Math.max(0, w / spacing - 1));
+		addEdgeBorderPts(borderPts, x0, y1, x0, y0, Math.max(0, h / spacing - 1));
+	}
+
+	private void addEdgeBorderPts(Vector<Point> borderPts, int ax, int ay, int bx, int by, int count) {
+		for(int i = 1; i <= count; i++)
+		{
+			double t = (double)i / (count + 1);
+			int x = (int)Math.round(ax + (bx - ax) * t);
+			int y = (int)Math.round(ay + (by - ay) * t);
+			borderPts.add(new Point(x, y));
+		}
 	}
 
 	protected Vector<Point> getOvalBorderPts(int pointCount) {

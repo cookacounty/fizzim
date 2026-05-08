@@ -1,0 +1,119 @@
+# Changelog
+
+## Fizzim 2.0 - Current Development
+
+This summarizes the major changes made while evolving the original Fizzim tool
+into Fizzim 2.0. It intentionally focuses on features and workflows that remain
+part of the current codebase.
+
+### FSM Modeling
+
+- Added forked transitions. A transition can now target a small fork node, and
+  the fork can branch to multiple destination states. This lets common
+  conditions be written once before branch-specific conditions are evaluated.
+- Added state groups. A state group can contain states and forks, share
+  transition behavior across those contained states, and remove repeated state
+  transition logic.
+- Added state group default entry states. A transition into a state group must
+  enter a concrete child state, and the default entry state is shown with a bold
+  outline.
+- Defined priority behavior for forks and state groups. State group exits take
+  priority over internal state transitions, and fork outgoing transitions are
+  resolved by transition priority.
+- Added transition actions. Transitions can now assign `regdp` outputs directly,
+  making one-cycle transition pulses easier to express without relying on
+  `nextstate` expressions in destination states.
+- Added parent-qualified debug state names for grouped states, so simulation
+  debug can display names like `GROUP.CHILD`.
+- Increased the generated debug `statename` width to 256 characters by default.
+
+### Diagram Editing
+
+- Updated normal states to use rounded rectangles with white fill, improving
+  readability compared with the old circular state shape.
+- Updated state groups to use rounded rectangles with a very light blue fill, so
+  grouped states remain visible while groups are still distinguishable.
+- Kept state groups behind states and forks in the GUI so contained objects stay
+  selectable.
+- Added validation for states that ambiguously overlap state groups.
+- Added Verilog/SystemVerilog reserved-word checks when adding or renaming FSM
+  objects such as states and outputs.
+- Improved fork nodes by making them larger, non-resizable, and easier to grab.
+- Added fork tooltips that show the fork name on hover.
+- Added propagation when renaming objects in the property editor, preventing
+  assignments from being lost when a signal or state is renamed.
+- Added up/down controls in the attribute editor tabs so attributes can be
+  reordered.
+- Added reset behavior for transition label placement.
+- Improved transition route editing:
+  - Larger invisible grab regions for route handles.
+  - Hover cursor feedback over route handles and editable transition routes.
+  - A `Reset Transition Route` context-menu action.
+  - Dragging a transition line bends the existing Bezier route.
+  - Transition labels move with the line while bending.
+  - Larger states and state groups expose finer connection points while keeping
+    old saved connection indices compatible.
+- Added zoom controls for the canvas:
+  - `+` and `-` zoom buttons.
+  - Zoom percentage display.
+  - Zoom-to-fit button.
+  - Ctrl + mouse wheel zoom targeting the mouse position.
+- Added right-button drag panning while preserving quick right-click context
+  menus.
+- Added Open Recent support for the last 10 opened diagram files.
+- Allowed multiple diagram windows to be open at the same time.
+- Added default new-FSM settings for `posedge clk`, `negedge rst_l`, and implied
+  loopback behavior.
+
+### Verilog Backend
+
+- Included the Perl backend script `fizzim.pl` in the repository so generated
+  Verilog is reproducible from the checked-in source tree.
+- Updated the backend for forked transitions, state groups, state group default
+  entry behavior, transition actions, and widened debug `statename` output.
+- Kept generated debug-only state-name logic guarded from synthesis.
+- Preserved compatibility with existing diagrams by avoiding file-format changes
+  for route editing and by preserving legacy connection-point indices.
+
+### Test Infrastructure
+
+- Reworked the public testcases around a generic feature-rich FSM that exercises
+  the major Fizzim 2.0 features.
+- Added generation of a Fizzim 1.0-compatible diagram from the generic feature
+  diagram, allowing the legacy-compatible output to be compared against the new
+  feature-driven output.
+- Added a checked-in legacy testbench area under `testcases/tb/legacy/` with the
+  old backend and GUI source used for comparison.
+- Added Linux/Git Bash-oriented `make` targets for build, clean, jar generation,
+  and test execution.
+- Kept a Windows `make.cmd` fallback for users without GNU Make.
+- Updated test scripts to prefer `xrun` when available and otherwise use OSS CAD
+  Suite tools such as Icarus Verilog and Yosys when present.
+- Added documentation for the test environment and how to rerun backend
+  regressions.
+
+### Build And Packaging
+
+- Added `Makefile` targets for common workflows:
+  - `make`
+  - `make jar`
+  - `make clean`
+  - `make test`
+- Added `make.cmd` equivalents for Windows environments without GNU Make.
+- Updated jar generation to compile with `--release 11` by default, so jars built
+  with newer JDKs can still run on Java 11 or newer.
+- Added local helper script support for launching Fizzim with a user-provided JDK
+  without requiring administrator permissions.
+- Updated `.gitignore` to ignore Java build outputs and local helper scripts
+  while keeping the public generic testcases shareable.
+
+### Documentation And Branding
+
+- Renamed the project presentation to Fizzim 2.0.
+- Updated the README with current build instructions, backend behavior, forked
+  transitions, state groups, transition actions, and the generic FSM example.
+- Added diagrams for forks, state groups, priority behavior, and the Fizzim 2.0
+  overview.
+- Updated the app title bar and splash screen for Fizzim 2.0.
+- Kept attribution to original author Michael Zimmer and added Aaron Cook for
+  Fizzim 2.0 feature updates.

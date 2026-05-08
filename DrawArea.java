@@ -1057,12 +1057,12 @@ public void updateTransitions()
 				setToolTipText(obj.getName());
 				break;
 			}
-			if(obj.getType() == 1 && ((StateTransitionObj)obj).isRouteHandleHit(x, y))
+			if(obj.getType() == 1 && ((StateTransitionObj)obj).isRouteEditHit(x, y))
 			{
 				overRouteHandle = true;
 				break;
 			}
-			if(obj.getType() == 2 && ((LoopbackTransitionObj)obj).isRouteHandleHit(x, y))
+			if(obj.getType() == 2 && ((LoopbackTransitionObj)obj).isRouteEditHit(x, y))
 			{
 				overRouteHandle = true;
 				break;

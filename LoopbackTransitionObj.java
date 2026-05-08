@@ -1,5 +1,6 @@
 import java.awt.*;
 import java.awt.geom.CubicCurve2D;
+import java.awt.geom.Point2D;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.LinkedList;
@@ -54,6 +55,7 @@ public class LoopbackTransitionObj extends TransitionObj  implements Cloneable {
 private int xTemp, yTemp, tempSI,tempEI,lengthS,lengthE;
 
 private double ctrlAngleS, ctrlAngleE;
+private Point bendStartCtrlPt, bendEndCtrlPt;
 	
 	public LoopbackTransitionObj(int _x, int _y, int numb, int page, Color c)
 	{
@@ -106,10 +108,34 @@ private double ctrlAngleS, ctrlAngleE;
 		return Math.abs(point.getX() - x) <= HANDLE_HIT_RADIUS && Math.abs(point.getY() - y) <= HANDLE_HIT_RADIUS;
 	}
 
+	private double getBorderPointAngle(Point point)
+	{
+		Point center = state.getRealCenter(myPage);
+		return Math.atan2(point.getY() - center.getY(), point.getX() - center.getX());
+	}
+
 	public boolean isRouteHandleHit(int x, int y)
 	{
 		return currPage == myPage && (nearPoint(startPt, x, y) || nearPoint(startCtrlPt, x, y)
 				|| nearPoint(endCtrlPt, x, y) || nearPoint(endPt, x, y));
+	}
+
+	private boolean isRouteLineHit(int x, int y)
+	{
+		return currPage == myPage && new BasicStroke(10).createStrokedShape(loop).contains(new Point2D.Double(x,y));
+	}
+
+	public boolean isRouteEditHit(int x, int y)
+	{
+		return isRouteHandleHit(x, y) || isRouteLineHit(x, y);
+	}
+
+	private void moveAttributeTextOffsets(int dx, int dy)
+	{
+		if(attrib == null)
+			return;
+		for(int i = 0; i < attrib.size(); i++)
+			attrib.get(i).moveTextOffset(dx, dy);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -141,7 +167,8 @@ private double ctrlAngleS, ctrlAngleE;
 		Point createPt = new Point(x,y);
 		double temp;
 		double max = 1000000;
-		for(int i = 0; i < 36; i++)
+		int searchCount = Math.min(36, stateBorderPts.size());
+		for(int i = 0; i < searchCount; i++)
 		{
 			temp = createPt.distanceSq(stateBorderPts.get(i));
 			if (temp < max)
@@ -154,13 +181,13 @@ private double ctrlAngleS, ctrlAngleE;
 		// store two points on oval
 		startPt = stateBorderPts.get(startStateIndex);
 		endStateIndex = startStateIndex + 5;
-		if(endStateIndex > 35)
-			endStateIndex = endStateIndex - 36;
+		if(endStateIndex >= searchCount)
+			endStateIndex = endStateIndex - searchCount;
 		endPt = stateBorderPts.get(endStateIndex);
 		
 		//angle control points are from points on oval
-		double angleStart = startStateIndex*2*Math.PI/36;
-		double angleEnd = endStateIndex*2*Math.PI/36;
+		double angleStart = getBorderPointAngle(startPt);
+		double angleEnd = getBorderPointAngle(endPt);
 		
 		
 		//find distance from points on oval to control point
@@ -261,7 +288,7 @@ private double ctrlAngleS, ctrlAngleE;
 				Point currPt = new Point(x,y);
 				double temp;
 				double max = 1000000;
-				for(int i = 0; i < 36; i++)
+				for(int i = 0; i < stateBorderPts.size(); i++)
 				{
 					temp = currPt.distanceSq(stateBorderPts.get(i));
 					if (temp < max)
@@ -281,7 +308,7 @@ private double ctrlAngleS, ctrlAngleE;
 				Point currPt = new Point(x,y);
 				double temp;
 				double max = 1000000;
-				for(int i = 0; i < 36; i++)
+				for(int i = 0; i < stateBorderPts.size(); i++)
 				{
 					temp = currPt.distanceSq(stateBorderPts.get(i));
 					if (temp < max)
@@ -308,35 +335,18 @@ private double ctrlAngleS, ctrlAngleE;
 				} 
 			}
 			
-			// allow loopback to rotate around state
+			// Bend the loop by dragging the visible curve.
 			if(selectStatus == 5)
 			{
-				// get number of index transition should move
-				Point c = state.getRealCenter(myPage);
-				double initAngle = getAngle(new Point(xTemp, yTemp),c);
-
-				double currAngle = getAngle(new Point(x,y),c);				
-				int step = (int)-Math.round((currAngle-initAngle)/((2*Math.PI)/36));
-					
-				if(step != 0)
+				if(bendStartCtrlPt != null && bendEndCtrlPt != null)
 				{
-					startStateIndex = tempSI + step;
-					endStateIndex = tempEI + step;
-					if(startStateIndex > 35)
-						startStateIndex -= 36;
-					if(endStateIndex > 35)
-						endStateIndex -= 36;
-					if(startStateIndex < 0)
-						startStateIndex += 36;
-					if(endStateIndex < 0)
-						endStateIndex += 36;
-					
-					
-					//set up points
-					startPt = stateBorderPts.get(startStateIndex);
-					endPt = stateBorderPts.get(endStateIndex);
-					startCtrlPt.setLocation((int) (lengthS*Math.cos(ctrlAngleS-step*(2*Math.PI/36)) + startPt.getX()), (int)(-lengthS*Math.sin(ctrlAngleS-step*(2*Math.PI/36)) + startPt.getY()));
-					endCtrlPt.setLocation((int) (lengthE*Math.cos(ctrlAngleE-step*(2*Math.PI/36)) + endPt.getX()), (int)(-lengthE*Math.sin(ctrlAngleE-step*(2*Math.PI/36)) + endPt.getY()));
+					int dx = x - xTemp;
+					int dy = y - yTemp;
+					startCtrlPt.setLocation(startCtrlPt.x + dx, startCtrlPt.y + dy);
+					endCtrlPt.setLocation(endCtrlPt.x + dx, endCtrlPt.y + dy);
+					moveAttributeTextOffsets(dx, dy);
+					xTemp = x;
+					yTemp = y;
 				}
 			}
 
@@ -411,9 +421,11 @@ private double ctrlAngleS, ctrlAngleE;
 				//{
 					//for(int j = -4; j < 5; j++)
 					//{
-						if(loop.contains(x,y)) //+i+j
+						if(isRouteLineHit(x,y))
 						{
 							selectStatus = 5;
+							bendStartCtrlPt = new Point(startCtrlPt);
+							bendEndCtrlPt = new Point(endCtrlPt);
 							//break;
 						}
 					//}

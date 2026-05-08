@@ -73,6 +73,8 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 	int sdy;
 	int edx;
 	int edy;
+	private Point bendStartCtrlPt;
+	private Point bendEndCtrlPt;
 	
 	//for stubs
 	int len;
@@ -179,8 +181,7 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		if (!stub && shouldSnapLoadedEndpointsToBorder()) {
 			snapLoadedEndpointsToBorder();
 		}
-		else if (!stub && (startStateIndex < 0 || endStateIndex < 0
-				|| startState.getType() == 5 || endState.getType() == 5)) {
+		else if (!stub && (startStateIndex < 0 || endStateIndex < 0)) {
 			setEndPts();
 		}
 		
@@ -198,7 +199,6 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 				&& endStateIndex >= 0 && endStateIndex < endBorderPts.size()
 				&& startPt != null && endPt != null
 				&& startCtrlPt != null && endCtrlPt != null
-				&& startState.getType() != 5 && endState.getType() != 5
 				&& sPage == ePage;
 	}
 
@@ -319,6 +319,27 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			return true;
 		return nearPoint(startPt, x, y) || nearPoint(pageS, x, y);
 	}
+
+	private boolean isRouteLineHit(int x, int y)
+	{
+		BasicStroke bs = new BasicStroke(10);
+		if(!stub)
+			return bs.createStrokedShape(curve).contains(new Point2D.Double(x,y));
+		return bs.createStrokedShape(new Line2D.Double(startPt,pageS)).contains(new Point2D.Double(x,y));
+	}
+
+	public boolean isRouteEditHit(int x, int y)
+	{
+		return isRouteHandleHit(x, y) || isRouteLineHit(x, y);
+	}
+
+	private void moveAttributeTextOffsets(int dx, int dy)
+	{
+		if(attrib == null)
+			return;
+		for(int i = 0; i < attrib.size(); i++)
+			attrib.get(i).moveTextOffset(dx, dy);
+	}
 	
 	@SuppressWarnings("unchecked")
 	public Object clone () 
@@ -407,7 +428,8 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			Point endCoords = endState.getRealCenter(myPage);
 			double temp;
 			double max = 1000000;
-			for(int i = 0; i < 36; i++)
+			int endSearchCount = Math.min(36, endBorderPts.size());
+			for(int i = 0; i < endSearchCount; i++)
 			{
 				temp = startCoords.distanceSq(endBorderPts.get(i));
 				if (temp < max)
@@ -417,7 +439,8 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 				}
 			}
 			max = 1000000;
-			for(int i = 0; i < 36; i++)
+			int startSearchCount = Math.min(36, startBorderPts.size());
+			for(int i = 0; i < startSearchCount; i++)
 			{
 				temp = endCoords.distanceSq(startBorderPts.get(i));
 				if (temp < max)
@@ -451,9 +474,9 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			}
 			startStateIndex-=1;
 			if(startStateIndex==-1)
-				startStateIndex=35;
+				startStateIndex=startBorderPts.size()-1;
 			endStateIndex+=1;
-			if(endStateIndex==36)
+			if(endStateIndex==endBorderPts.size())
 				endStateIndex=0;
 			
 			startPt = startBorderPts.get(startStateIndex);
@@ -774,7 +797,7 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			Point currPt = new Point(x,y);
 			double temp;
 			double max = 1000000;
-			for(int i = 0; i < 36; i++)
+			for(int i = 0; i < startBorderPts.size(); i++)
 			{
 				temp = currPt.distanceSq(startBorderPts.get(i));
 				if (temp < max)
@@ -800,7 +823,7 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			Point currPt = new Point(x,y);
 			double temp;
 			double max = 1000000;
-			for(int i = 0; i < 36; i++)
+			for(int i = 0; i < endBorderPts.size(); i++)
 			{
 				temp = currPt.distanceSq(endBorderPts.get(i));
 				if (temp < max)
@@ -838,6 +861,16 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			xTemp = x;
 			yTemp = y;
 		}
+		if(selectStatus == ALL && bendStartCtrlPt != null && bendEndCtrlPt != null)
+		{
+			int dx = x - xTemp;
+			int dy = y - yTemp;
+			startCtrlPt.setLocation(startCtrlPt.x + dx, startCtrlPt.y + dy);
+			endCtrlPt.setLocation(endCtrlPt.x + dx, endCtrlPt.y + dy);
+			moveAttributeTextOffsets(dx, dy);
+			xTemp = x;
+			yTemp = y;
+		}
 		
 		if(selectStatus == TXT)
 		{
@@ -859,11 +892,11 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			curve.setCurve(startPt.getX(),startPt.getY(),startCtrlPt.getX(),startCtrlPt.getY(),endCtrlPt.getX(),endCtrlPt.getY(),endPt.getX(),endPt.getY());
 
 		if(selectStatus == START || selectStatus == STARTCTRL || selectStatus == ENDCTRL || selectStatus == END
-				|| selectStatus == PAGES || selectStatus == PAGESC || selectStatus == PAGEEC || selectStatus == PAGEE)
+				|| selectStatus == PAGES || selectStatus == PAGESC || selectStatus == PAGEEC || selectStatus == PAGEE
+				|| selectStatus == ALL)
 			routeModified = true;
 
-		if(selectStatus != ALL)
-			modified = true;
+		modified = true;
 	}
 
 	@Override
@@ -927,29 +960,12 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			// if not a control point, search around line
 	        if(selectStatus == NONE)
 	        {
-		/*	for(int i = -4; i < 5; i++)
-			{
-				for(int j = -4; j < 5; j++)
-				{
-					if(curve.contains(x+i,y+j))
-					{
-						selectStatus = 5;
-						break;
-					}
-				}
-			}*/
-
-	        	   BasicStroke bs = new BasicStroke(10); // sets width of transition "grab handle" lines
-	        	   if(!stub)
-	        	   {
-	        		   if(bs.createStrokedShape(curve).contains(new Point2D.Double(x,y)))
-	        			   selectStatus = 5;
-	        	   }
-	        	   else
-	        	   {
-	        		   if(bs.createStrokedShape(new Line2D.Double(startPt,pageS)).contains(new Point2D.Double(x,y)))
-		        		   selectStatus = 5;
-	        	   }
+	        	if(isRouteLineHit(x, y))
+	        	{
+	        		selectStatus = ALL;
+	        		bendStartCtrlPt = new Point(startCtrlPt);
+	        		bendEndCtrlPt = new Point(endCtrlPt);
+	        	}
 	        }	
 
 	    }
