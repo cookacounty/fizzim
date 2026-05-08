@@ -40,6 +40,7 @@ public class StateObj extends GeneralObj implements Cloneable {
 	public static final int TXT = 6;
 	private boolean reset = false;
 	private boolean defaultGroupEntry = false;
+	private boolean stateGroupHighlighted = false;
 	private static final int ARC = 24;
 
 	// grid
@@ -101,6 +102,11 @@ public class StateObj extends GeneralObj implements Cloneable {
 			Stroke oldStroke = g2D.getStroke();
 			g2D.setColor(Color.white);
 			g2D.fillRoundRect(x0, y0, x1 - x0, y1 - y0, ARC, ARC);
+			if(stateGroupHighlighted)
+			{
+				g2D.setColor(new Color(232, 244, 255));
+				g2D.fillRoundRect(x0 + 2, y0 + 2, x1 - x0 - 4, y1 - y0 - 4, ARC, ARC);
+			}
 			g2D.setColor(color);
 			if(defaultGroupEntry)
 				g2D.setStroke(new BasicStroke(3.0f));
@@ -128,6 +134,10 @@ public class StateObj extends GeneralObj implements Cloneable {
 
 	public void setDefaultGroupEntry(boolean b) {
 		defaultGroupEntry = b;
+	}
+
+	public void setStateGroupHighlighted(boolean b) {
+		stateGroupHighlighted = b;
 	}
 
 	public boolean setSelectStatus(int x, int y) {
@@ -285,6 +295,14 @@ public class StateObj extends GeneralObj implements Cloneable {
 	// creates array of points around the rounded rectangle boundary
 	public Vector<Point> getBorderPts() {
 		return getRectangleBorderPts(36);
+	}
+
+	public void moveBy(int dx, int dy) {
+		x0 += dx;
+		x1 += dx;
+		y0 += dy;
+		y1 += dy;
+		modified = true;
 	}
 
 	protected Vector<Point> getRectangleBorderPts(int pointCount) {

@@ -1001,7 +1001,7 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		}
 
 
-		if((startState.getSelectStatus() != StateObj.TXT && startState.getSelectStatus() != StateObj.NONE)
+		if(isParentModified() || (startState.getSelectStatus() != StateObj.TXT && startState.getSelectStatus() != StateObj.NONE)
 				|| (endState.getSelectStatus() != StateObj.TXT && endState.getSelectStatus() != StateObj.NONE))
 		{
 			if(oldS != oldE && sPage == ePage)

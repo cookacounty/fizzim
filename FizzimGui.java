@@ -95,6 +95,11 @@ public class FizzimGui extends javax.swing.JFrame {
 	private static final String APP_TITLE = "Fizzim 2.0";
 	private static final int RECENT_FILE_LIMIT = 10;
 	private static final String RECENT_FILE_PREFIX = "recentFile.";
+	private static final String PREF_DEFAULT_CLOCK = "defaultClock";
+	private static final String PREF_DEFAULT_CLOCK_EDGE = "defaultClockEdge";
+	private static final String PREF_DEFAULT_RESET = "defaultReset";
+	private static final String PREF_DEFAULT_RESET_EDGE = "defaultResetEdge";
+	private static final String PREF_DEFAULT_IMPLIED_LOOPBACK = "defaultImpliedLoopback";
 	private static final Preferences USER_PREFS = Preferences.userNodeForPackage(FizzimGui.class);
 	private static int openWindowCount = 0;
 
@@ -163,18 +168,18 @@ public class FizzimGui extends javax.swing.JFrame {
 				ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR };
 		globalList.get(0).add(new ObjAttribute("name", "def_name", 0, "","",Color.black,"","",
 				editable));
-		globalList.get(0).add(new ObjAttribute("clock", "clk", 0,
-				"posedge","",Color.black,"","",editable));
-		globalList.get(0).add(new ObjAttribute("reset_signal", "rst_l", 0,
-				"negedge","",Color.black,"","",editable));
+		globalList.get(0).add(new ObjAttribute("clock", getDefaultClockName(), 0,
+				getDefaultClockEdge(),"",Color.black,"","",editable));
+		globalList.get(0).add(new ObjAttribute("reset_signal", getDefaultResetName(), 0,
+				getDefaultResetEdge(),"",Color.black,"","",editable));
 		globalList.get(0).add(new ObjAttribute("reset_state", "state0", 0,
 				"anyvalue","",Color.black,"","",editable));
-		globalList.get(0).add(new ObjAttribute("implied_loopback", "1", 0,
+		globalList.get(0).add(new ObjAttribute("implied_loopback", getDefaultImpliedLoopback() ? "1" : "0", 0,
 				"attribute","",Color.black,"","",editable));
 
-		globalList.get(1).add(new ObjAttribute("clk", "", 0,
+		globalList.get(1).add(new ObjAttribute(getDefaultClockName(), "", 0,
 				"","",Color.black,"","",inputEditable));
-		globalList.get(1).add(new ObjAttribute("rst_l", "", 0,
+		globalList.get(1).add(new ObjAttribute(getDefaultResetName(), "", 0,
 				"","",Color.black,"","",inputEditable));
 
 		globalList.get(3).add(new ObjAttribute("name", "def_name", 1,
@@ -546,6 +551,36 @@ public class FizzimGui extends javax.swing.JFrame {
 
 		MenuBar.add(EditMenu);
 
+		JMenu toolsMenu = new JMenu();
+		toolsMenu.setText("Tools");
+		toolsMenu.setMnemonic(java.awt.event.KeyEvent.VK_T);
+
+		JMenuItem validateItem = new JMenuItem("Validate Diagram");
+		validateItem.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ToolsValidateActionPerformed(evt);
+			}
+		});
+		toolsMenu.add(validateItem);
+
+		JMenuItem resetLabelsItem = new JMenuItem("Reset Transition Labels");
+		resetLabelsItem.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ToolsResetTransitionLabelsActionPerformed(evt);
+			}
+		});
+		toolsMenu.add(resetLabelsItem);
+
+		JMenuItem defaultsItem = new JMenuItem("New FSM Defaults");
+		defaultsItem.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ToolsNewFsmDefaultsActionPerformed(evt);
+			}
+		});
+		toolsMenu.add(defaultsItem);
+
+		MenuBar.add(toolsMenu);
+
 		GlobalMenu.setText("Global Attributes");
 		GlobalMenu.setMnemonic(java.awt.event.KeyEvent.VK_G);
 		
@@ -691,6 +726,58 @@ public class FizzimGui extends javax.swing.JFrame {
 	protected void FilePrefActionPerformed(ActionEvent evt) {
 		new Pref(this, true, drawArea1).setVisible(true);
 		
+	}
+
+	private void ToolsValidateActionPerformed(ActionEvent evt) {
+		String errors = drawArea1.validateDiagram();
+		if(errors.equals(""))
+		{
+			JOptionPane.showMessageDialog(this,
+					"No diagram validation issues found.",
+					"Validate Diagram",
+					JOptionPane.INFORMATION_MESSAGE);
+		}
+		else
+		{
+			JOptionPane.showMessageDialog(this,
+					errors,
+					"Validate Diagram",
+					JOptionPane.ERROR_MESSAGE);
+		}
+	}
+
+	private void ToolsResetTransitionLabelsActionPerformed(ActionEvent evt) {
+		drawArea1.resetTransitionLabelPositions();
+	}
+
+	private void ToolsNewFsmDefaultsActionPerformed(ActionEvent evt) {
+		JTextField clockField = new JTextField(getDefaultClockName(), 12);
+		JComboBox clockEdge = new JComboBox(new String[] {"posedge", "negedge"});
+		clockEdge.setSelectedItem(getDefaultClockEdge());
+		JTextField resetField = new JTextField(getDefaultResetName(), 12);
+		JComboBox resetEdge = new JComboBox(new String[] {"negedge", "posedge", "negative", "positive"});
+		resetEdge.setSelectedItem(getDefaultResetEdge());
+		JCheckBox impliedLoopback = new JCheckBox("Enable implied loopback", getDefaultImpliedLoopback());
+		JPanel panel = new JPanel(new java.awt.GridLayout(0, 2, 6, 6));
+		panel.add(new JLabel("Clock name:"));
+		panel.add(clockField);
+		panel.add(new JLabel("Clock edge:"));
+		panel.add(clockEdge);
+		panel.add(new JLabel("Reset name:"));
+		panel.add(resetField);
+		panel.add(new JLabel("Reset edge/polarity:"));
+		panel.add(resetEdge);
+		panel.add(new JLabel(""));
+		panel.add(impliedLoopback);
+		int result = JOptionPane.showConfirmDialog(this, panel, "New FSM Defaults", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+		if(result == JOptionPane.OK_OPTION)
+		{
+			USER_PREFS.put(PREF_DEFAULT_CLOCK, clockField.getText().trim().equals("") ? "clk" : clockField.getText().trim());
+			USER_PREFS.put(PREF_DEFAULT_CLOCK_EDGE, (String)clockEdge.getSelectedItem());
+			USER_PREFS.put(PREF_DEFAULT_RESET, resetField.getText().trim().equals("") ? "rst_l" : resetField.getText().trim());
+			USER_PREFS.put(PREF_DEFAULT_RESET_EDGE, (String)resetEdge.getSelectedItem());
+			USER_PREFS.putBoolean(PREF_DEFAULT_IMPLIED_LOOPBACK, impliedLoopback.isSelected());
+		}
 	}
 
 	protected void FileExportPNGActionPerformed(ActionEvent evt) {
@@ -1626,6 +1713,26 @@ public class FizzimGui extends javax.swing.JFrame {
 	public void updateGlobal(LinkedList<LinkedList<ObjAttribute>> globalList2) {
 		globalList = globalList2;
 
+	}
+
+	public static String getDefaultClockName() {
+		return USER_PREFS.get(PREF_DEFAULT_CLOCK, "clk");
+	}
+
+	public static String getDefaultClockEdge() {
+		return USER_PREFS.get(PREF_DEFAULT_CLOCK_EDGE, "posedge");
+	}
+
+	public static String getDefaultResetName() {
+		return USER_PREFS.get(PREF_DEFAULT_RESET, "rst_l");
+	}
+
+	public static String getDefaultResetEdge() {
+		return USER_PREFS.get(PREF_DEFAULT_RESET_EDGE, "negedge");
+	}
+
+	public static boolean getDefaultImpliedLoopback() {
+		return USER_PREFS.getBoolean(PREF_DEFAULT_IMPLIED_LOOPBACK, true);
 	}
 	
 	public String getPageName(int i)

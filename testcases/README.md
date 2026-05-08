@@ -22,7 +22,8 @@ is `generic_state_machine.fzm`.
 The test compares:
 
 - feature RTL generated directly from the Fizzim 2.0 diagram
-- golden RTL generated from the Fizzim 1.0-compatible diagram
+- golden RTL generated from the Fizzim 1.0-compatible diagram with the pinned
+  legacy Fizzim 5.20 backend in `tb/legacy/fizzim_5_20.pl`
 
 The compatibility generator expands Fizzim 2.0 modeling conveniences into
 plain old Fizzim constructs:
@@ -70,7 +71,9 @@ The script uses:
 - `xrun` when available, otherwise `iverilog`/`vvp`
 - `yosys` when available for extra syntax/synthesis checks
 
-To compare against an actual old backend, point `FIZZIM1_BACKEND` at it:
+By default the golden side uses the vendored Fizzim 5.20 backend at
+`testcases/tb/legacy/fizzim_5_20.pl`. To compare against a different old
+backend, point `FIZZIM1_BACKEND` at it:
 
 ```bash
 FIZZIM1_BACKEND=/path/to/old/fizzim.pl make test

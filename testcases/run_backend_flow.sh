@@ -10,9 +10,14 @@ COMPAT_FZM="$GENERATED_DIR/generic_state_machine_fizzim1.fzm"
 FEATURE_SV="$GENERATED_DIR/generic_state_action.sv"
 COMPAT_SV="$GENERATED_DIR/generic_state_action_fizzim.sv"
 TESTBENCH="$SCRIPT_DIR/tb_generic_state_action_equiv.sv"
+LEGACY_BACKEND="$SCRIPT_DIR/tb/legacy/fizzim_5_20.pl"
 
 BACKEND="${BACKEND:-$REPO_ROOT/fizzim.pl}"
-FIZZIM1_BACKEND="${FIZZIM1_BACKEND:-$BACKEND}"
+if [[ -z "${FIZZIM1_BACKEND:-}" && -f "$LEGACY_BACKEND" ]]; then
+  FIZZIM1_BACKEND="$LEGACY_BACKEND"
+else
+  FIZZIM1_BACKEND="${FIZZIM1_BACKEND:-$BACKEND}"
+fi
 PERL_BIN="${PERL_BIN:-${FIZZIM_PERL:-perl}}"
 SIM="${SIM:-xrun}"
 

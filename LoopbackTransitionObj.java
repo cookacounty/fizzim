@@ -449,7 +449,7 @@ private double ctrlAngleS, ctrlAngleE;
 		}
 			
 		
-		if(state.getSelectStatus() != StateObj.TXT)
+		if(isParentModified() || state.getSelectStatus() != StateObj.TXT)
 		{
 
 			double angleS = getAngle(startCtrlPt,startPt);

@@ -2196,8 +2196,13 @@ class GlobalProperties extends javax.swing.JDialog {
 				
 				if(!checkNames(currTable,"reset_signal"))
 				{
-					globalLists.get(0).add(new ObjAttribute("reset_signal", "rst_l", 0, "negedge","",Color.black,"","",
+					globalLists.get(0).add(new ObjAttribute("reset_signal", FizzimGui.getDefaultResetName(), 0, FizzimGui.getDefaultResetEdge(),"",Color.black,"","",
                                         editable2));
+				}
+				if(!checkGlobalName(globalLists.get(1), FizzimGui.getDefaultResetName()))
+				{
+					globalLists.get(1).add(new ObjAttribute(FizzimGui.getDefaultResetName(), "", 0, "","",Color.black,"","",
+                                        editable));
 				}
 				if(!checkNames(currTable,"reset_state"))
 				{
@@ -2248,6 +2253,15 @@ class GlobalProperties extends javax.swing.JDialog {
 					globalLists.get(tab).remove(i);
 					
 			}
+		}
+
+		private boolean checkGlobalName(LinkedList<ObjAttribute> list, String name) {
+			for(int i = 0; i < list.size(); i++)
+			{
+				if(list.get(i).getName().equals(name))
+					return true;
+			}
+			return false;
 		}
 
 		private void GPOption4ActionPerformed(java.awt.event.ActionEvent evt) {

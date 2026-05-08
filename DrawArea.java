@@ -160,6 +160,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		if(objList != null)
 		{
 			updateStateGroupDefaultEntryMarkers();
+			updateStateGroupHighlights();
 			for (int i = 1; i < objList.size(); i++)
 			{
 				GeneralObj s = (GeneralObj) objList.elementAt(i);
@@ -776,12 +777,40 @@ public void updateTransitions()
 		// move object if multiple select is off
 		if(!multipleSelect && !arg0.isControlDown() && arg0.getModifiers() == 16)
 		{
+			HashSet<GeneralObj> movedBySelectedGroup = new HashSet<GeneralObj>();
 			for (int i = 1; i < objList.size(); i++)
 			{
 				GeneralObj s = (GeneralObj) objList.elementAt(i);
+				if(movedBySelectedGroup.contains(s))
+					continue;
 				if(s.getSelectStatus() != 0)
 				{
+					int[] oldCoords = null;
+					LinkedList<StateObj> childEndpoints = new LinkedList<StateObj>();
+					if(s.getType() == 5 && s.getSelectStatus() == StateObj.CENTER)
+					{
+						oldCoords = ((StateObj)s).getCoords();
+						childEndpoints = getContainedTransitionEndpoints((StateGroupObj)s);
+					}
 					s.adjustShapeOrPosition(x,y);
+					if(oldCoords != null)
+					{
+						int[] newCoords = ((StateObj)s).getCoords();
+						int dx = newCoords[0] - oldCoords[0];
+						int dy = newCoords[1] - oldCoords[1];
+						if(dx != 0 || dy != 0)
+						{
+							LinkedList<GeneralObj> movedEndpoints = new LinkedList<GeneralObj>();
+							movedEndpoints.add(s);
+							for(int k = 0; k < childEndpoints.size(); k++)
+							{
+								childEndpoints.get(k).moveBy(dx, dy);
+								movedBySelectedGroup.add(childEndpoints.get(k));
+								movedEndpoints.add(childEndpoints.get(k));
+							}
+							updateTransitionsForMovedEndpoints(movedEndpoints);
+						}
+					}
 					for(int j = 1; j < objList.size(); j++)
 					{				
 						GeneralObj obj = (GeneralObj) objList.elementAt(j);
@@ -1294,10 +1323,60 @@ public void updateTransitions()
         return false;
     }
 
-    private boolean isTransitionEndpoint(GeneralObj obj)
+	private boolean isTransitionEndpoint(GeneralObj obj)
     {
 		return obj.getType() == 0 || obj.getType() == 4 || obj.getType() == 5;
     }
+
+	private LinkedList<StateObj> getContainedTransitionEndpoints(StateGroupObj stateGroup)
+	{
+		LinkedList<StateObj> states = new LinkedList<StateObj>();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if((obj.getType() == 0 || obj.getType() == 4) && stateGroup.containsState((StateObj)obj))
+				states.add((StateObj)obj);
+		}
+		return states;
+	}
+
+	private LinkedList<StateObj> getContainedStates(StateGroupObj stateGroup)
+	{
+		LinkedList<StateObj> states = new LinkedList<StateObj>();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 0 && stateGroup.containsState((StateObj)obj))
+				states.add((StateObj)obj);
+		}
+		return states;
+	}
+
+	private void updateTransitionsForMovedEndpoints(LinkedList<GeneralObj> movedEndpoints)
+	{
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.elementAt(i);
+			if(isTransitionEndpoint(obj))
+				continue;
+
+			boolean affected = false;
+			for(int j = 0; j < movedEndpoints.size(); j++)
+			{
+				if(obj.containsParent(movedEndpoints.get(j)))
+				{
+					affected = true;
+					break;
+				}
+			}
+			if(affected)
+			{
+				obj.setParentModified(true);
+				obj.updateObj();
+				obj.setParentModified(false);
+			}
+		}
+	}
 
     private boolean isTransitionEndpointType(int type)
     {
@@ -1626,7 +1705,196 @@ public void updateTransitions()
 		}
 	}
 
+	private void updateStateGroupHighlights()
+	{
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 0)
+				((StateObj)obj).setStateGroupHighlighted(false);
+		}
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() != 5 || obj.getSelectStatus() == StateObj.NONE)
+				continue;
+			LinkedList<StateObj> children = getContainedStates((StateGroupObj)obj);
+			for(int j = 0; j < children.size(); j++)
+				children.get(j).setStateGroupHighlighted(true);
+		}
+	}
 
+	public void resetTransitionLabelPositions()
+	{
+		setUndoPoint(-1, -1);
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 1 || obj.getType() == 2)
+			{
+				LinkedList<ObjAttribute> attrs = obj.getAttributeList();
+				for(int j = 0; j < attrs.size(); j++)
+					attrs.get(j).resetTextOffset();
+			}
+		}
+		commitUndo();
+		repaint();
+	}
+
+	public String validateDiagram()
+	{
+		StringBuffer errors = new StringBuffer();
+		appendDuplicateNameErrors(errors);
+		appendReservedNameErrors(errors);
+		appendResetErrors(errors);
+		appendTransitionEndpointErrors(errors);
+		appendStateGroupErrors(errors);
+		if(errors.length() == 0)
+			return "";
+		return errors.toString();
+	}
+
+	private void appendDuplicateNameErrors(StringBuffer errors)
+	{
+		TreeMap<String, Integer> states = new TreeMap<String, Integer>();
+		TreeMap<String, Integer> trans = new TreeMap<String, Integer>();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 0 || obj.getType() == 5)
+				incrementNameCount(states, obj.getName());
+			else if(obj.getType() == 1 || obj.getType() == 2)
+				incrementNameCount(trans, obj.getName());
+		}
+		appendDuplicateMap(errors, "state/state group", states);
+		appendDuplicateMap(errors, "transition", trans);
+	}
+
+	private void incrementNameCount(TreeMap<String, Integer> map, String name)
+	{
+		Integer count = map.get(name);
+		map.put(name, count == null ? new Integer(1) : new Integer(count.intValue() + 1));
+	}
+
+	private void appendDuplicateMap(StringBuffer errors, String kind, TreeMap<String, Integer> map)
+	{
+		Iterator<String> it = map.keySet().iterator();
+		while(it.hasNext())
+		{
+			String name = it.next();
+			if(map.get(name).intValue() > 1)
+				errors.append("- Duplicate ").append(kind).append(" name: ").append(name).append("\n");
+		}
+	}
+
+	private void appendReservedNameErrors(StringBuffer errors)
+	{
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 0 || obj.getType() == 5 || obj.getType() == 4 || obj.getType() == 1 || obj.getType() == 2)
+			{
+				String reserved = VerilogNameValidator.reservedWordInIdentifier(obj.getName());
+				if(reserved != null)
+					errors.append("- Reserved Verilog/SystemVerilog word used by object \"").append(obj.getName()).append("\": ").append(reserved).append("\n");
+			}
+		}
+		String moduleName = getMachineAttributeValue("name");
+		String reserved = VerilogNameValidator.reservedWordInIdentifier(moduleName);
+		if(reserved != null)
+			errors.append("- Reserved Verilog/SystemVerilog word used by module name: ").append(reserved).append("\n");
+		for(int i = 0; i < globalList.get(1).size(); i++)
+		{
+			reserved = VerilogNameValidator.reservedWordInIdentifier(globalList.get(1).get(i).getName());
+			if(reserved != null)
+				errors.append("- Reserved Verilog/SystemVerilog word used by input: ").append(reserved).append("\n");
+		}
+		for(int i = 0; i < globalList.get(2).size(); i++)
+		{
+			reserved = VerilogNameValidator.reservedWordInIdentifier(globalList.get(2).get(i).getName());
+			if(reserved != null)
+				errors.append("- Reserved Verilog/SystemVerilog word used by output: ").append(reserved).append("\n");
+		}
+	}
+
+	private void appendResetErrors(StringBuffer errors)
+	{
+		String resetState = getMachineAttributeValue("reset_state");
+		if(resetState.equals(""))
+			errors.append("- No reset_state is set.\n");
+		else if(getStateObj(resetState) == null)
+			errors.append("- reset_state \"").append(resetState).append("\" does not match a state.\n");
+		String resetSignal = getMachineAttributeValue("reset_signal");
+		if(!resetSignal.equals("") && !globalNameExists(globalList.get(1), resetSignal))
+			errors.append("- reset_signal \"").append(resetSignal).append("\" is not listed as an input.\n");
+		String clock = getMachineAttributeValue("clock");
+		if(clock.equals(""))
+			errors.append("- No clock signal is set.\n");
+		else if(!globalNameExists(globalList.get(1), clock))
+			errors.append("- clock \"").append(clock).append("\" is not listed as an input.\n");
+	}
+
+	private String getMachineAttributeValue(String name)
+	{
+		for(int i = 0; i < globalList.get(0).size(); i++)
+		{
+			ObjAttribute attr = globalList.get(0).get(i);
+			if(attr.getName().equals(name))
+				return attr.getValue();
+		}
+		return "";
+	}
+
+	private boolean globalNameExists(LinkedList<ObjAttribute> list, String name)
+	{
+		for(int i = 0; i < list.size(); i++)
+		{
+			if(list.get(i).getName().equals(name))
+				return true;
+		}
+		return false;
+	}
+
+	private void appendTransitionEndpointErrors(StringBuffer errors)
+	{
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 1)
+			{
+				StateTransitionObj trans = (StateTransitionObj)obj;
+				if(trans.getStartState() == null)
+					errors.append("- Transition \"").append(trans.getName()).append("\" is missing a start endpoint.\n");
+				if(trans.getEndState() == null)
+					errors.append("- Transition \"").append(trans.getName()).append("\" is missing an end endpoint.\n");
+			}
+			else if(obj.getType() == 2)
+			{
+				LoopbackTransitionObj trans = (LoopbackTransitionObj)obj;
+				if(trans.getStartState() == null)
+					errors.append("- Loopback transition \"").append(trans.getName()).append("\" is missing its state endpoint.\n");
+			}
+		}
+	}
+
+	private void appendStateGroupErrors(StringBuffer errors)
+	{
+		if(!validateStateGroupMembership(false))
+			errors.append("- One or more states partially overlap or belong to multiple state groups.\n");
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 5)
+			{
+				StateGroupObj group = (StateGroupObj)obj;
+				updateStateGroupChildren(group);
+				if(group.getChildNames().size() == 0)
+					errors.append("- State group \"").append(group.getName()).append("\" has no child states.\n");
+				else if(group.getEntryState().equals("") || !group.getChildNames().contains(group.getEntryState()))
+					errors.append("- State group \"").append(group.getName()).append("\" has no valid default entry state.\n");
+			}
+		}
+	}
 
 	public void delete() {
 		
