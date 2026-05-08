@@ -1341,6 +1341,30 @@ public void updateTransitions()
 		
 	}
 
+	public void renameOutputAttributeEverywhere(String oldName, String newName) {
+		if(oldName == null || newName == null || oldName.equals(newName))
+			return;
+
+		renameOutputAttributes(globalList.get(3), oldName, newName);
+		renameOutputAttributes(globalList.get(4), oldName, newName);
+
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj) objList.elementAt(i);
+			if(obj.getType() == 0 || obj.getType() == 1 || obj.getType() == 2 || obj.getType() == 5)
+				renameOutputAttributes(obj.getAttributeList(), oldName, newName);
+		}
+	}
+
+	private void renameOutputAttributes(LinkedList<ObjAttribute> list, String oldName, String newName) {
+		for(int i = 0; i < list.size(); i++)
+		{
+			ObjAttribute attr = list.get(i);
+			if(attr.getType().equals("output") && attr.getName().equals(oldName))
+				attr.setName(newName);
+		}
+	}
+
 
 	public void editText(TextObj obj)
 	{

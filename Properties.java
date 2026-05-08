@@ -65,6 +65,7 @@ class MyTableModel extends AbstractTableModel {
     GeneralObj obj;
     LinkedList<ObjAttribute> attrib;
     LinkedList<LinkedList<ObjAttribute>> globalList;
+    DrawArea drawArea;
     JDialog dialog;
     int tab;
 
@@ -80,9 +81,15 @@ class MyTableModel extends AbstractTableModel {
 	
 	MyTableModel(LinkedList<ObjAttribute> list,LinkedList<LinkedList<ObjAttribute>> globalL)
 	{
+		this(list, globalL, null);
+	}
+
+	MyTableModel(LinkedList<ObjAttribute> list,LinkedList<LinkedList<ObjAttribute>> globalL, DrawArea da)
+	{
 		global = true;
 		globalList = globalL;
 		attrib = list;
+		drawArea = da;
 // pz
 //		columnNames = new String[] {"Attribute Name", "Default Value",
 //				"Visibility", "Type","Comment", "Color"};
@@ -260,8 +267,19 @@ class MyTableModel extends AbstractTableModel {
         	}
         }
         
-        //if rename something of type output
-        if(global && col != 3 && globalList.get(2).equals(attrib) && !attrib.get(row).get(col).equals(value))
+        //if rename an output, preserve existing per-state and per-transition assignments
+        if(global && col == 0 && globalList.get(2).equals(attrib) && !attrib.get(row).get(col).equals(value))
+        {
+        	if(drawArea != null)
+        		drawArea.renameOutputAttributeEverywhere(attrib.get(row).getName(), (String) value);
+        	else
+        	{
+        		renameAttribute(3,attrib.get(row).getName(),col,value,row);
+        		renameAttribute(4,attrib.get(row).getName(),col,value,row);
+        	}
+        }
+        //if changing another property of type output
+        else if(global && col != 3 && globalList.get(2).equals(attrib) && !attrib.get(row).get(col).equals(value))
         {
         		renameAttribute(3,attrib.get(row).getName(),col,value,row);
         		renameAttribute(4,attrib.get(row).getName(),col,value,row);
@@ -1695,7 +1713,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			GPLabel2
 					.setText("value can be overridden by right clicking on an object and selecting to 'Edit Properties.'");
 
-			GPTableMachine.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(0),globalLists));
+			GPTableMachine.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(0),globalLists, drawArea));
 			GPTableMachine.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 			column = GPTableMachine.getColumnModel().getColumn(2);
 			column.setCellEditor(new MyJComboBoxEditor(options));
@@ -1706,7 +1724,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			GPScrollMachine.setViewportView(GPTableMachine);
 			GPTabbedPane.addTab("State Machine", GPScrollMachine);
 
-			GPTableInputs.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(1),globalLists));
+			GPTableInputs.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(1),globalLists, drawArea));
 			GPTableInputs.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 			column = GPTableInputs.getColumnModel().getColumn(2);
 			column.setCellEditor(new MyJComboBoxEditor(options));
@@ -1717,7 +1735,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			GPScrollInputs.setViewportView(GPTableInputs);
 			GPTabbedPane.addTab("Inputs", GPScrollInputs);
 			
-			GPTableOutputs.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(2),globalLists));
+			GPTableOutputs.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(2),globalLists, drawArea));
 			GPTableOutputs.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
                         // Visibility
 			column = GPTableOutputs.getColumnModel().getColumn(2);
@@ -1733,7 +1751,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			GPScrollOutputs.setViewportView(GPTableOutputs);
 			GPTabbedPane.addTab("Outputs", GPScrollOutputs);
 
-			GPTableState.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(3),globalLists));
+			GPTableState.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(3),globalLists, drawArea));
 			GPTableState.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 			column = GPTableState.getColumnModel().getColumn(2);
 			column.setCellEditor(new MyJComboBoxEditor(options));
@@ -1744,7 +1762,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			GPScrollState.setViewportView(GPTableState);
 			GPTabbedPane.addTab("States", GPScrollState);
 			
-			GPTableTrans.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(4),globalLists));
+			GPTableTrans.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(4),globalLists, drawArea));
 			GPTableTrans.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 			column = GPTableTrans.getColumnModel().getColumn(2);
 			column.setCellEditor(new MyJComboBoxEditor(options));
@@ -2095,7 +2113,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			int tab1 = GPTabbedPane.getSelectedIndex();
 			globalLists.get(tab1).addLast(newObj);
 			if(currTab == 2)
-				currTable.setValueAt("reg", globalLists.get(2).size()-1, 3);
+				currTable.setValueAt("regdp", globalLists.get(2).size()-1, 3);
 			
 			currTable.revalidate();
 
@@ -2131,7 +2149,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			{
 				globalLists.get(2).add(new ObjAttribute("out", "", 2, "","",Color.black,"","",
 					editable));
-				currTable.setValueAt("reg", globalLists.get(2).size()-1, 3);
+				currTable.setValueAt("regdp", globalLists.get(2).size()-1, 3);
 
 				currTable.revalidate();
 			}	
@@ -2176,7 +2194,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			{
 				globalLists.get(2).add(new ObjAttribute("out[1:0]", "", 2, "","",Color.black,"","",
 					editable));
-				currTable.setValueAt("reg", globalLists.get(2).size()-1, 3);
+				currTable.setValueAt("regdp", globalLists.get(2).size()-1, 3);
 
 				currTable.revalidate();
 			}	
