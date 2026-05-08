@@ -424,6 +424,33 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		//System.out.println("mouseClicked:" + " Button:" + e.getButton() + " Modifiers:" + e.getModifiers() + " Popup Trigger:" + e.isPopupTrigger() + " ControlDown:" + e.isControlDown());
 	}
 
+	private GeneralObj selectTransitionEndpoint(MouseEvent e, boolean stateGroupsOnly)
+	{
+		for (int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj s = (GeneralObj) objList.elementAt(i);
+			if(!isTransitionEndpoint(s))
+				continue;
+			if(stateGroupsOnly && s.getType() != 5)
+				continue;
+			if(!stateGroupsOnly && s.getType() == 5)
+				continue;
+
+			if(s.setSelectStatus(e.getX(),e.getY()))
+			{
+				if(e.getButton() == MouseEvent.BUTTON3 || e.getModifiers() == 20)
+				{
+					setUndoPoint(i,s.getType());
+					createPopup(s,e);
+				}
+				else
+					setUndoPoint(i,s.getType());
+				return s;
+			}
+		}
+		return null;
+	}
+
 	public void mouseEntered(MouseEvent e) {
 		//System.out.println("mouseEntered:" + " Button:" + e.getButton() + " Modifiers:" + e.getModifiers() + " Popup Trigger:" + e.isPopupTrigger() + " ControlDown:" + e.isControlDown());
 	}
@@ -627,23 +654,11 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			//if no transitions found at that position, look through state objects
 			if(bestMatch == null)
 			{
-				for (int i = 1; i < objList.size(); i++)
-				{
-					GeneralObj s = (GeneralObj) objList.elementAt(i);
-					if(isTransitionEndpoint(s) && s.setSelectStatus(e.getX(),e.getY()))
-					{
-						bestMatch = s;
-							
-						if(e.getButton() == MouseEvent.BUTTON3 || e.getModifiers() == 20)
-						{
-							setUndoPoint(i,0);
-							createPopup(s,e);
-						}
-						else
-							setUndoPoint(i,0);
-						break;
-					}
-				}
+				bestMatch = selectTransitionEndpoint(e, false);
+			}
+			if(bestMatch == null)
+			{
+				bestMatch = selectTransitionEndpoint(e, true);
 			}
 			
 			//if nothing is clicked on, and right click
@@ -722,7 +737,10 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		}
 			
 		if(toCommit)
+		{
 			commitUndo();
+			validateStateGroupMembership(true);
+		}
 		
 		repaint();
 	}
@@ -1361,6 +1379,58 @@ public void updateTransitions()
 			return true;
 		else
 			return false;
+	}
+
+	public boolean validateStateGroupMembership(boolean showMessage)
+	{
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() != 0)
+				continue;
+
+			StateObj state = (StateObj)obj;
+			StateGroupObj containingGroup = null;
+			for(int j = 1; j < objList.size(); j++)
+			{
+				GeneralObj groupObj = (GeneralObj)objList.get(j);
+				if(groupObj.getType() != 5)
+					continue;
+
+				StateGroupObj stateGroup = (StateGroupObj)groupObj;
+				if(stateGroup.containsState(state))
+				{
+					if(containingGroup != null)
+					{
+						showStateGroupError(showMessage,
+								"State \"" + state.getName() + "\" is fully inside more than one state group.\n"
+								+ "Move it so it belongs to only one group.");
+						return false;
+					}
+					containingGroup = stateGroup;
+				}
+				else if(stateGroup.overlapsState(state))
+				{
+					showStateGroupError(showMessage,
+							"State \"" + state.getName() + "\" partially overlaps state group \""
+							+ stateGroup.getName() + "\".\n"
+							+ "Move it fully inside the group or fully outside the group.");
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	private void showStateGroupError(boolean showMessage, String message)
+	{
+		if(showMessage)
+		{
+			JOptionPane.showMessageDialog(frame,
+					message,
+					"State Group Error",
+					JOptionPane.ERROR_MESSAGE);
+		}
 	}
 	
 	//check for duplicate names

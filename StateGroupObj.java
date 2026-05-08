@@ -45,9 +45,18 @@ public class StateGroupObj extends StateObj {
 		if (state.getPage() != myPage || state == this)
 			return false;
 
-		Point center = state.getRealCenter(myPage);
-		return center.getX() >= x0 && center.getX() <= x1
-				&& center.getY() >= y0 && center.getY() <= y1;
+		int[] coords = state.getCoords();
+		return coords[0] >= x0 && coords[1] >= y0
+				&& coords[2] <= x1 && coords[3] <= y1;
+	}
+
+	public boolean overlapsState(StateObj state) {
+		if (state.getPage() != myPage || state == this)
+			return false;
+
+		int[] coords = state.getCoords();
+		return coords[0] < x1 && coords[2] > x0
+				&& coords[1] < y1 && coords[3] > y0;
 	}
 
 	public void setChildNames(LinkedList<String> names) {

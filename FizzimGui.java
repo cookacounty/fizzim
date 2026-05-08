@@ -873,6 +873,9 @@ public class FizzimGui extends javax.swing.JFrame {
 
 		if (!temp.endsWith("." + type))
 			file = new File(file.getAbsolutePath() + "." + type);
+
+		if(type.equals("fzm") && !drawArea1.validateStateGroupMembership(true))
+			return false;
 		
 		//checks permission to write
 		if(file.isDirectory())
