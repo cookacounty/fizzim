@@ -7,7 +7,7 @@ import java.util.LinkedList;
 // across multiple outgoing branches without drawing it as a real state.
 public class ForkObj extends StateObj {
 
-	private static final int SIZE = 10;
+	private static final int SIZE = 20;
 
 	public ForkObj(int x, int y, int numb, int page, Color c, boolean grid, int gridS) {
 		super(x - SIZE / 2, y - SIZE / 2, x + SIZE / 2, y + SIZE / 2, numb, page, c, grid, gridS);
@@ -17,6 +17,28 @@ public class ForkObj extends StateObj {
 
 	public ForkObj(int x0, int y0, int x1, int y1, String name, int page, Color c) {
 		super(x0, y0, x1, y1, new LinkedList<ObjAttribute>(), name, false, page, c);
+		normalizeSize();
+	}
+
+	private void normalizeSize() {
+		int centerX = x0 + ((x1 - x0) / 2);
+		int centerY = y0 + ((y1 - y0) / 2);
+		x0 = centerX - SIZE / 2;
+		y0 = centerY - SIZE / 2;
+		x1 = x0 + SIZE;
+		y1 = y0 + SIZE;
+	}
+
+	public boolean setSelectStatus(int x, int y) {
+		boolean selected = super.setSelectStatus(x, y);
+		if (selected) {
+			setSelectStatus(true);
+		}
+		return selected;
+	}
+
+	public void setSize(int w, int h) {
+		normalizeSize();
 	}
 
 	public void paintComponent(Graphics g) {
