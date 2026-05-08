@@ -2654,6 +2654,9 @@ sub sort_by_priority_then_equation_equal_1 {
   #&debug("b: $a -> $b",0,$section);
 #  &debug("priority sort result is: " . $transitions{$a}{attributes}{priority}{value} <=> $transitions{$b}{attributes}{priority}{value},0,$section);
 
+  $transitions{$b}{_stategroup_transition} <=>
+  $transitions{$a}{_stategroup_transition}
+    ||
   $transitions{$a}{attributes}{priority}{value} <=> 
   $transitions{$b}{attributes}{priority}{value}
     ||
@@ -2817,6 +2820,7 @@ sub apply_stategroups {
       $newtrans = "${trans}__${child}";
       %{ $transitions{$newtrans} } = %group_transition;
       $transitions{$newtrans}{startState} = $child;
+      $transitions{$newtrans}{_stategroup_transition} = 1;
     }
   }
 }
