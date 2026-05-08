@@ -18,6 +18,7 @@ echo.
 goto :help
 
 :tools
+if "%JAVA_RELEASE%"=="" set "JAVA_RELEASE=11"
 if not "%JAVA_HOME%"=="" (
   set "JAVAC=%JAVA_HOME%\bin\javac.exe"
   set "JAR=%JAVA_HOME%\bin\jar.exe"
@@ -29,8 +30,8 @@ exit /b 0
 
 :jar
 call :tools
-echo Compiling Java sources
-"%JAVAC%" *.java
+echo Compiling Java sources for Java %JAVA_RELEASE%
+"%JAVAC%" --release %JAVA_RELEASE% *.java
 if errorlevel 1 exit /b %errorlevel%
 echo Creating fizzim.jar
 "%JAR%" cfm fizzim.jar manifest.txt *.class splash.png icon.png org
@@ -67,4 +68,5 @@ echo   make.cmd test
 echo   make.cmd test-production
 echo.
 echo JAVA_HOME may point at a JDK directory.
+echo JAVA_RELEASE defaults to 11 and may be overridden.
 exit /b 0

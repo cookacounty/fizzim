@@ -13,6 +13,7 @@ JAVA_SOURCES := $(wildcard *.java)
 CLASS_FILES := $(patsubst %.java,%.class,$(JAVA_SOURCES))
 JAR_NAME ?= fizzim.jar
 MANIFEST ?= manifest.txt
+JAVA_RELEASE ?= 11
 JAR_ASSETS := splash.png icon.png org
 
 .PHONY: all jar clean test test-verilog test-production help
@@ -22,7 +23,7 @@ all: jar
 jar: $(JAR_NAME)
 
 $(JAR_NAME): $(JAVA_SOURCES) $(MANIFEST) splash.png icon.png
-	$(JAVAC) $(JAVA_SOURCES)
+	$(JAVAC) --release $(JAVA_RELEASE) $(JAVA_SOURCES)
 	$(JAR) cfm $(JAR_NAME) $(MANIFEST) *.class $(JAR_ASSETS)
 
 clean:
@@ -49,5 +50,6 @@ help:
 	@echo ""
 	@echo "Variables:"
 	@echo "  JAVA_HOME=/path/to/jdk"
+	@echo "  JAVA_RELEASE=11"
 	@echo "  JAVAC=/path/javac JAR=/path/jar BASH=/path/bash JAR_NAME=fizzim.jar"
 	@echo "  OSS_CAD_SUITE=/path/to/oss-cad-suite PERL_BIN=/path/perl"

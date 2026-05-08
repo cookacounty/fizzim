@@ -23,6 +23,13 @@ This creates `fizzim.jar`, which can be run on Linux or Windows with:
 java -jar fizzim.jar
 ```
 
+The jar is compiled with `--release 11` by default, so it runs on Java 11 or
+newer even when you build it with a newer JDK. To target a different runtime:
+
+```sh
+make JAVA_RELEASE=17
+```
+
 On Windows, run the same commands from Git Bash. If Java is not already on
 PATH, pass your JDK location:
 
@@ -37,6 +44,13 @@ If GNU Make is not installed on Windows, this repo also includes a small
 make.cmd jar
 make.cmd test
 make.cmd clean
+```
+
+The Windows fallback also defaults to Java 11 bytecode. To override it:
+
+```bat
+set JAVA_RELEASE=17
+make.cmd jar
 ```
 
 To remove generated Java build artifacts:
