@@ -61,6 +61,24 @@ if grep -q 'FORK_' "$FEATURE_SV"; then
   echo "Feature RTL leaked fork pseudo-state names" >&2
   exit 1
 fi
+fork_fail_lines="$(grep -n 'if ((op_done || op_fail) && (op_fail))' "$FEATURE_SV" | cut -d: -f1)"
+fork_retry_lines="$(grep -n 'if ((op_done || op_fail) && (!op_fail && op_done && retry_ok))' "$FEATURE_SV" | cut -d: -f1)"
+fork_done_lines="$(grep -n 'if ((op_done || op_fail) && (!op_fail && op_done && !retry_ok))' "$FEATURE_SV" | cut -d: -f1)"
+abort_lines="$(grep -n 'else if (abort)' "$FEATURE_SV" | cut -d: -f1)"
+for occurrence in 1 2; do
+  fail_line="$(printf '%s\n' "$fork_fail_lines" | sed -n "${occurrence}p")"
+  retry_line="$(printf '%s\n' "$fork_retry_lines" | sed -n "${occurrence}p")"
+  done_line="$(printf '%s\n' "$fork_done_lines" | sed -n "${occurrence}p")"
+  abort_line="$(printf '%s\n' "$abort_lines" | sed -n "${occurrence}p")"
+  if [[ -z "$fail_line" || -z "$retry_line" || -z "$done_line" || -z "$abort_line" ]]; then
+    echo "Feature RTL priority check could not find expected fork/abort transitions" >&2
+    exit 1
+  fi
+  if (( fail_line >= retry_line || retry_line >= done_line || done_line >= abort_line )); then
+    echo "Feature RTL did not keep fork branch priority ahead of direct abort transition" >&2
+    exit 1
+  fi
+done
 
 echo "Compiling and simulating generic equivalence"
 if [[ "$SIM" == "xrun" ]] && command -v xrun >/dev/null 2>&1; then
