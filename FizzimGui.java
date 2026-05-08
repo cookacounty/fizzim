@@ -60,7 +60,10 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
+import javax.swing.event.MenuEvent;
+import javax.swing.event.MenuListener;
 import javax.swing.plaf.basic.BasicTabbedPaneUI;
+import java.util.prefs.Preferences;
 
 
 //Written by: Michael Zimmer - mike@zimmerdesignservices.com
@@ -90,6 +93,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 public class FizzimGui extends javax.swing.JFrame {
 
 	private static final String APP_TITLE = "Fizzim 2.0";
+	private static final int RECENT_FILE_LIMIT = 10;
+	private static final String RECENT_FILE_PREFIX = "recentFile.";
+	private static final Preferences USER_PREFS = Preferences.userNodeForPackage(FizzimGui.class);
 	private static int openWindowCount = 0;
 
 	String currVer = "14.02.28";
@@ -196,6 +202,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		FileMenu = new javax.swing.JMenu();
 		FileItemNew = new javax.swing.JMenuItem();
 		FileItemOpen = new javax.swing.JMenuItem();
+		FileOpenRecent = new javax.swing.JMenu();
 		FileItemSave = new javax.swing.JMenuItem();
 		FileItemSaveAs = new javax.swing.JMenuItem();
 		FileExport = new javax.swing.JMenu("Export to...");
@@ -360,6 +367,17 @@ public class FizzimGui extends javax.swing.JFrame {
 		});
 
 		FileMenu.add(FileItemOpen);
+
+		FileOpenRecent.setText("Open Recent");
+		FileOpenRecent.addMenuListener(new MenuListener() {
+			public void menuSelected(MenuEvent evt) {
+				rebuildRecentFilesMenu();
+			}
+			public void menuDeselected(MenuEvent evt) {}
+			public void menuCanceled(MenuEvent evt) {}
+		});
+		rebuildRecentFilesMenu();
+		FileMenu.add(FileOpenRecent);
 
 		FileItemSave.setAccelerator(javax.swing.KeyStroke.getKeyStroke(
 				java.awt.event.KeyEvent.VK_S,
@@ -1201,6 +1219,116 @@ public class FizzimGui extends javax.swing.JFrame {
 		return currFile == null && !drawArea1.getFileModifed();
 	}
 
+	private void rebuildRecentFilesMenu() {
+		FileOpenRecent.removeAll();
+		LinkedList<File> recentFiles = getRecentFiles();
+		if(recentFiles.size() == 0)
+		{
+			JMenuItem emptyItem = new JMenuItem("(No Recent Files)");
+			emptyItem.setEnabled(false);
+			FileOpenRecent.add(emptyItem);
+			return;
+		}
+
+		for(int i = 0; i < recentFiles.size(); i++)
+		{
+			final File recentFile = recentFiles.get(i);
+			JMenuItem item = new JMenuItem((i + 1) + " " + recentFile.getName());
+			item.setToolTipText(recentFile.getAbsolutePath());
+			item.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent evt) {
+					openRecentFile(recentFile);
+				}
+			});
+			FileOpenRecent.add(item);
+		}
+
+		FileOpenRecent.addSeparator();
+		JMenuItem clearItem = new JMenuItem("Clear Recent Files");
+		clearItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				clearRecentFiles();
+			}
+		});
+		FileOpenRecent.add(clearItem);
+	}
+
+	private LinkedList<File> getRecentFiles() {
+		LinkedList<File> recentFiles = new LinkedList<File>();
+		for(int i = 0; i < RECENT_FILE_LIMIT; i++)
+		{
+			String path = USER_PREFS.get(RECENT_FILE_PREFIX + i, "");
+			if(path != null && !path.equals(""))
+				recentFiles.add(new File(path));
+		}
+		return recentFiles;
+	}
+
+	private void rememberRecentFile(File file) {
+		if(file == null)
+			return;
+
+		File absoluteFile = file.getAbsoluteFile();
+		LinkedList<File> recentFiles = getRecentFiles();
+		for(int i = recentFiles.size() - 1; i >= 0; i--)
+		{
+			if(recentFiles.get(i).getAbsolutePath().equals(absoluteFile.getAbsolutePath()))
+				recentFiles.remove(i);
+		}
+		recentFiles.addFirst(absoluteFile);
+		while(recentFiles.size() > RECENT_FILE_LIMIT)
+			recentFiles.removeLast();
+		storeRecentFiles(recentFiles);
+		rebuildRecentFilesMenu();
+	}
+
+	private void forgetRecentFile(File file) {
+		if(file == null)
+			return;
+
+		LinkedList<File> recentFiles = getRecentFiles();
+		for(int i = recentFiles.size() - 1; i >= 0; i--)
+		{
+			if(recentFiles.get(i).getAbsolutePath().equals(file.getAbsolutePath()))
+				recentFiles.remove(i);
+		}
+		storeRecentFiles(recentFiles);
+		rebuildRecentFilesMenu();
+	}
+
+	private void clearRecentFiles() {
+		storeRecentFiles(new LinkedList<File>());
+		rebuildRecentFilesMenu();
+	}
+
+	private void storeRecentFiles(LinkedList<File> recentFiles) {
+		for(int i = 0; i < RECENT_FILE_LIMIT; i++)
+		{
+			if(i < recentFiles.size())
+				USER_PREFS.put(RECENT_FILE_PREFIX + i, recentFiles.get(i).getAbsolutePath());
+			else
+				USER_PREFS.remove(RECENT_FILE_PREFIX + i);
+		}
+		try {
+			USER_PREFS.flush();
+		} catch (Exception e) { }
+	}
+
+	private void openRecentFile(File selectedFile) {
+		if(!isFizzimFile(selectedFile) || !selectedFile.exists())
+		{
+			JOptionPane.showMessageDialog(this, "Recent file could not be opened:\n" + selectedFile.getAbsolutePath(),
+					"error", JOptionPane.ERROR_MESSAGE);
+			forgetRecentFile(selectedFile);
+			return;
+		}
+
+		if(canReuseThisWindowForOpen())
+			openFile(selectedFile);
+		else
+			openFileInNewWindow(selectedFile);
+	}
+
 	private void openFileInNewWindow(File selectedFile) {
 		FizzimGui newWindow = new FizzimGui();
 		newWindow.setSize(getSize());
@@ -1217,6 +1345,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		jTabbedPane1.setSelectedIndex(1);
 		drawArea1.setCurrPage(1);
 		setTitle(APP_TITLE + " - " + currFile.getName());
+		rememberRecentFile(currFile);
 		loading = false;
 
 	}
@@ -1443,6 +1572,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JMenuItem FileItemExit;
 	private javax.swing.JMenuItem FileItemNew;
 	private javax.swing.JMenuItem FileItemOpen;
+	private javax.swing.JMenu FileOpenRecent;
 	private javax.swing.JMenuItem FilePref;
 	private javax.swing.JMenuItem FileItemPageSetup;
 	private javax.swing.JMenuItem FileItemPrint;

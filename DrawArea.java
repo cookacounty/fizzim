@@ -159,6 +159,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		//paint all objects
 		if(objList != null)
 		{
+			updateStateGroupDefaultEntryMarkers();
 			for (int i = 1; i < objList.size(); i++)
 			{
 				GeneralObj s = (GeneralObj) objList.elementAt(i);
@@ -1329,6 +1330,7 @@ public void updateTransitions()
 	
     // update transition attribute lists when global list is updated
 	public void updateTrans() {
+		syncTransitionOutputDefaultsWithOutputs();
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj o = (GeneralObj) objList.elementAt(i);
@@ -1339,6 +1341,31 @@ public void updateTransitions()
 			}
 		}
 		
+	}
+
+	public void syncTransitionOutputDefaultsWithOutputs()
+	{
+		for(int i = 0; i < globalList.get(2).size(); i++)
+		{
+			ObjAttribute output = globalList.get(2).get(i);
+			if(!output.getType().equals("regdp"))
+				continue;
+
+			ObjAttribute transOutput = findOutputAttribute(globalList.get(4), output.getName());
+			if(transOutput != null)
+				transOutput.setValue(output.getValue());
+		}
+	}
+
+	private ObjAttribute findOutputAttribute(LinkedList<ObjAttribute> list, String name)
+	{
+		for(int i = 0; i < list.size(); i++)
+		{
+			ObjAttribute attr = list.get(i);
+			if(attr.getType().equals("output") && attr.getName().equals(name))
+				return attr;
+		}
+		return null;
 	}
 
 	public void renameOutputAttributeEverywhere(String oldName, String newName) {
@@ -1541,6 +1568,29 @@ public void updateTransitions()
 	{
 		updateStateGroupChildren(stateGroup);
 		return stateGroup.getChildNames();
+	}
+
+	private void updateStateGroupDefaultEntryMarkers()
+	{
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 0)
+				((StateObj)obj).setDefaultGroupEntry(false);
+		}
+
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() != 5)
+				continue;
+
+			StateGroupObj stateGroup = (StateGroupObj)obj;
+			updateStateGroupChildren(stateGroup);
+			StateObj entryState = getStateObj(stateGroup.getEntryState());
+			if(entryState != null && entryState.getType() == 0)
+				entryState.setDefaultGroupEntry(true);
+		}
 	}
 
 
@@ -1793,6 +1843,7 @@ public void updateTransitions()
 	
 	public LinkedList<LinkedList<ObjAttribute>> getGlobalList()
 	{
+		syncTransitionOutputDefaultsWithOutputs();
 		return globalList;
 	}
 

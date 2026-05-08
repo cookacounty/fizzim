@@ -39,6 +39,7 @@ public class StateObj extends GeneralObj implements Cloneable {
 	public static final int BR = 5;
 	public static final int TXT = 6;
 	private boolean reset = false;
+	private boolean defaultGroupEntry = false;
 
 	// grid
 	private boolean grid = false;
@@ -95,7 +96,12 @@ public class StateObj extends GeneralObj implements Cloneable {
 		if (myPage == currPage) {
 			g.setColor(color);
 			// this is safe because resizeObj makes sure y1 > y0 and x1 > x0
+			Graphics2D g2D = (Graphics2D) g;
+			Stroke oldStroke = g2D.getStroke();
+			if(defaultGroupEntry)
+				g2D.setStroke(new BasicStroke(3.0f));
 			g.drawOval(x0, y0, x1 - x0, y1 - y0);
+			g2D.setStroke(oldStroke);
 			if (reset)
 				g.drawOval(x0 - 3, y0 - 3, x1 - x0 + 6, y1 - y0 + 6);
 
@@ -114,6 +120,10 @@ public class StateObj extends GeneralObj implements Cloneable {
 
 	public void unselect() {
 		selectStatus = NONE;
+	}
+
+	public void setDefaultGroupEntry(boolean b) {
+		defaultGroupEntry = b;
 	}
 
 	public boolean setSelectStatus(int x, int y) {

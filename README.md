@@ -247,7 +247,8 @@ state. It has three important behaviors:
 - A transition into a state group must enter a real child state. The group
   property editor has a `Default entry` dropdown for this. Older diagrams that
   do not store a default entry fall back to the first child state found in the
-  group.
+  group. In the diagram, the default entry child is drawn with a bold state
+  outline so incoming group transitions have an obvious landing state.
 
 Group exit transitions intentionally have higher priority than transitions
 authored directly inside a child state. This means a group can define a common

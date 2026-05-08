@@ -243,7 +243,7 @@ class MyTableModel extends AbstractTableModel {
 				globalList.get(3).addLast(newObj);
 				if(value.equals("regdp"))
 				{
-		        	ObjAttribute newTransObj = new ObjAttribute(attrib.get(row).getName(),"",
+		        	ObjAttribute newTransObj = new ObjAttribute(attrib.get(row).getName(),attrib.get(row).getValue(),
 		        			attrib.get(row).getVisibility(),"output","",Color.black,"","",editable);
 					globalList.get(4).addLast(newTransObj);
 				}
@@ -257,7 +257,7 @@ class MyTableModel extends AbstractTableModel {
 	        	int[] editable = { ObjAttribute.GLOBAL_FIXED, ObjAttribute.GLOBAL_VAR,
 	        	ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR};
 	        	removeAttribute(4,attrib.get(row).getName());
-	        	ObjAttribute newTransObj = new ObjAttribute(attrib.get(row).getName(),"",
+	        	ObjAttribute newTransObj = new ObjAttribute(attrib.get(row).getName(),attrib.get(row).getValue(),
 	        			attrib.get(row).getVisibility(),"output","",Color.black,"","",editable);
 				globalList.get(4).addLast(newTransObj);
         	}

@@ -19,6 +19,7 @@
       .bg { fill: url(#bg); }
       .group { fill: url(#groupFill); stroke: #2bb3a3; stroke-width: 3; }
       .state { fill: #ffffff; stroke: #24313d; stroke-width: 2.4; filter: url(#shadow); }
+      .defaultState { fill: #ffffff; stroke: #24313d; stroke-width: 4.8; filter: url(#shadow); }
       .fork { fill: #f4c542; stroke: #24313d; stroke-width: 2.2; filter: url(#shadow); }
       .line { fill: none; stroke: #24313d; stroke-width: 2.7; marker-end: url(#arrow); }
       .exit { fill: none; stroke: #d86b4a; stroke-width: 3.5; marker-end: url(#arrow); }
@@ -39,7 +40,7 @@
   <rect class="group" x="205" y="82" width="365" height="215" rx="26"/>
   <text class="groupName" x="228" y="115">G_RUN</text>
 
-  <ellipse class="state" cx="330" cy="162" rx="74" ry="42"/>
+  <ellipse class="defaultState" cx="330" cy="162" rx="74" ry="42"/>
   <text class="name" x="330" y="162">S_RUN_A</text>
   <text class="note" x="282" y="218">default entry</text>
 
