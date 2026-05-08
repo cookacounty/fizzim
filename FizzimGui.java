@@ -89,6 +89,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 public class FizzimGui extends javax.swing.JFrame {
 
+	private static final String APP_TITLE = "Fizzim 2.0";
+
 	String currVer = "14.02.28";
 	
 	// pointer to global lists
@@ -226,7 +228,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		});
 
 		setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
-		setTitle("Fizzim");
+		setTitle(APP_TITLE);
 		addComponentListener(new java.awt.event.ComponentAdapter() {
 			public void componentResized(java.awt.event.ComponentEvent evt) {
 				formComponentResized(evt);
@@ -856,10 +858,10 @@ public class FizzimGui extends javax.swing.JFrame {
 			}
 			if(FileSaveAction.getSelected())
 				if(tryToSave(FileSaveAction.getSelectedFile(), "fzm", true))
-					setTitle("Fizzim - " + currFile.getName());
+					setTitle(APP_TITLE + " - " + currFile.getName());
 					
 			} else {
-			setTitle("Fizzim - " + currFile.getName());
+			setTitle(APP_TITLE + " - " + currFile.getName());
 			saveFile(currFile);
 		}
 	}//GEN-LAST:event_FileItemSaveActionPerformed
@@ -926,7 +928,7 @@ public class FizzimGui extends javax.swing.JFrame {
 
 				int n = JOptionPane
 						.showOptionDialog(this, "Save file before closing?",
-								"Fizzim", JOptionPane.YES_NO_CANCEL_OPTION,
+								APP_TITLE, JOptionPane.YES_NO_CANCEL_OPTION,
 								JOptionPane.QUESTION_MESSAGE, null, options,
 								options[0]);
 				if (n == JOptionPane.YES_OPTION) {
@@ -949,7 +951,7 @@ public class FizzimGui extends javax.swing.JFrame {
 
 				int n = JOptionPane
 						.showOptionDialog(this, "Save changes to "
-								+ currFile.getName() + "?", "Fizzim",
+								+ currFile.getName() + "?", APP_TITLE,
 								JOptionPane.YES_NO_CANCEL_OPTION,
 								JOptionPane.QUESTION_MESSAGE, null, options,
 								options[0]);
@@ -1007,7 +1009,7 @@ public class FizzimGui extends javax.swing.JFrame {
 
 				int n = JOptionPane
 						.showOptionDialog(this, "Save file before creating new file?",
-								"Fizzim", JOptionPane.YES_NO_CANCEL_OPTION,
+								APP_TITLE, JOptionPane.YES_NO_CANCEL_OPTION,
 								JOptionPane.QUESTION_MESSAGE, null, options,
 								options[0]);
 
@@ -1028,7 +1030,7 @@ public class FizzimGui extends javax.swing.JFrame {
 
 				int n = JOptionPane
 						.showOptionDialog(this, "Save changes to "
-								+ currFile.getName() + "?", "Fizzim",
+								+ currFile.getName() + "?", APP_TITLE,
 								JOptionPane.YES_NO_CANCEL_OPTION,
 								JOptionPane.QUESTION_MESSAGE, null, options,
 								options[0]);
@@ -1049,7 +1051,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			}
 			jTabbedPane1.setComponentAt(1,jScrollPane1);
 			currFile = null;
-			setTitle("Fizzim");
+			setTitle(APP_TITLE);
 			for(int i = 0; i < globalList.size(); i++)
 			{
 				globalList.get(i).clear();
@@ -1132,7 +1134,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		}
 		if(FileSaveAction.getSelected())
 			if(tryToSave(FileSaveAction.getSelectedFile(), "fzm", true))
-				setTitle("Fizzim - " + currFile.getName());
+				setTitle(APP_TITLE + " - " + currFile.getName());
 				
 	}
 
@@ -1143,7 +1145,7 @@ public class FizzimGui extends javax.swing.JFrame {
 
 			int n = JOptionPane
 					.showOptionDialog(this, "Save file before opening file?",
-							"Fizzim", JOptionPane.YES_NO_CANCEL_OPTION,
+							APP_TITLE, JOptionPane.YES_NO_CANCEL_OPTION,
 							JOptionPane.QUESTION_MESSAGE, null, options,
 							options[0]);
 			if (n == JOptionPane.YES_OPTION) {
@@ -1183,7 +1185,7 @@ public class FizzimGui extends javax.swing.JFrame {
 				String fileName = tempFile.getName().toLowerCase();
 				if (!tempFile.isDirectory() && fileName.endsWith(".fzm")) {
 					openFile(tempFile);
-					setTitle("Fizzim - " + currFile.getName());
+					setTitle(APP_TITLE + " - " + currFile.getName());
 				} else {
 					JOptionPane.showMessageDialog(this, "File must end with .fzm",
 							"error", JOptionPane.ERROR_MESSAGE);
