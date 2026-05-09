@@ -71,6 +71,13 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	private MouseEvent pendingPopupEvent = null;
 	private GeneralObj pendingPopupObj = null;
 	private int pendingPopupType = 0;
+	private static final int CLICK_CYCLE_DISTANCE = 8;
+	private static final long CLICK_CYCLE_TIME_MS = 700;
+	private int lastCycleX = -1000000;
+	private int lastCycleY = -1000000;
+	private long lastCycleTime = 0;
+	private int lastCycleIndex = -1;
+	private LinkedList<GeneralObj> lastCycleObjects = new LinkedList<GeneralObj>();
 
 	//font
 	private Font currFont = new Font("Arial",Font.PLAIN,11);
@@ -127,6 +134,18 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	private double zoom = 1.0;
 	private int logicalWidth = 936;
 	private int logicalHeight = 1296;
+
+	private class HitCandidate {
+		int index;
+		int type;
+		GeneralObj obj;
+
+		HitCandidate(int index, GeneralObj obj) {
+			this.index = index;
+			this.obj = obj;
+			this.type = obj.getType();
+		}
+	}
 	
 
 	
@@ -336,6 +355,162 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		viewport.setViewPosition(new Point(newX, newY));
 		return true;
 	}
+
+	private void addHitCandidate(LinkedList<HitCandidate> hits, int index, GeneralObj obj)
+	{
+		for(int i = 0; i < hits.size(); i++)
+		{
+			if(hits.get(i).obj == obj)
+				return;
+		}
+		hits.add(new HitCandidate(index, obj));
+	}
+
+	private LinkedList<HitCandidate> getHitCandidates(int x, int y)
+	{
+		LinkedList<HitCandidate> hits = new LinkedList<HitCandidate>();
+
+		addEndpointHits(hits, x, y, 4);
+		addEndpointHits(hits, x, y, 0);
+		addEndpointHits(hits, x, y, 5);
+		addObjectHits(hits, x, y, 3);
+		addObjectHits(hits, x, y, 1);
+		addObjectHits(hits, x, y, 2);
+		unselectObjs();
+		return hits;
+	}
+
+	private void addEndpointHits(LinkedList<HitCandidate> hits, int x, int y, int type)
+	{
+		for(int i = objList.size() - 1; i >= 1; i--)
+		{
+			GeneralObj obj = (GeneralObj)objList.elementAt(i);
+			if(obj.getType() == type && isTransitionEndpoint(obj) && obj.setSelectStatus(x, y))
+				addHitCandidate(hits, i, obj);
+		}
+	}
+
+	private void addObjectHits(LinkedList<HitCandidate> hits, int x, int y, int type)
+	{
+		for(int i = objList.size() - 1; i >= 1; i--)
+		{
+			GeneralObj obj = (GeneralObj)objList.elementAt(i);
+			if(obj.getType() == type && obj.setSelectStatus(x, y))
+				addHitCandidate(hits, i, obj);
+		}
+	}
+
+	private boolean sameCycleObjects(LinkedList<HitCandidate> hits)
+	{
+		if(hits.size() != lastCycleObjects.size())
+			return false;
+		for(int i = 0; i < hits.size(); i++)
+		{
+			GeneralObj current = hits.get(i).obj;
+			GeneralObj previous = lastCycleObjects.get(i);
+			if(current.getType() != previous.getType() || !current.getName().equals(previous.getName()))
+				return false;
+		}
+		return true;
+	}
+
+	private void rememberCycleObjects(LinkedList<HitCandidate> hits)
+	{
+		lastCycleObjects.clear();
+		for(int i = 0; i < hits.size(); i++)
+			lastCycleObjects.add(hits.get(i).obj);
+	}
+
+	private GeneralObj selectFromClickCycle(MouseEvent e, int x, int y, LinkedList<HitCandidate> hits)
+	{
+		if(hits == null || hits.size() < 2)
+			return null;
+
+		boolean continueCycle = hits.size() > 1
+				&& Math.abs(x - lastCycleX) <= CLICK_CYCLE_DISTANCE
+				&& Math.abs(y - lastCycleY) <= CLICK_CYCLE_DISTANCE
+				&& e.getWhen() - lastCycleTime <= CLICK_CYCLE_TIME_MS
+				&& sameCycleObjects(hits);
+		if(!continueCycle)
+			return null;
+
+		lastCycleIndex = (lastCycleIndex + 1) % hits.size();
+
+		HitCandidate hit = hits.get(lastCycleIndex);
+		setUndoPoint(hit.index, hit.type);
+		GeneralObj selectedObj = (GeneralObj)objList.get(hit.index);
+		selectedObj.setSelectStatus(x, y);
+		lastCycleX = x;
+		lastCycleY = y;
+		lastCycleTime = e.getWhen();
+		rememberCycleObjects(hits);
+
+		return selectedObj;
+	}
+
+	private void rememberClickCycle(MouseEvent e, int x, int y, LinkedList<HitCandidate> hits, GeneralObj selectedObj)
+	{
+		if(hits == null || hits.size() < 2 || selectedObj == null)
+		{
+			resetClickCycle();
+			return;
+		}
+
+		lastCycleIndex = 0;
+		for(int i = 0; i < hits.size(); i++)
+		{
+			if(hits.get(i).obj.getType() == selectedObj.getType()
+					&& hits.get(i).obj.getName().equals(selectedObj.getName()))
+			{
+				lastCycleIndex = i;
+				break;
+			}
+		}
+		lastCycleX = x;
+		lastCycleY = y;
+		lastCycleTime = e.getWhen();
+		rememberCycleObjects(hits);
+	}
+
+	private void resetClickCycle()
+	{
+		lastCycleIndex = -1;
+		lastCycleObjects.clear();
+	}
+
+	private void editSelectedObject(GeneralObj obj)
+	{
+		if(obj.getType() == 0 || obj.getType() == 5)
+		{
+			new StateProperties(this,frame, true, (StateObj) obj).setVisible(true);
+		}
+		else if(obj.getType() == 1)
+		{
+			Vector<StateObj> stateObjs = new Vector<StateObj>();
+			for(int j = 1; j < objList.size(); j++)
+			{
+				GeneralObj stateObj = (GeneralObj)objList.get(j);
+				if(isTransitionEndpoint(stateObj))
+					stateObjs.add((StateObj)stateObj);
+			}
+			new TransProperties(this,frame, true, (StateTransitionObj) obj,stateObjs,false,null).setVisible(true);
+		}
+		else if(obj.getType() == 2)
+		{
+			Vector<StateObj> stateObjs = new Vector<StateObj>();
+			for(int j = 1; j < objList.size(); j++)
+			{
+				GeneralObj stateObj = (GeneralObj)objList.get(j);
+				if(stateObj.getType() == 0)
+					stateObjs.add((StateObj)stateObj);
+			}
+			new TransProperties(this,frame, true, (LoopbackTransitionObj) obj,stateObjs,true,null).setVisible(true);
+		}
+		else if(obj.getType() == 3)
+		{
+			editText((TextObj) obj);
+		}
+	}
 	
 	
 
@@ -488,6 +663,10 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 					}
 				}
 			}
+			if(oldObj.getType() == 5)
+			{
+				cloneContainedEndpointsForUndo((StateGroupObj)oldObj, (StateGroupObj)clonedObj);
+			}
 			objList.set(selectedIndices.get(i).intValue(),clonedObj);	
 		}
 	}
@@ -544,7 +723,69 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 					}
 				}
 			}
+			if(type == 5)
+			{
+				cloneContainedEndpointsForUndo((StateGroupObj)oldObj, (StateGroupObj)clonedObj);
+			}
 			objList.set(index,clonedObj);	
+		}
+	}
+
+	private void cloneContainedEndpointsForUndo(StateGroupObj oldGroup, StateGroupObj clonedGroup)
+	{
+		LinkedList<GeneralObj> oldEndpoints = new LinkedList<GeneralObj>();
+		LinkedList<GeneralObj> clonedEndpoints = new LinkedList<GeneralObj>();
+
+		for(int i = 1; i < tempList.size(); i++)
+		{
+			GeneralObj oldChild = (GeneralObj) tempList.get(i);
+			if((oldChild.getType() == 0 || oldChild.getType() == 4) && oldGroup.containsState((StateObj)oldChild))
+			{
+				int objListIndex = objList.indexOf(oldChild);
+				if(objListIndex < 0)
+					continue;
+
+				GeneralObj clonedChild = null;
+				try {
+					clonedChild = (GeneralObj) oldChild.clone();
+				} catch (CloneNotSupportedException e) {
+					e.printStackTrace();
+				}
+				objList.set(objListIndex, clonedChild);
+				oldEndpoints.add(oldChild);
+				clonedEndpoints.add(clonedChild);
+			}
+		}
+
+		for(int i = 1; i < tempList.size(); i++)
+		{
+			GeneralObj oldTrans = (GeneralObj) tempList.get(i);
+			if(isTransitionEndpoint(oldTrans))
+				continue;
+
+			boolean affected = oldTrans.containsParent(oldGroup);
+			for(int j = 0; j < oldEndpoints.size() && !affected; j++)
+			{
+				if(oldTrans.containsParent(oldEndpoints.get(j)))
+					affected = true;
+			}
+			if(!affected)
+				continue;
+
+			GeneralObj transInObjList = (GeneralObj) objList.get(i);
+			if(transInObjList == oldTrans)
+			{
+				try {
+					transInObjList = (GeneralObj) oldTrans.clone();
+				} catch (CloneNotSupportedException e) {
+					e.printStackTrace();
+				}
+				objList.set(i, transInObjList);
+			}
+			transInObjList.notifyChange(oldGroup, clonedGroup);
+			for(int j = 0; j < oldEndpoints.size(); j++)
+				transInObjList.notifyChange(oldEndpoints.get(j), clonedEndpoints.get(j));
+			transInObjList.setParentModified(true);
 		}
 	}
 
@@ -634,6 +875,23 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			doubleClick = true;
 		
 		lastClick = e.getWhen();
+		boolean plainLeftClick = !popupMouse && !e.isControlDown() && !objsSelected
+				&& e.getButton() == MouseEvent.BUTTON1 && e.getModifiers() != 20;
+		LinkedList<HitCandidate> clickHits = plainLeftClick ? getHitCandidates(x, y) : null;
+
+		if(plainLeftClick)
+		{
+			GeneralObj cycledMatch = selectFromClickCycle(e, x, y, clickHits);
+			if(cycledMatch != null)
+			{
+				repaint();
+				return;
+			}
+		}
+		else if(popupMouse || e.isControlDown())
+		{
+			resetClickCycle();
+		}
 	
 		//check for ctrl click to select multiple
 		if(e.isControlDown() && e.getButton() == MouseEvent.BUTTON1)
@@ -831,6 +1089,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			//now do multiple select if still nothing found
 			if(bestMatch == null && e.getButton() == MouseEvent.BUTTON1 && e.getModifiers() != 20)
 			{
+				resetClickCycle();
 				mXTemp = x;
 				mYTemp = y;
 				mX0 = 0;
@@ -840,6 +1099,10 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				multipleSelect = true;
 				objsSelected = false;
 				selectedIndices.clear();
+			}
+			else if(plainLeftClick)
+			{
+				rememberClickCycle(e, x, y, clickHits, bestMatch);
 			}
 			
 			repaint();
@@ -934,6 +1197,7 @@ public void updateTransitions()
 	public void mouseDragged(MouseEvent arg0) {
 		if(panCanvas(arg0))
 			return;
+		resetClickCycle();
 
 		//keep movement within page
 		int x = modelX(arg0);
