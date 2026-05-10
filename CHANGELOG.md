@@ -153,6 +153,7 @@ part of the current codebase.
   under `Tools > Clean Up Diagram`, view/default settings moved under
   `Settings`, the old print menu item was removed, and `Global Attributes` was
   renamed to `FSM Interface`.
+- Added `docs/GUI_WISHLIST.md` to track future GUI modernization ideas.
 
 ### Verilog Backend
 

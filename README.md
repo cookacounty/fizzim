@@ -12,6 +12,8 @@ Fizzim 2.0 feature updates, including forked transitions and state groups, were
 added by Aaron Cook.
 
 See [CHANGELOG.md](CHANGELOG.md) for a summary of the Fizzim 2.0 changes.
+Future GUI refinement ideas are tracked in
+[docs/GUI_WISHLIST.md](docs/GUI_WISHLIST.md).
 
 To compile, run:
 
