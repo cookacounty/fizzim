@@ -44,8 +44,8 @@ it can be used as the old-style golden reference.
 ## Lint Showcase Diagram
 
 `generic_state_machine_lint_issues.fzm` is meant for exercising
-`Tools > Lint Diagram` from the GUI. It stays visually close to the normal
-generic FSM but intentionally includes common problems:
+`Tools > Validate / Lint Diagram` from the GUI. It stays visually close to the
+normal generic FSM but intentionally includes common problems:
 
 - a transition equation that references an undeclared signal
 - a transition priority outside the allowed `0` to `1000` range

@@ -2346,11 +2346,11 @@ public void updateTransitions()
 
         //Create the popup menu.
         JPopupMenu popup = new JPopupMenu();
-        menuItem = new JMenuItem("Quick New State");
+        menuItem = new JMenuItem("New State");
         menuItem.setMnemonic(KeyEvent.VK_Q);
         menuItem.addActionListener(this);
         popup.add(menuItem);
-        menuItem = new JMenuItem("New State");
+        menuItem = new JMenuItem("New State...");
         menuItem.setMnemonic(KeyEvent.VK_S);
         menuItem.addActionListener(this);
         popup.add(menuItem);
@@ -2438,16 +2438,16 @@ public void updateTransitions()
 				((LoopbackTransitionObj) tempObj).resetRoute();
 			commitUndo();
         }
-        else if(input == "Quick New State")
+        else if(input == "New State")
         {
-    		GeneralObj state = new StateObj(rXTemp-StateW/2,rYTemp-StateH/2,rXTemp+StateW/2,rYTemp+StateH/2,createSCounter, currPage, defSC,grid, gridS);
-    		createSCounter++;
+			GeneralObj state = new StateObj(rXTemp-StateW/2,rYTemp-StateH/2,rXTemp+StateW/2,rYTemp+StateH/2,createSCounter, currPage, defSC,grid, gridS);
+			createSCounter++;
     		objList.add(state);
     		state.updateAttrib(globalList,3);
     		commitUndo();
 
         }
-        else if(input == "New State")
+        else if(input == "New State...")
         {
 			GeneralObj state = new StateObj(rXTemp-StateW/2,rYTemp-StateH/2,rXTemp+StateW/2,rYTemp+StateH/2,createSCounter, currPage, defSC,grid,gridS);
 			createSCounter++;
@@ -4067,7 +4067,7 @@ public void updateTransitions()
 				TextObj txt = (TextObj) obj;
 				if(txt.getGlobalTable() && txt.getSelectStatus() != 0)
 				{
-					String error = "To remove global table, go to 'File->Preferences'";
+					String error = "To remove global table, go to 'Settings->View Settings'";
 					JOptionPane.showMessageDialog(frame,
 	                        error,
 	                        "error",
@@ -4103,7 +4103,7 @@ public void updateTransitions()
 					TextObj txt = (TextObj) obj;
 					if(txt.getGlobalTable() && txt.getSelectStatus() != 0)
 					{
-						String error = "To remove global table, go to 'File->Preferences'";
+						String error = "To remove global table, go to 'Settings->View Settings'";
 						JOptionPane.showMessageDialog(frame,
 		                        error,
 	                        "error",

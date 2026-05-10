@@ -30,8 +30,6 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowStateListener;
 import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;
-import java.awt.print.PrinterException;
-import java.awt.print.PrinterJob;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -238,7 +236,6 @@ public class FizzimGui extends javax.swing.JFrame {
 		FileExportJPEG = new javax.swing.JMenuItem();
 		jSeparator1 = new javax.swing.JSeparator();
 		FilePref = new javax.swing.JMenuItem();
-		FileItemPrint = new javax.swing.JMenuItem();
 		jSeparator2 = new javax.swing.JSeparator();
 		FileItemExit = new javax.swing.JMenuItem();
 		EditMenu = new javax.swing.JMenu();
@@ -499,31 +496,13 @@ public class FizzimGui extends javax.swing.JFrame {
 
 		FileMenu.add(FileExport);
 
-
-		FileMenu.add(jSeparator1);
-		
-		FilePref.setText("Preferences");
-		FilePref.setMnemonic(java.awt.event.KeyEvent.VK_R);
+		FilePref.setText("View Settings");
+		FilePref.setMnemonic(java.awt.event.KeyEvent.VK_V);
 		FilePref.addActionListener(new java.awt.event.ActionListener() {
 					public void actionPerformed(java.awt.event.ActionEvent evt) {
 						FilePrefActionPerformed(evt);
 					}
 		});
-
-		FileMenu.add(FilePref);
-
-		FileItemPrint.setAccelerator(javax.swing.KeyStroke.getKeyStroke(
-				java.awt.event.KeyEvent.VK_P,
-				java.awt.event.InputEvent.CTRL_MASK));
-		FileItemPrint.setMnemonic(java.awt.event.KeyEvent.VK_P);
-		FileItemPrint.setText("Print");
-		FileItemPrint.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				FileItemPrintActionPerformed(evt);
-			}
-		});
-
-		FileMenu.add(FileItemPrint);
 
 		FileMenu.add(jSeparator2);
 
@@ -580,19 +559,25 @@ public class FizzimGui extends javax.swing.JFrame {
 
 		MenuBar.add(EditMenu);
 
+		JMenu settingsMenu = new JMenu();
+		settingsMenu.setText("Settings");
+		settingsMenu.setMnemonic(java.awt.event.KeyEvent.VK_S);
+		settingsMenu.add(FilePref);
+
+		JMenuItem defaultsItem = new JMenuItem("Diagram Defaults");
+		defaultsItem.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ToolsNewFsmDefaultsActionPerformed(evt);
+			}
+		});
+		settingsMenu.add(defaultsItem);
+		MenuBar.add(settingsMenu);
+
 		JMenu toolsMenu = new JMenu();
 		toolsMenu.setText("Tools");
 		toolsMenu.setMnemonic(java.awt.event.KeyEvent.VK_T);
 
-		JMenuItem validateItem = new JMenuItem("Validate Diagram");
-		validateItem.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				ToolsValidateActionPerformed(evt);
-			}
-		});
-		toolsMenu.add(validateItem);
-
-		JMenuItem lintItem = new JMenuItem("Lint Diagram");
+		JMenuItem lintItem = new JMenuItem("Validate / Lint Diagram");
 		lintItem.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				ToolsLintActionPerformed(evt);
@@ -600,13 +585,14 @@ public class FizzimGui extends javax.swing.JFrame {
 		});
 		toolsMenu.add(lintItem);
 
+		JMenu cleanupMenu = new JMenu("Clean Up Diagram");
 		JMenuItem resetLabelsItem = new JMenuItem("Reset Transition Labels");
 		resetLabelsItem.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				ToolsResetTransitionLabelsActionPerformed(evt);
 			}
 		});
-		toolsMenu.add(resetLabelsItem);
+		cleanupMenu.add(resetLabelsItem);
 
 		JMenuItem cleanRoutesItem = new JMenuItem("Clean Transition Routes");
 		cleanRoutesItem.addActionListener(new java.awt.event.ActionListener() {
@@ -614,19 +600,12 @@ public class FizzimGui extends javax.swing.JFrame {
 				ToolsCleanTransitionRoutesActionPerformed(evt);
 			}
 		});
-		toolsMenu.add(cleanRoutesItem);
-
-		JMenuItem defaultsItem = new JMenuItem("New FSM Defaults");
-		defaultsItem.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				ToolsNewFsmDefaultsActionPerformed(evt);
-			}
-		});
-		toolsMenu.add(defaultsItem);
+		cleanupMenu.add(cleanRoutesItem);
+		toolsMenu.add(cleanupMenu);
 
 		MenuBar.add(toolsMenu);
 
-		GlobalMenu.setText("Global Attributes");
+		GlobalMenu.setText("FSM Interface");
 		GlobalMenu.setMnemonic(java.awt.event.KeyEvent.VK_G);
 		
 		GlobalItemMachine.setText("State Machine");
@@ -784,24 +763,6 @@ public class FizzimGui extends javax.swing.JFrame {
 		
 	}
 
-	private void ToolsValidateActionPerformed(ActionEvent evt) {
-		String errors = drawArea1.validateDiagram();
-		if(errors.equals(""))
-		{
-			JOptionPane.showMessageDialog(this,
-					"No diagram validation issues found.",
-					"Validate Diagram",
-					JOptionPane.INFORMATION_MESSAGE);
-		}
-		else
-		{
-			JOptionPane.showMessageDialog(this,
-					errors,
-					"Validate Diagram",
-					JOptionPane.ERROR_MESSAGE);
-		}
-	}
-
 	private void ToolsLintActionPerformed(ActionEvent evt) {
 		String report = drawArea1.lintDiagram();
 		final java.util.LinkedList<DrawArea.LintIssue> issues = drawArea1.getLastLintIssues();
@@ -881,7 +842,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		panel.add(resetEdge);
 		panel.add(new JLabel(""));
 		panel.add(impliedLoopback);
-		int result = JOptionPane.showConfirmDialog(this, panel, "New FSM Defaults", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+		int result = JOptionPane.showConfirmDialog(this, panel, "Diagram Defaults", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 		if(result == JOptionPane.OK_OPTION)
 		{
 			USER_PREFS.put(PREF_DEFAULT_CLOCK, clockField.getText().trim().equals("") ? "clk" : clockField.getText().trim());
@@ -1288,18 +1249,6 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(openWindowCount <= 0)
 			System.exit(0);
 	}
-
-	//GEN-FIRST:event_FileItemPrintActionPerformed
-	private void FileItemPrintActionPerformed(java.awt.event.ActionEvent evt) {
-		PrinterJob printJob = PrinterJob.getPrinterJob();
-		printJob.setPrintable(drawArea1);
-		if (printJob.printDialog())
-			try {
-				printJob.print();
-			} catch (PrinterException pe) {
-				System.out.println("Error printing: " + pe);
-			}
-	}//GEN-LAST:event_FileItemPrintActionPerformed
 
 	//GEN-FIRST:event_EditItemDeleteActionPerformed
 	private void EditItemDeleteActionPerformed(java.awt.event.ActionEvent evt) {
@@ -1875,7 +1824,6 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JMenuItem FileItemOpen;
 	private javax.swing.JMenu FileOpenRecent;
 	private javax.swing.JMenuItem FilePref;
-	private javax.swing.JMenuItem FileItemPrint;
 	private javax.swing.JMenuItem FileItemSave;
 	private javax.swing.JMenuItem FileItemSaveAs;
 	private javax.swing.JMenu FileExport;

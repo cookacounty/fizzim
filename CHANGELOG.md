@@ -33,8 +33,8 @@ part of the current codebase.
 
 ### Validation And Lint
 
-- Added a separate `Tools > Lint Diagram` interface focused on RTL/FSM quality
-  rather than only structural correctness.
+- Added a separate `Tools > Validate / Lint Diagram` interface focused on
+  RTL/FSM quality rather than only structural correctness.
 - Added lint checks for transition priority ranges, duplicate source-local
   priorities, unreachable lower-priority branches behind default transitions,
   and missing default branches on prioritized transition sets.
@@ -148,6 +148,11 @@ part of the current codebase.
   blocked by that table.
 - Changed newly created output and internal variables to default to `0` instead
   of a blank value.
+- Cleaned up the main menu structure: validation now uses one
+  `Tools > Validate / Lint Diagram` command, transition cleanup actions live
+  under `Tools > Clean Up Diagram`, view/default settings moved under
+  `Settings`, the old print menu item was removed, and `Global Attributes` was
+  renamed to `FSM Interface`.
 
 ### Verilog Backend
 

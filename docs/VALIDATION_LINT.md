@@ -1,10 +1,10 @@
 # Fizzim RTL/FSM Lint
 
-This document captures the intent behind the Fizzim 2.0 lint interface. The
-existing `Validate Diagram` command catches structural errors that should block
-generation. `Lint Diagram` is meant to be a deeper ASIC/RTL review pass: it
-looks for legal diagrams that may still generate risky, surprising, or hard to
-sign off state-machine RTL.
+This document captures the intent behind the Fizzim 2.0
+`Tools > Validate / Lint Diagram` interface. The command runs structural checks
+that should block generation, then adds a deeper ASIC/RTL review pass for legal
+diagrams that may still generate risky, surprising, or hard to sign off
+state-machine RTL.
 
 ## First Implemented Checks
 
@@ -37,12 +37,12 @@ sign off state-machine RTL.
 The public testcase area includes
 `testcases/generic_state_machine_lint_issues.fzm`. It is intentionally not a
 golden regression input. Instead, it is a compact GUI showcase for the lint
-interface. Open it in Fizzim and run `Tools > Lint Diagram` to see common
-findings such as undeclared transition-equation identifiers, bad priority
-values, fork branch coverage issues, duplicate source-local priorities, and
-missing registered-output reset values. It also includes simple structural
-lint examples for an unreachable state, a transition into a fork with no exit,
-and a fork branch with no incoming transition.
+interface. Open it in Fizzim and run `Tools > Validate / Lint Diagram` to see
+common findings such as undeclared transition-equation identifiers, bad
+priority values, fork branch coverage issues, duplicate source-local
+priorities, and missing registered-output reset values. It also includes simple
+structural lint examples for an unreachable state, a transition into a fork
+with no exit, and a fork branch with no incoming transition.
 
 ## RTL Rationale
 
