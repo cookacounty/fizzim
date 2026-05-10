@@ -5,7 +5,7 @@ generating Verilog/SystemVerilog.
 
 ![Fizzim 2.0 splash](docs/images/fizzim-2-splash.png)
 
-![Fizzim 2.0 overview](docs/images/fizzim-2-overview.svg)
+![Fizzim 2.0 overview](docs/images/fizzim-2-overview-fsquared.svg)
 
 ## Documentation
 
