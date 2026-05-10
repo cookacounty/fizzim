@@ -1,85 +1,82 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="980" height="360" viewBox="0 0 980 360" role="img" aria-label="Fizzim 2.0 finite state machine overview">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#101820"/>
-      <stop offset="0.52" stop-color="#17233a"/>
-      <stop offset="1" stop-color="#20312c"/>
-    </linearGradient>
-    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#f8fbff"/>
-      <stop offset="1" stop-color="#e8f4ef"/>
-    </linearGradient>
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#3dd6c6"/>
-      <stop offset="1" stop-color="#f7c948"/>
-    </linearGradient>
-    <filter id="shadow" x="-15%" y="-20%" width="130%" height="145%">
-      <feDropShadow dx="0" dy="14" stdDeviation="15" flood-color="#000" flood-opacity="0.32"/>
-    </filter>
     <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#dce8f2"/>
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#111827"/>
     </marker>
+    <filter id="softShadow" x="-15%" y="-20%" width="130%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
     <style>
-      text { font-family: Inter, Segoe UI, Arial, Helvetica, sans-serif; }
-      .title { fill: #ffffff; font-size: 48px; font-weight: 800; letter-spacing: 0; }
-      .subtitle { fill: #b8c8d8; font-size: 18px; }
-      .chip { fill: #203241; stroke: #3dd6c6; stroke-width: 1.2; }
+      text { font-family: Segoe UI, Arial, Helvetica, sans-serif; letter-spacing: 0; }
+      .title { fill: #f8fafc; font-size: 48px; font-weight: 800; }
+      .titleSuper { fill: #5eead4; font-size: 24px; font-weight: 800; }
+      .subtitle { fill: #cbd5e1; font-size: 18px; }
+      .chip { fill: #17263a; stroke: #14b8a6; stroke-width: 1.4; }
       .chipText { fill: #dffbf7; font-size: 13px; font-weight: 700; }
-      .state { fill: url(#panel); stroke: #ffffff; stroke-width: 2.4; filter: url(#shadow); }
-      .stateText { fill: #16202a; font-size: 17px; font-weight: 800; text-anchor: middle; dominant-baseline: middle; }
-      .group { fill: rgba(61,214,198,0.08); stroke: #3dd6c6; stroke-width: 3; stroke-dasharray: 10 8; }
-      .groupText { fill: #9cf1e8; font-size: 15px; font-weight: 800; }
-      .line { fill: none; stroke: #dce8f2; stroke-width: 3; marker-end: url(#arrow); }
-      .lineAccent { fill: none; stroke: url(#accent); stroke-width: 4; marker-end: url(#arrow); }
-      .fork { fill: #f7c948; stroke: #fff4bf; stroke-width: 2; filter: url(#shadow); }
-      .label { fill: #dce8f2; font-size: 14px; font-weight: 700; }
-      .code { fill: #aebdca; font-family: Consolas, Menlo, monospace; font-size: 13px; }
+      .canvas { fill: #fbfbf8; }
+      .stateGroup { fill: #f0f9ff; stroke: #b7d8e8; stroke-width: 3; }
+      .state { fill: #ffffff; stroke: #111827; stroke-width: 2.4; filter: url(#softShadow); }
+      .stateText { fill: #111827; font-family: Consolas, Menlo, monospace; font-size: 16px; font-weight: 800; text-anchor: middle; dominant-baseline: middle; }
+      .groupText { fill: #426474; font-family: Consolas, Menlo, monospace; font-size: 14px; font-weight: 700; }
+      .line { fill: none; stroke: #111827; stroke-width: 3; marker-end: url(#arrow); }
+      .lineAccent { fill: none; stroke: #14b8a6; stroke-width: 4.5; marker-end: url(#arrow); }
+      .fork { fill: #14b8a6; stroke: #0f766e; stroke-width: 2; }
+      .label { fill: #334155; font-family: Consolas, Menlo, monospace; font-size: 13px; font-weight: 700; }
+      .code { fill: #cbd5e1; font-family: Consolas, Menlo, monospace; font-size: 13px; }
     </style>
   </defs>
 
-  <rect width="980" height="360" rx="24" fill="url(#bg)"/>
-  <path d="M 36 302 C 160 248 240 338 370 286 C 518 226 620 292 764 238 C 842 208 890 194 944 206" fill="none" stroke="#3dd6c6" stroke-width="2" opacity="0.22"/>
-  <path d="M 56 72 L 188 72" stroke="url(#accent)" stroke-width="6" stroke-linecap="round"/>
-  <text class="title" x="56" y="128">Fizzim 2.0</text>
-  <text class="subtitle" x="58" y="162">Readable FSM diagrams. Cleaner shared logic. Verilog you can trust.</text>
+  <rect width="980" height="360" rx="24" fill="#111827"/>
+  <rect class="canvas" x="462" y="42" width="474" height="276" rx="28"/>
 
-  <rect class="chip" x="58" y="194" width="132" height="34" rx="17"/>
-  <text class="chipText" x="124" y="216" text-anchor="middle">forked transitions</text>
-  <rect class="chip" x="204" y="194" width="106" height="34" rx="17"/>
-  <text class="chipText" x="257" y="216" text-anchor="middle">state groups</text>
-  <rect class="chip" x="324" y="194" width="116" height="34" rx="17"/>
-  <text class="chipText" x="382" y="216" text-anchor="middle">SV backend</text>
+  <text class="title" x="56" y="116">
+    <tspan>F</tspan><tspan class="titleSuper" baseline-shift="super">2</tspan><tspan>izzim 2.0</tspan>
+  </text>
+  <text class="subtitle" x="58" y="154">Readable FSM diagrams. Cleaner shared logic. Verilog you can trust.</text>
 
-  <text class="code" x="58" y="274">statename = "G_RUN.S_RUN_A";</text>
-  <text class="code" x="58" y="298">if (op_done || op_fail) branch once;</text>
+  <rect class="chip" x="58" y="190" width="132" height="34" rx="17"/>
+  <text class="chipText" x="124" y="212" text-anchor="middle">forked transitions</text>
+  <rect class="chip" x="204" y="190" width="106" height="34" rx="17"/>
+  <text class="chipText" x="257" y="212" text-anchor="middle">state groups</text>
+  <rect class="chip" x="324" y="190" width="116" height="34" rx="17"/>
+  <text class="chipText" x="382" y="212" text-anchor="middle">SV backend</text>
 
-  <rect class="group" x="555" y="70" width="215" height="220" rx="28"/>
-  <text class="groupText" x="578" y="104">G_RUN</text>
+  <text class="code" x="58" y="268">statename = "G_RUN.S_RUN_A";</text>
+  <text class="code" x="58" y="292">if (op_done || op_fail) branch once;</text>
 
-  <ellipse class="state" cx="490" cy="180" rx="62" ry="42"/>
-  <text class="stateText" x="490" y="180">IDLE</text>
-  <circle class="fork" cx="615" cy="180" r="10"/>
-  <ellipse class="state" cx="690" cy="135" rx="66" ry="40"/>
-  <text class="stateText" x="690" y="135">RUN_A</text>
-  <ellipse class="state" cx="690" cy="225" rx="66" ry="40"/>
-  <text class="stateText" x="690" y="225">RUN_B</text>
-  <circle class="fork" cx="815" cy="180" r="10"/>
-  <ellipse class="state" cx="900" cy="112" rx="58" ry="38"/>
-  <text class="stateText" x="900" y="112">DONE</text>
-  <ellipse class="state" cx="900" cy="248" rx="58" ry="38"/>
-  <text class="stateText" x="900" y="248">ERROR</text>
+  <rect class="stateGroup" x="596" y="74" width="206" height="210" rx="26"/>
+  <text class="groupText" x="620" y="108">G_RUN</text>
 
-  <path class="lineAccent" d="M 552 180 C 572 180 588 180 604 180"/>
-  <path class="line" d="M 625 174 C 642 153 654 142 628 138"/>
-  <path class="line" d="M 625 186 C 642 207 654 218 628 222"/>
-  <path class="lineAccent" d="M 756 180 C 776 180 792 180 804 180"/>
-  <path class="line" d="M 825 174 C 852 148 862 124 842 116"/>
-  <path class="line" d="M 825 186 C 852 212 862 236 842 244"/>
+  <rect class="state" x="490" y="154" width="92" height="52" rx="12"/>
+  <text class="stateText" x="536" y="181">IDLE</text>
 
-  <text class="label" x="562" y="162">start</text>
-  <text class="label" x="637" y="120">mode</text>
-  <text class="label" x="638" y="250">!mode</text>
-  <text class="label" x="772" y="162">result</text>
-  <text class="label" x="846" y="160">pass</text>
-  <text class="label" x="842" y="224">fail</text>
+  <circle class="fork" cx="628" cy="180" r="11"/>
+
+  <rect class="state" x="672" y="112" width="92" height="52" rx="12"/>
+  <text class="stateText" x="718" y="139">RUN_A</text>
+
+  <rect class="state" x="672" y="198" width="92" height="52" rx="12"/>
+  <text class="stateText" x="718" y="225">RUN_B</text>
+
+  <circle class="fork" cx="824" cy="180" r="11"/>
+
+  <rect class="state" x="862" y="86" width="82" height="50" rx="12"/>
+  <text class="stateText" x="903" y="112">DONE</text>
+
+  <rect class="state" x="862" y="224" width="82" height="50" rx="12"/>
+  <text class="stateText" x="903" y="250">ERROR</text>
+
+  <path class="lineAccent" d="M 582 180 C 598 180 610 180 616 180"/>
+  <path class="line" d="M 640 174 C 654 150 662 140 671 138"/>
+  <path class="line" d="M 640 186 C 654 210 662 222 671 224"/>
+  <path class="lineAccent" d="M 764 181 C 786 181 805 181 812 180"/>
+  <path class="line" d="M 836 174 C 850 146 858 118 861 112"/>
+  <path class="line" d="M 836 186 C 850 216 858 242 861 250"/>
+
+  <text class="label" x="586" y="160">start</text>
+  <text class="label" x="650" y="118">mode</text>
+  <text class="label" x="648" y="252">!mode</text>
+  <text class="label" x="774" y="162">result</text>
+  <text class="label" x="846" y="154">pass</text>
+  <text class="label" x="842" y="218">fail</text>
 </svg>
