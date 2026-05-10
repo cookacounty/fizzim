@@ -20,6 +20,8 @@ sign off state-machine RTL.
   - no incoming transition is an error,
   - fewer than two outgoing transitions is an error,
   - multiple fork branches without a default branch is a warning.
+- Checks transition equations for references to names that are not known inputs,
+  outputs, states, forks, state groups, or built-in FSM signals.
 - Checks reachability from `reset_state` through normal transitions, state-group
   exits, group default entries, and fork branches.
 - Checks state coverage:
@@ -28,6 +30,7 @@ sign off state-machine RTL.
     default branch exists.
 - Checks transition actions for blank RHS values and likely full-assignment text
   entered where only an expression should be used.
+- Checks registered outputs for missing reset values.
 
 ## RTL Rationale
 
@@ -52,8 +55,8 @@ bad assignment style, and synthesis/simulation mismatch risk.
   the same source.
 - Detect simple complementary branch coverage, such as `pass` plus `!pass`, and
   suppress default-branch warnings when the branch set is provably exhaustive.
-- Flag transition equations that reference unknown inputs, outputs, or internal
-  registers.
+- Add a project-level allow-list for intentionally external/package-scope
+  equation identifiers.
 - Flag state and transition actions that assign unknown outputs.
 - Identify state groups whose shared exits shadow every child-state transition.
 - Add severity filtering and clickable object selection from lint results.

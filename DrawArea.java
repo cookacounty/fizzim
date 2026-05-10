@@ -3313,6 +3313,7 @@ public void updateTransitions()
 		appendStructuralLint(report);
 		appendPriorityLint(report);
 		appendForkLint(report);
+		appendEquationReferenceLint(report);
 		appendReachabilityLint(report);
 		appendTransitionCoverageLint(report);
 		appendOutputAndActionLint(report);
@@ -3433,6 +3434,87 @@ public void updateTransitions()
 			report.append("\n");
 	}
 
+	private void appendEquationReferenceLint(StringBuffer report)
+	{
+		boolean wroteHeader = false;
+		TreeSet<String> knownSignals = getKnownExpressionNames();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() != 1 && obj.getType() != 2)
+				continue;
+			TransitionObj trans = (TransitionObj)obj;
+			LinkedList<String> refs = extractExpressionIdentifiers(getTransitionEquation(trans));
+			for(int j = 0; j < refs.size(); j++)
+			{
+				String ref = refs.get(j);
+				if(!knownSignals.contains(ref))
+				{
+					wroteHeader = appendLintHeader(report, wroteHeader, "Equation References");
+					appendLint(report, "WARN", transitionLabel(trans) + " equation references \""
+							+ ref + "\", which is not a known input, output, state, or built-in FSM signal.");
+				}
+			}
+		}
+		if(wroteHeader)
+			report.append("\n");
+	}
+
+	private TreeSet<String> getKnownExpressionNames()
+	{
+		TreeSet<String> names = new TreeSet<String>();
+		for(int i = 0; i < globalList.get(1).size(); i++)
+			names.add(baseIdentifier(globalList.get(1).get(i).getName()));
+		for(int i = 0; i < globalList.get(2).size(); i++)
+			names.add(baseIdentifier(globalList.get(2).get(i).getName()));
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 0 || obj.getType() == 4 || obj.getType() == 5)
+				names.add(obj.getName());
+		}
+		names.add("state");
+		names.add("nextstate");
+		names.add("statename");
+		names.add("default");
+		names.add("true");
+		names.add("false");
+		return names;
+	}
+
+	private String baseIdentifier(String name)
+	{
+		int bracket = name.indexOf("[");
+		if(bracket >= 0)
+			return name.substring(0, bracket);
+		return name;
+	}
+
+	private LinkedList<String> extractExpressionIdentifiers(String expression)
+	{
+		LinkedList<String> ids = new LinkedList<String>();
+		if(expression == null)
+			return ids;
+		String stripped = expression.replaceAll("\\d+'[bBoOdDhH][0-9a-fA-F_xXzZ?]+", " ");
+		java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("[A-Za-z_][A-Za-z0-9_$]*").matcher(stripped);
+		while(matcher.find())
+		{
+			String id = matcher.group();
+			String base = baseIdentifier(id);
+			if(isExpressionKeyword(base) || ids.contains(base))
+				continue;
+			ids.add(base);
+		}
+		return ids;
+	}
+
+	private boolean isExpressionKeyword(String id)
+	{
+		return id.equals("if") || id.equals("else") || id.equals("case") || id.equals("endcase")
+				|| id.equals("begin") || id.equals("end") || id.equals("and") || id.equals("or")
+				|| id.equals("not") || id.equals("posedge") || id.equals("negedge");
+	}
+
 	private void appendReachabilityLint(StringBuffer report)
 	{
 		boolean wroteHeader = false;
@@ -3505,6 +3587,17 @@ public void updateTransitions()
 	private void appendOutputAndActionLint(StringBuffer report)
 	{
 		boolean wroteHeader = false;
+		for(int i = 0; i < globalList.get(2).size(); i++)
+		{
+			ObjAttribute output = globalList.get(2).get(i);
+			if((output.getType().equals("reg") || output.getType().equals("regdp"))
+					&& output.getresetval().trim().equals(""))
+			{
+				wroteHeader = appendLintHeader(report, wroteHeader, "Transition Actions");
+				appendLint(report, "WARN", "Registered output " + output.getName()
+						+ " has no reset value. ASIC FSM outputs should reset deterministically unless intentionally left unreset.");
+			}
+		}
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj obj = (GeneralObj)objList.get(i);

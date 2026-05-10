@@ -36,6 +36,8 @@ part of the current codebase.
   and missing default branches on prioritized transition sets.
 - Added fork linting for missing incoming transitions, too few outgoing
   branches, and fork branch sets without a default branch.
+- Added transition-equation linting for references to unknown signals or FSM
+  object names.
 - Added reset reachability linting for real states, including paths through
   state-group exits, group default entries, and forks.
 - Added state coverage linting for states with no outgoing transition when
@@ -43,6 +45,7 @@ part of the current codebase.
   without a default branch.
 - Added transition-action linting for blank RHS values and likely full
   assignments entered where only RHS expressions should be used.
+- Added registered-output linting for missing reset values.
 - Added a validation/lint design note under `docs/VALIDATION_LINT.md`.
 
 ### Diagram Editing
