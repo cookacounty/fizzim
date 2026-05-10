@@ -112,8 +112,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	private long pressTime = 0;
 
 	//font
-	private Font currFont = new Font("Arial",Font.PLAIN,11);
-	private Font tableFont = new Font("Arial",Font.PLAIN,11);
+	private Font currFont = FizzimFonts.canvasFont();
+	private Font tableFont = FizzimFonts.canvasFont();
 	
 	//global color chooser
 	private JColorChooser colorChooser = new JColorChooser();
@@ -3187,9 +3187,9 @@ public void updateTransitions()
 		writer.write("<TCounter>\n" + createTCounter + "\n</TCounter>\n");
 		writer.write("<TableVis>\n" + tableVis + "\n</TableVis>\n");
 		writer.write("<TableSpace>\n" + space + "\n</TableSpace>\n");
-		writer.write("<TableFont>\n" + tableFont.getFontName() + "\n" + tableFont.getSize() + "\n</TableFont>\n");
+		writer.write("<TableFont>\n" + tableFont.getFamily() + "\n" + tableFont.getSize() + "\n</TableFont>\n");
 		writer.write("<TableColor>\n" + tableColor.getRGB() + "\n</TableColor>\n");
-		writer.write("<Font>\n" + currFont.getFontName() + "\n" + currFont.getSize() + "\n</Font>\n");
+		writer.write("<Font>\n" + currFont.getFamily() + "\n" + currFont.getSize() + "\n</Font>\n");
 		writer.write("<Grid>\n" + grid + "\n" + gridS + "\n</Grid>\n");
 		writer.write("<PageSizeW>\n" + getMaxW() + "\n</PageSizeW>\n");
 		writer.write("<PageSizeH>\n" + getMaxH() + "\n</PageSizeH>\n");
@@ -4454,7 +4454,7 @@ public void updateTransitions()
 	
 	public void setFont(Font font)
 	{
-		currFont = font;
+		currFont = FizzimFonts.normalizeCodeFont(font, FizzimFonts.CANVAS_FONT_SIZE);
 	}
 	
 	public Font getFont()
@@ -4464,8 +4464,8 @@ public void updateTransitions()
 	
 	public void setTableFont(Font font)
 	{
-		tableFont = font;
-		
+		tableFont = FizzimFonts.normalizeCodeFont(font, FizzimFonts.CANVAS_FONT_SIZE);
+
 	}
 	
 	public Font getTableFont()

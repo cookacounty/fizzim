@@ -1,7 +1,5 @@
 import java.awt.Color;
 import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.GraphicsEnvironment;
 import java.awt.Point;
 import java.io.BufferedReader;
 import java.io.File;
@@ -159,19 +157,10 @@ public class FileParser {
 					while(line3.startsWith("##"))
 						line3 = reader.readLine();
 					
-					//get available fonts
-					GraphicsEnvironment env = GraphicsEnvironment.getLocalGraphicsEnvironment();
-			        String[] fontNames = env.getAvailableFontFamilyNames();
-			        for(int i = 0; i < fontNames.length; i++)
-			        {
-			        	try {	
-				        	if(line2.equals(fontNames[i]))
-				        	{
-				        		Font newFont = new Font(fontNames[i],Font.PLAIN,Integer.parseInt(line3));
-				        		drawArea.setTableFont(newFont);
-				        	}
-			        	} catch (NumberFormatException nfe) {}	
-			        }			    
+					try {
+						Font newFont = new Font(line2,Font.PLAIN,Integer.parseInt(line3));
+						drawArea.setTableFont(newFont);
+					} catch (NumberFormatException nfe) {}
 				}
 				else if(line.equals("<TableColor>"))
 				{
@@ -194,19 +183,10 @@ public class FileParser {
 					while(line3.startsWith("##"))
 						line3 = reader.readLine();
 					
-					//get available fonts
-					GraphicsEnvironment env = GraphicsEnvironment.getLocalGraphicsEnvironment();
-			        String[] fontNames = env.getAvailableFontFamilyNames();
-			        for(int i = 0; i < fontNames.length; i++)
-			        {
-			        	try {	
-				        	if(line2.equals(fontNames[i]))
-				        	{
-				        		Font newFont = new Font(fontNames[i],Font.PLAIN,Integer.parseInt(line3));
-				        		drawArea.setFont(newFont);
-				        	}
-			        	} catch (NumberFormatException nfe) {}	
-			        }			    
+					try {
+						Font newFont = new Font(line2,Font.PLAIN,Integer.parseInt(line3));
+						drawArea.setFont(newFont);
+					} catch (NumberFormatException nfe) {}
 				}
 				else if(line.equals("<Grid>"))
 				{

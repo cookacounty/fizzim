@@ -136,6 +136,9 @@ part of the current codebase.
   default.
 - Added default new-FSM settings for `posedge clk`, `negedge rst_l`, and implied
   loopback behavior.
+- Switched canvas text, the global canvas table, and attribute-editor table
+  cells to Java's logical `Monospaced` font so HDL names and expressions align
+  consistently across Windows and Linux.
 
 ### Verilog Backend
 

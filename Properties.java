@@ -769,7 +769,8 @@ class TransProperties extends javax.swing.JDialog {
 		}
 		TPTable.setModel(new MyTableModel(trans,this,globalList,4));
 		TPTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-		
+		FizzimFonts.applyCodeFont(TPTable);
+
 		
 		//use dropdown boxes
 		String[] options = new String[]{"No", "Yes", "Only non-default"};
@@ -1330,7 +1331,8 @@ class StateProperties extends javax.swing.JDialog {
                 // Type column
 		SPTable.setModel(new MyTableModel(state,this,globalList,3));
 		SPTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-		
+		FizzimFonts.applyCodeFont(SPTable);
+
 		//use dropdown boxes
 		String[] options = new String[]{"No", "Yes", "Only non-default"};
 		TableColumn column = SPTable.getColumnModel().getColumn(2);
@@ -1808,6 +1810,7 @@ class GlobalProperties extends javax.swing.JDialog {
 	}
 	
                 private void setcolumnwidths(JTable table) {
+			FizzimFonts.applyCodeFont(table);
 			TableColumn column;
 
                         // Name

@@ -86,6 +86,18 @@ The `suppress_portlist` attribute is therefore treated as an implementation
 detail. New diagrams should normally use the `Internals` pane instead of typing
 that user attribute by hand.
 
+Fonts
+-----
+
+Fizzim uses Java's logical `Monospaced` font for diagram text, the global
+canvas table, and attribute-editor table cells. This gives fixed-width
+alignment for HDL-style names and expressions while remaining portable across
+Windows and Linux. Java maps `Monospaced` to an available platform font such as
+Consolas, DejaVu Sans Mono, Liberation Mono, or another installed monospace
+font.
+
+The rest of the GUI continues to use the normal platform look-and-feel fonts.
+
 Fizzim on the web: www.fizzim.com
 
 Verilog backend
