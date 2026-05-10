@@ -147,6 +147,9 @@ part of the current codebase.
 - Added a right-side property inspector for the current selection. Single
   selected states, state groups, transitions, and loopbacks can be edited from
   the main window, with the full modal editors still available as a fallback.
+- Expanded the property inspector so states, state groups, and transitions show
+  available HDL variable/action rows, and compatible multi-selections can apply
+  one common value across all selected objects.
 - Converted the lint interface from a separate blocking workflow into a docked
   bottom panel with issue and report tabs, rerun/close controls, and live canvas
   highlighting.

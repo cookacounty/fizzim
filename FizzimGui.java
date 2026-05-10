@@ -1033,6 +1033,12 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(selected.size() > 1)
 		{
 			propertyInspectorTitle.setText("Properties - " + selected.size() + " objects");
+			if(canBatchEditInInspector(selected))
+			{
+				propertyInspectorTable.setModel(new BatchInspectorTableModel(drawArea1, selected, globalList));
+				propertyInspectorEditButton.setEnabled(false);
+				return;
+			}
 			propertyInspectorTable.setModel(new ReadOnlyInspectorTableModel(
 					new Object[][] {{"Selection", selected.size() + " objects"}},
 					new Object[] {"Field", "Value"}));
@@ -1058,6 +1064,18 @@ public class FizzimGui extends javax.swing.JFrame {
 			return;
 		}
 		propertyInspectorTable.setModel(new InspectorTableModel(drawArea1, obj, globalList));
+	}
+
+	private boolean canBatchEditInInspector(LinkedList<GeneralObj> selected) {
+		for(int i = 0; i < selected.size(); i++)
+		{
+			GeneralObj obj = selected.get(i);
+			if(obj.getType() != 0 && obj.getType() != 1 && obj.getType() != 2 && obj.getType() != 5)
+				return false;
+			if(obj.getAttributeList() == null || obj.getAttributeList().size() == 0)
+				return false;
+		}
+		return true;
 	}
 
 	private String objectTypeName(GeneralObj obj) {
@@ -2116,12 +2134,12 @@ public class FizzimGui extends javax.swing.JFrame {
 			{
 				addInspectorRow(attrs, cols, "equation", 1);
 				addInspectorRow(attrs, cols, "priority", 1);
-				addLocalOutputRows(attrs, cols);
+				addOutputRows(attrs, cols);
 			}
 			else if(currentObj.getType() == 0 || currentObj.getType() == 5)
 			{
 				addVisibleAttributeRows(attrs, cols);
-				addLocalOutputRows(attrs, cols);
+				addOutputRows(attrs, cols);
 			}
 			rowToAttribute = new int[attrs.size()];
 			rowToColumn = new int[cols.size()];
@@ -2156,11 +2174,11 @@ public class FizzimGui extends javax.swing.JFrame {
 			}
 		}
 
-		private void addLocalOutputRows(LinkedList<Integer> attrs, LinkedList<Integer> cols) {
+		private void addOutputRows(LinkedList<Integer> attrs, LinkedList<Integer> cols) {
 			for(int i = 0; i < attrib.size(); i++)
 			{
 				ObjAttribute attr = attrib.get(i);
-				if(attr.getType().equals("output") && attr.getEditable(1) == ObjAttribute.LOCAL)
+				if(attr.getType().equals("output"))
 				{
 					attrs.add(new Integer(i));
 					cols.add(new Integer(1));
@@ -2210,6 +2228,186 @@ public class FizzimGui extends javax.swing.JFrame {
 			super.setValueAt(value, rowToAttribute[row], rowToColumn[row]);
 			drawArea.finishInspectorEdit();
 			editing = false;
+		}
+	}
+
+	class BatchInspectorTableModel extends javax.swing.table.AbstractTableModel {
+		private DrawArea drawArea;
+		private LinkedList<GeneralObj> objects;
+		private LinkedList<InspectorRow> rows = new LinkedList<InspectorRow>();
+		private String[] inspectorColumns = {"Field", "Value"};
+		private boolean editing = false;
+		private static final String MIXED_VALUE = "<mixed>";
+
+		BatchInspectorTableModel(DrawArea da, LinkedList<GeneralObj> selected, LinkedList<LinkedList<ObjAttribute>> globals) {
+			drawArea = da;
+			objects = new LinkedList<GeneralObj>(selected);
+			buildRows();
+		}
+
+		private void buildRows() {
+			rows.clear();
+			boolean allTransitions = true;
+			boolean allStateLike = true;
+			for(int i = 0; i < objects.size(); i++)
+			{
+				GeneralObj obj = objects.get(i);
+				if(obj.getType() != 1 && obj.getType() != 2)
+					allTransitions = false;
+				if(obj.getType() != 0 && obj.getType() != 5)
+					allStateLike = false;
+			}
+			if(allTransitions)
+			{
+				addCommonRow("equation", 1);
+				addCommonRow("priority", 1);
+			}
+			if(allStateLike)
+				addCommonVisibleRows();
+			addCommonOutputRows();
+		}
+
+		private void addCommonVisibleRows() {
+			if(objects.size() == 0)
+				return;
+			LinkedList<ObjAttribute> attrs = objects.getFirst().getAttributeList();
+			for(int i = 0; i < attrs.size(); i++)
+			{
+				ObjAttribute attr = attrs.get(i);
+				if(attr.getVisible() && !attr.getName().equals("name") && !attr.getType().equals("output"))
+					addCommonRow(attr.getName(), 1);
+			}
+		}
+
+		private void addCommonOutputRows() {
+			if(objects.size() == 0)
+				return;
+			LinkedList<ObjAttribute> attrs = objects.getFirst().getAttributeList();
+			for(int i = 0; i < attrs.size(); i++)
+			{
+				ObjAttribute attr = attrs.get(i);
+				if(attr.getType().equals("output"))
+					addCommonRow(attr.getName(), 1);
+			}
+		}
+
+		private void addCommonRow(String attrName, int col) {
+			for(int i = 0; i < rows.size(); i++)
+			{
+				if(rows.get(i).name.equals(attrName) && rows.get(i).col == col)
+					return;
+			}
+			for(int i = 0; i < objects.size(); i++)
+			{
+				if(findAttribute(objects.get(i), attrName) == null)
+					return;
+			}
+			rows.add(new InspectorRow(attrName, col));
+		}
+
+		public int getColumnCount() {
+			return inspectorColumns.length;
+		}
+
+		public int getRowCount() {
+			return rows.size();
+		}
+
+		public String getColumnName(int col) {
+			return inspectorColumns[col];
+		}
+
+		public Object getValueAt(int row, int col) {
+			InspectorRow inspectorRow = rows.get(row);
+			if(col == 0)
+				return inspectorRow.name;
+			String value = null;
+			for(int i = 0; i < objects.size(); i++)
+			{
+				ObjAttribute attr = findAttribute(objects.get(i), inspectorRow.name);
+				String attrValue = attr == null ? "" : String.valueOf(attr.get(inspectorRow.col));
+				if(value == null)
+					value = attrValue;
+				else if(!value.equals(attrValue))
+					return MIXED_VALUE;
+			}
+			return value == null ? "" : value;
+		}
+
+		public boolean isCellEditable(int row, int col) {
+			if(col != 1)
+				return false;
+			InspectorRow inspectorRow = rows.get(row);
+			for(int i = 0; i < objects.size(); i++)
+			{
+				ObjAttribute attr = findAttribute(objects.get(i), inspectorRow.name);
+				if(attr == null || !isInspectorCellEditable(attr, inspectorRow.col))
+					return false;
+			}
+			return true;
+		}
+
+		public void setValueAt(Object value, int row, int col) {
+			if(col != 1 || editing)
+				return;
+			editing = true;
+			InspectorRow inspectorRow = rows.get(row);
+			LinkedList<GeneralObj> replacements = drawArea.prepareInspectorBatchEdit(objects);
+			if(replacements.size() > 0)
+				objects = replacements;
+			for(int i = 0; i < objects.size(); i++)
+			{
+				ObjAttribute attr = findAttribute(objects.get(i), inspectorRow.name);
+				if(attr != null)
+					setInspectorAttribute(objects.get(i), attr, inspectorRow.col, value);
+			}
+			drawArea.finishInspectorEdit();
+			buildRows();
+			fireTableDataChanged();
+			editing = false;
+		}
+
+		private ObjAttribute findAttribute(GeneralObj obj, String name) {
+			LinkedList<ObjAttribute> attrs = obj.getAttributeList();
+			for(int i = 0; i < attrs.size(); i++)
+			{
+				ObjAttribute attr = attrs.get(i);
+				if(attr.getName().equals(name))
+					return attr;
+			}
+			return null;
+		}
+
+		private boolean isInspectorCellEditable(ObjAttribute attr, int col) {
+			return attr.getEditable(col) != ObjAttribute.ABS && attr.getEditable(col) != ObjAttribute.GLOBAL_FIXED;
+		}
+
+		private void setInspectorAttribute(GeneralObj obj, ObjAttribute attr, int col, Object value) {
+			attr.set(col, value);
+			if(col == 1)
+				attr.setEditable(col, matchesGlobalDefault(obj, attr, col, value) ? ObjAttribute.GLOBAL_VAR : ObjAttribute.LOCAL);
+		}
+
+		private boolean matchesGlobalDefault(GeneralObj obj, ObjAttribute attr, int col, Object value) {
+			int tab = (obj.getType() == 1 || obj.getType() == 2) ? 4 : 3;
+			LinkedList<ObjAttribute> globalAttrs = globalList.get(tab);
+			for(int i = 0; i < globalAttrs.size(); i++)
+			{
+				ObjAttribute globalAttr = globalAttrs.get(i);
+				if(globalAttr.getName().equals(attr.getName()))
+					return String.valueOf(globalAttr.get(col)).equals(String.valueOf(value));
+			}
+			return false;
+		}
+	}
+
+	class InspectorRow {
+		String name;
+		int col;
+
+		InspectorRow(String attrName, int attrCol) {
+			name = attrName;
+			col = attrCol;
 		}
 	}
 

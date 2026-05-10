@@ -1066,6 +1066,25 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		return replacement;
 	}
 
+	public LinkedList<GeneralObj> prepareInspectorBatchEdit(LinkedList<GeneralObj> currentObjects)
+	{
+		LinkedList<GeneralObj> replacements = new LinkedList<GeneralObj>();
+		if(currentObjects == null || currentObjects.size() == 0)
+			return replacements;
+		setUndoPointAllObjects();
+		for(int i = 0; i < currentObjects.size(); i++)
+		{
+			GeneralObj current = currentObjects.get(i);
+			GeneralObj replacement = findObjectByNameAndType(current.getName(), current.getType());
+			if(replacement != null)
+			{
+				replacement.setSelectStatus(true);
+				replacements.add(replacement);
+			}
+		}
+		return replacements;
+	}
+
 	public void finishInspectorEdit()
 	{
 		for(int i = 1; i < objList.size(); i++)
