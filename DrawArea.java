@@ -2438,14 +2438,15 @@ public void updateTransitions()
 
 	public void mouseWheelMoved(MouseWheelEvent e)
 	{
-		if(!e.isControlDown())
+		if(e.isShiftDown() && !e.isControlDown())
 		{
 			panViewportByWheel(e);
 			return;
 		}
 
 		e.consume();
-		zoomAt(e, Math.pow(1.1, -e.getPreciseWheelRotation()));
+		double zoomStep = e.isControlDown() ? 1.1 : 1.06;
+		zoomAt(e, Math.pow(zoomStep, -e.getPreciseWheelRotation()));
 	}
 
 	private void zoomAt(MouseEvent e, double factor)
