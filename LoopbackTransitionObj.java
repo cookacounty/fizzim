@@ -108,6 +108,56 @@ private Point bendStartCtrlPt, bendEndCtrlPt;
 		return Math.abs(point.getX() - x) <= HANDLE_HIT_RADIUS && Math.abs(point.getY() - y) <= HANDLE_HIT_RADIUS;
 	}
 
+	private int nearestBorderIndex(Vector<Point> borderPts, Point target)
+	{
+		double bestScore = Double.MAX_VALUE;
+		int bestIndex = 0;
+		for(int i = 0; i < borderPts.size(); i++)
+		{
+			double score = borderSnapScore(borderPts.get(i), target);
+			if(score < bestScore)
+			{
+				bestScore = score;
+				bestIndex = i;
+			}
+		}
+		return bestIndex;
+	}
+
+	private double borderSnapScore(Point borderPt, Point target)
+	{
+		if(state.getType() == 4)
+			return target.distanceSq(borderPt);
+
+		int[] coords = state.getCoords();
+		int x0 = coords[0];
+		int y0 = coords[1];
+		int x1 = coords[2];
+		int y1 = coords[3];
+		int w = Math.max(1, x1 - x0);
+		int h = Math.max(1, y1 - y0);
+		double score = target.distanceSq(borderPt);
+		boolean nearLeft = Math.abs(borderPt.x - x0) <= 2;
+		boolean nearRight = Math.abs(borderPt.x - x1) <= 2;
+		boolean nearTop = Math.abs(borderPt.y - y0) <= 2;
+		boolean nearBottom = Math.abs(borderPt.y - y1) <= 2;
+		if((nearLeft || nearRight) && (nearTop || nearBottom))
+			score += 100000;
+		if(nearTop || nearBottom)
+			score += edgeFractionPenalty((double)(borderPt.x - x0) / w) * 1200;
+		if(nearLeft || nearRight)
+			score += edgeFractionPenalty((double)(borderPt.y - y0) / h) * 1200;
+		return score;
+	}
+
+	private double edgeFractionPenalty(double fraction)
+	{
+		double a = Math.abs(fraction - 0.25);
+		double b = Math.abs(fraction - 0.50);
+		double c = Math.abs(fraction - 0.75);
+		return Math.min(a, Math.min(b, c));
+	}
+
 	private double getBorderPointAngle(Point point)
 	{
 		Point center = state.getRealCenter(myPage);
@@ -165,24 +215,13 @@ private Point bendStartCtrlPt, bendEndCtrlPt;
 		//find start point on oval closest to click point
 		stateBorderPts = state.getBorderPts();
 		Point createPt = new Point(x,y);
-		double temp;
-		double max = 1000000;
-		int searchCount = Math.min(36, stateBorderPts.size());
-		for(int i = 0; i < searchCount; i++)
-		{
-			temp = createPt.distanceSq(stateBorderPts.get(i));
-			if (temp < max)
-			{
-				startStateIndex = i;
-				max = temp;
-			}
-		}
+		startStateIndex = nearestBorderIndex(stateBorderPts, createPt);
 		
 		// store two points on oval
 		startPt = stateBorderPts.get(startStateIndex);
-		endStateIndex = startStateIndex + 5;
-		if(endStateIndex >= searchCount)
-			endStateIndex = endStateIndex - searchCount;
+		Point center = state.getRealCenter(myPage);
+		Point oppositePt = new Point((int)(center.x - (startPt.x - center.x)), (int)(center.y - (startPt.y - center.y)));
+		endStateIndex = nearestBorderIndex(stateBorderPts, oppositePt);
 		endPt = stateBorderPts.get(endStateIndex);
 		
 		//angle control points are from points on oval
@@ -286,17 +325,7 @@ private Point bendStartCtrlPt, bendEndCtrlPt;
 			if(selectStatus == START)
 			{
 				Point currPt = new Point(x,y);
-				double temp;
-				double max = 1000000;
-				for(int i = 0; i < stateBorderPts.size(); i++)
-				{
-					temp = currPt.distanceSq(stateBorderPts.get(i));
-					if (temp < max)
-					{
-						startStateIndex = i;
-						max = temp;
-					}
-				}
+				startStateIndex = nearestBorderIndex(stateBorderPts, currPt);
 				startPt.setLocation(stateBorderPts.get(startStateIndex).getX(),stateBorderPts.get(startStateIndex).getY());
 			}
 			if(selectStatus == STARTCTRL)
@@ -306,17 +335,7 @@ private Point bendStartCtrlPt, bendEndCtrlPt;
 			if(selectStatus == END)
 			{
 				Point currPt = new Point(x,y);
-				double temp;
-				double max = 1000000;
-				for(int i = 0; i < stateBorderPts.size(); i++)
-				{
-					temp = currPt.distanceSq(stateBorderPts.get(i));
-					if (temp < max)
-					{
-						endStateIndex = i;
-						max = temp;
-					}
-				}
+				endStateIndex = nearestBorderIndex(stateBorderPts, currPt);
 				endPt.setLocation(stateBorderPts.get(endStateIndex).getX(),stateBorderPts.get(endStateIndex).getY());
 			}
 			if(selectStatus == TXT)

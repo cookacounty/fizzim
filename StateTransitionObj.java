@@ -333,6 +333,56 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		return isRouteHandleHit(x, y) || isRouteLineHit(x, y);
 	}
 
+	private int nearestBorderIndex(Vector<Point> borderPts, StateObj state, Point target)
+	{
+		double bestScore = Double.MAX_VALUE;
+		int bestIndex = 0;
+		for(int i = 0; i < borderPts.size(); i++)
+		{
+			double score = borderSnapScore(borderPts.get(i), state, target);
+			if(score < bestScore)
+			{
+				bestScore = score;
+				bestIndex = i;
+			}
+		}
+		return bestIndex;
+	}
+
+	private double borderSnapScore(Point borderPt, StateObj state, Point target)
+	{
+		if(state.getType() == 4)
+			return target.distanceSq(borderPt);
+
+		int[] coords = state.getCoords();
+		int x0 = coords[0];
+		int y0 = coords[1];
+		int x1 = coords[2];
+		int y1 = coords[3];
+		int w = Math.max(1, x1 - x0);
+		int h = Math.max(1, y1 - y0);
+		double score = target.distanceSq(borderPt);
+		boolean nearLeft = Math.abs(borderPt.x - x0) <= 2;
+		boolean nearRight = Math.abs(borderPt.x - x1) <= 2;
+		boolean nearTop = Math.abs(borderPt.y - y0) <= 2;
+		boolean nearBottom = Math.abs(borderPt.y - y1) <= 2;
+		if((nearLeft || nearRight) && (nearTop || nearBottom))
+			score += 100000;
+		if(nearTop || nearBottom)
+			score += edgeFractionPenalty((double)(borderPt.x - x0) / w) * 1200;
+		if(nearLeft || nearRight)
+			score += edgeFractionPenalty((double)(borderPt.y - y0) / h) * 1200;
+		return score;
+	}
+
+	private double edgeFractionPenalty(double fraction)
+	{
+		double a = Math.abs(fraction - 0.25);
+		double b = Math.abs(fraction - 0.50);
+		double c = Math.abs(fraction - 0.75);
+		return Math.min(a, Math.min(b, c));
+	}
+
 	private void moveAttributeTextOffsets(int dx, int dy)
 	{
 		if(attrib == null)
@@ -426,29 +476,8 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		{
 			Point startCoords = startState.getRealCenter(myPage);
 			Point endCoords = endState.getRealCenter(myPage);
-			double temp;
-			double max = 1000000;
-			int endSearchCount = Math.min(36, endBorderPts.size());
-			for(int i = 0; i < endSearchCount; i++)
-			{
-				temp = startCoords.distanceSq(endBorderPts.get(i));
-				if (temp < max)
-				{
-					endStateIndex = i;
-					max = temp;
-				}
-			}
-			max = 1000000;
-			int startSearchCount = Math.min(36, startBorderPts.size());
-			for(int i = 0; i < startSearchCount; i++)
-			{
-				temp = endCoords.distanceSq(startBorderPts.get(i));
-				if (temp < max)
-				{
-					startStateIndex = i;
-					max = temp;
-				}
-			}
+			endStateIndex = nearestBorderIndex(endBorderPts, endState, startCoords);
+			startStateIndex = nearestBorderIndex(startBorderPts, startState, endCoords);
 			//try to prevent overlapping
 			if(startCoords.getX()<endCoords.getX())
 			{
@@ -472,13 +501,6 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 					
 				}
 			}
-			startStateIndex-=1;
-			if(startStateIndex==-1)
-				startStateIndex=startBorderPts.size()-1;
-			endStateIndex+=1;
-			if(endStateIndex==endBorderPts.size())
-				endStateIndex=0;
-			
 			startPt = startBorderPts.get(startStateIndex);
 			endPt = endBorderPts.get(endStateIndex);
 			
@@ -795,17 +817,7 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		if(selectStatus == START)
 		{
 			Point currPt = new Point(x,y);
-			double temp;
-			double max = 1000000;
-			for(int i = 0; i < startBorderPts.size(); i++)
-			{
-				temp = currPt.distanceSq(startBorderPts.get(i));
-				if (temp < max)
-				{	
-					startStateIndex = i;
-					max = temp;
-				}
-			}
+			startStateIndex = nearestBorderIndex(startBorderPts, startState, currPt);
 			startPt.setLocation(startBorderPts.get(startStateIndex).getX(),startBorderPts.get(startStateIndex).getY());
 			
 			if(stub)
@@ -821,17 +833,7 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		if(selectStatus == END)
 		{
 			Point currPt = new Point(x,y);
-			double temp;
-			double max = 1000000;
-			for(int i = 0; i < endBorderPts.size(); i++)
-			{
-				temp = currPt.distanceSq(endBorderPts.get(i));
-				if (temp < max)
-				{
-					endStateIndex = i;
-					max = temp;
-				}
-			}
+			endStateIndex = nearestBorderIndex(endBorderPts, endState, currPt);
 			endPt.setLocation(endBorderPts.get(endStateIndex).getX(),endBorderPts.get(endStateIndex).getY());
 		}
 		if(selectStatus == PAGES)

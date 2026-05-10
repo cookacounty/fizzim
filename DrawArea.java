@@ -134,8 +134,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	private double zoom = 1.0;
 	private int logicalWidth = 936;
 	private int logicalHeight = 1296;
-	private static final int SMART_ALIGN_THRESHOLD = 10;
-	private static final int SMART_SPACING_ROW_THRESHOLD = 35;
+	private static final int SMART_ALIGN_THRESHOLD = 5;
+	private static final int SMART_SPACING_ROW_THRESHOLD = 24;
 	private Integer smartGuideX = null;
 	private Integer smartGuideY = null;
 	private Integer smartSpacingGuideX = null;
