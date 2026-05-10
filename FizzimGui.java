@@ -816,7 +816,16 @@ public class FizzimGui extends javax.swing.JFrame {
 		javax.swing.JTabbedPane tabs = new javax.swing.JTabbedPane();
 		tabs.addTab("Issues", issueScroll);
 		tabs.addTab("Report", reportScroll);
+		drawArea1.highlightAllLintIssues();
 		final JDialog lintDialog = new JDialog(this, "Fizzim RTL/FSM Lint", false);
+		lintDialog.addWindowListener(new java.awt.event.WindowAdapter() {
+			public void windowClosed(java.awt.event.WindowEvent e) {
+				drawArea1.clearLintHighlights();
+			}
+			public void windowClosing(java.awt.event.WindowEvent e) {
+				drawArea1.clearLintHighlights();
+			}
+		});
 		lintDialog.getContentPane().setLayout(new BorderLayout());
 		lintDialog.getContentPane().add(tabs, BorderLayout.CENTER);
 		JButton closeButton = new JButton("Close");

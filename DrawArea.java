@@ -3355,41 +3355,62 @@ public void updateTransitions()
 		return lastLintIssues;
 	}
 
+	public void highlightAllLintIssues()
+	{
+		clearLintHighlights();
+		for(int i = 0; i < lastLintIssues.size(); i++)
+			highlightLintTarget(lastLintIssues.get(i));
+		repaint();
+	}
+
 	public void selectLintIssue(LintIssue issue)
 	{
 		if(issue == null || issue.targetName == null)
 			return;
 		clearLintHighlights();
+		GeneralObj obj = highlightLintTarget(issue);
+		if(obj != null)
+		{
+			unselectObjs();
+			if(frame instanceof FizzimGui)
+				((FizzimGui)frame).showPage(obj.getPage());
+			obj.setSelectStatus(true);
+			selectedIndices.clear();
+			int index = objList.indexOf(obj);
+			if(index >= 0 && isSelectableDiagramObject(obj))
+				selectedIndices.add(new Integer(index));
+			syncSelectionState();
+			Rectangle bounds = getObjectBounds(obj, obj.getPage());
+			if(bounds != null)
+				scrollRectToVisible(new Rectangle((int)Math.round((bounds.x - originX) * zoom),
+						(int)Math.round((bounds.y - originY) * zoom),
+						Math.max(40, (int)Math.round(bounds.width * zoom)),
+						Math.max(40, (int)Math.round(bounds.height * zoom))));
+		}
+		repaint();
+	}
+
+	public void clearLintHighlights()
+	{
+		for(int i = 1; i < objList.size(); i++)
+			((GeneralObj)objList.get(i)).setLintHighlighted(false);
+		repaint();
+	}
+
+	private GeneralObj highlightLintTarget(LintIssue issue)
+	{
+		if(issue == null || issue.targetName == null)
+			return null;
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj obj = (GeneralObj)objList.get(i);
 			if(obj.getType() == issue.targetType && obj.getName().equals(issue.targetName))
 			{
-				unselectObjs();
-				if(frame instanceof FizzimGui)
-					((FizzimGui)frame).showPage(obj.getPage());
 				obj.setLintHighlighted(true);
-				obj.setSelectStatus(true);
-				selectedIndices.clear();
-				if(isSelectableDiagramObject(obj))
-					selectedIndices.add(new Integer(i));
-				syncSelectionState();
-				Rectangle bounds = getObjectBounds(obj, obj.getPage());
-				if(bounds != null)
-					scrollRectToVisible(new Rectangle((int)Math.round((bounds.x - originX) * zoom),
-							(int)Math.round((bounds.y - originY) * zoom),
-							Math.max(40, (int)Math.round(bounds.width * zoom)),
-							Math.max(40, (int)Math.round(bounds.height * zoom))));
-				repaint();
-				return;
+				return obj;
 			}
 		}
-	}
-
-	private void clearLintHighlights()
-	{
-		for(int i = 1; i < objList.size(); i++)
-			((GeneralObj)objList.get(i)).setLintHighlighted(false);
+		return null;
 	}
 
 	private void appendStructuralLint(StringBuffer report)
