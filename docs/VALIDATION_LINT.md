@@ -1,0 +1,61 @@
+# Fizzim RTL/FSM Lint
+
+This document captures the intent behind the Fizzim 2.0 lint interface. The
+existing `Validate Diagram` command catches structural errors that should block
+generation. `Lint Diagram` is meant to be a deeper ASIC/RTL review pass: it
+looks for legal diagrams that may still generate risky, surprising, or hard to
+sign off state-machine RTL.
+
+## First Implemented Checks
+
+- Runs the existing structural validator and includes those errors in the lint
+  report.
+- Checks source-local transition priorities:
+  - priority must be an integer from 0 to 1000,
+  - duplicate priorities from the same source are errors,
+  - an always-true/default transition above lower-priority transitions is an
+    error because those lower-priority transitions cannot be reached,
+  - multiple prioritized transitions without a default branch are warnings.
+- Checks fork structure:
+  - no incoming transition is an error,
+  - fewer than two outgoing transitions is an error,
+  - multiple fork branches without a default branch is a warning.
+- Checks reachability from `reset_state` through normal transitions, state-group
+  exits, group default entries, and fork branches.
+- Checks state coverage:
+  - states with no outgoing transition are warned when implied loopback is off,
+  - states with multiple effective outgoing transitions are warned when no
+    default branch exists.
+- Checks transition actions for blank RHS values and likely full-assignment text
+  entered where only an expression should be used.
+
+## RTL Rationale
+
+Hardware FSMs are safest when their intent is explicit. In generated Verilog,
+that means:
+
+- every reset path lands in a known reachable state,
+- every state has a clearly defined next-state behavior,
+- priority logic is intentional and ordered,
+- default/else behavior is explicit when conditions do not cover every case,
+- forked control flow resolves to concrete destination states,
+- transition actions are RHS expressions that the backend can place safely into
+  generated assignment statements.
+
+These checks line up with common RTL lint themes from Verilator and Verible:
+incomplete decision coverage, unreachable branches, accidental priority logic,
+bad assignment style, and synthesis/simulation mismatch risk.
+
+## Good Next Checks
+
+- Parse transition equations enough to detect exact duplicate conditions from
+  the same source.
+- Detect simple complementary branch coverage, such as `pass` plus `!pass`, and
+  suppress default-branch warnings when the branch set is provably exhaustive.
+- Flag transition equations that reference unknown inputs, outputs, or internal
+  registers.
+- Flag state and transition actions that assign unknown outputs.
+- Identify state groups whose shared exits shadow every child-state transition.
+- Add severity filtering and clickable object selection from lint results.
+- Add optional generated-Verilog lint integration with Verilator/Verible when
+  those tools are available on the user's path.

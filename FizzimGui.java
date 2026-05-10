@@ -591,6 +591,14 @@ public class FizzimGui extends javax.swing.JFrame {
 		});
 		toolsMenu.add(validateItem);
 
+		JMenuItem lintItem = new JMenuItem("Lint Diagram");
+		lintItem.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ToolsLintActionPerformed(evt);
+			}
+		});
+		toolsMenu.add(lintItem);
+
 		JMenuItem resetLabelsItem = new JMenuItem("Reset Transition Labels");
 		resetLabelsItem.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -780,6 +788,19 @@ public class FizzimGui extends javax.swing.JFrame {
 					"Validate Diagram",
 					JOptionPane.ERROR_MESSAGE);
 		}
+	}
+
+	private void ToolsLintActionPerformed(ActionEvent evt) {
+		String report = drawArea1.lintDiagram();
+		JTextArea text = new JTextArea(report, 28, 90);
+		text.setEditable(false);
+		text.setLineWrap(true);
+		text.setWrapStyleWord(true);
+		JScrollPane scroll = new JScrollPane(text);
+		JOptionPane.showMessageDialog(this,
+				scroll,
+				"Fizzim RTL/FSM Lint",
+				report.indexOf("[ERROR]") >= 0 ? JOptionPane.ERROR_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	private void ToolsResetTransitionLabelsActionPerformed(ActionEvent evt) {

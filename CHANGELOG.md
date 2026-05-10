@@ -27,6 +27,24 @@ part of the current codebase.
   debug can display names like `GROUP.CHILD`.
 - Increased the generated debug `statename` width to 256 characters by default.
 
+### Validation And Lint
+
+- Added a separate `Tools > Lint Diagram` interface focused on RTL/FSM quality
+  rather than only structural correctness.
+- Added lint checks for transition priority ranges, duplicate source-local
+  priorities, unreachable lower-priority branches behind default transitions,
+  and missing default branches on prioritized transition sets.
+- Added fork linting for missing incoming transitions, too few outgoing
+  branches, and fork branch sets without a default branch.
+- Added reset reachability linting for real states, including paths through
+  state-group exits, group default entries, and forks.
+- Added state coverage linting for states with no outgoing transition when
+  implied loopback is disabled, and for multiple effective outgoing transitions
+  without a default branch.
+- Added transition-action linting for blank RHS values and likely full
+  assignments entered where only RHS expressions should be used.
+- Added a validation/lint design note under `docs/VALIDATION_LINT.md`.
+
 ### Diagram Editing
 
 - Updated normal states to use rounded rectangles with white fill, improving

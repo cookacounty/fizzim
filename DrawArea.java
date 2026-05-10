@@ -3304,6 +3304,413 @@ public void updateTransitions()
 		return errors.toString();
 	}
 
+	public String lintDiagram()
+	{
+		StringBuffer report = new StringBuffer();
+		report.append("Fizzim RTL/FSM Lint Report\n");
+		report.append("==========================\n\n");
+		report.append("This lint pass focuses on FSM intent, generated RTL robustness, and common ASIC signoff risks.\n\n");
+		appendStructuralLint(report);
+		appendPriorityLint(report);
+		appendForkLint(report);
+		appendReachabilityLint(report);
+		appendTransitionCoverageLint(report);
+		appendOutputAndActionLint(report);
+		if(report.indexOf("[ERROR]") < 0 && report.indexOf("[WARN]") < 0)
+			report.append("[PASS] No lint issues found. The FSM structure looks ready for backend generation.\n");
+		return report.toString();
+	}
+
+	private void appendStructuralLint(StringBuffer report)
+	{
+		String errors = validateDiagram();
+		if(!errors.equals(""))
+		{
+			report.append("Structural Validation\n");
+			report.append("---------------------\n");
+			String[] lines = errors.split("\\n");
+			for(int i = 0; i < lines.length; i++)
+			{
+				if(lines[i].trim().length() > 0)
+					appendLint(report, "ERROR", lines[i].replaceFirst("^-\\s*", ""));
+			}
+			report.append("\n");
+		}
+	}
+
+	private void appendPriorityLint(StringBuffer report)
+	{
+		boolean wroteHeader = false;
+		LinkedHashMap<StateObj, LinkedList<TransitionObj>> transitionsBySource = getTransitionsBySource();
+		for(Iterator<StateObj> it = transitionsBySource.keySet().iterator(); it.hasNext(); )
+		{
+			StateObj source = it.next();
+			LinkedList<TransitionObj> transitions = transitionsBySource.get(source);
+			if(transitions.size() <= 1)
+				continue;
+			TreeMap<Integer, String> seen = new TreeMap<Integer, String>();
+			boolean hasDefault = false;
+			for(int i = 0; i < transitions.size(); i++)
+			{
+				TransitionObj trans = transitions.get(i);
+				ObjAttribute priorityAttr = getTransitionPriorityAttribute(trans);
+				String priorityText = priorityAttr == null ? "" : priorityAttr.getValue().trim();
+				int priority = parsePriority(priorityText);
+				if(priority < 0 || priority > 1000)
+				{
+					wroteHeader = appendLintHeader(report, wroteHeader, "Priority And Ordering");
+					appendLint(report, "ERROR", transitionLabel(trans) + " from " + source.getName()
+							+ " has priority \"" + priorityText + "\". Use an integer from 0 to 1000.");
+				}
+				else if(seen.containsKey(new Integer(priority)))
+				{
+					wroteHeader = appendLintHeader(report, wroteHeader, "Priority And Ordering");
+					appendLint(report, "ERROR", transitionLabel(trans) + " and " + seen.get(new Integer(priority))
+							+ " both use priority " + priority + " from source " + source.getName() + ".");
+				}
+				else
+				{
+					seen.put(new Integer(priority), transitionLabel(trans));
+				}
+				if(isDefaultEquation(getTransitionEquation(trans)))
+					hasDefault = true;
+			}
+			if(!hasDefault)
+			{
+				wroteHeader = appendLintHeader(report, wroteHeader, "Priority And Ordering");
+				appendLint(report, "WARN", "Source " + source.getName() + " has " + transitions.size()
+						+ " prioritized outgoing transitions but no default/else branch. ASIC RTL should make uncovered conditions intentional.");
+			}
+			sortTransitionsByPriority(transitions);
+			for(int i = 0; i < transitions.size() - 1; i++)
+			{
+				if(isDefaultEquation(getTransitionEquation(transitions.get(i))))
+				{
+					wroteHeader = appendLintHeader(report, wroteHeader, "Priority And Ordering");
+					appendLint(report, "ERROR", transitionLabel(transitions.get(i)) + " from " + source.getName()
+							+ " is an always-true/default transition above lower-priority transitions. Those lower-priority branches are unreachable.");
+				}
+			}
+		}
+		if(wroteHeader)
+			report.append("\n");
+	}
+
+	private void appendForkLint(StringBuffer report)
+	{
+		boolean wroteHeader = false;
+		LinkedHashMap<StateObj, LinkedList<TransitionObj>> transitionsBySource = getTransitionsBySource();
+		LinkedHashMap<StateObj, LinkedList<TransitionObj>> transitionsByDestination = getTransitionsByDestination();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() != 4)
+				continue;
+			StateObj fork = (StateObj)obj;
+			LinkedList<TransitionObj> incoming = transitionsByDestination.get(fork);
+			LinkedList<TransitionObj> outgoing = transitionsBySource.get(fork);
+			int incomingCount = incoming == null ? 0 : incoming.size();
+			int outgoingCount = outgoing == null ? 0 : outgoing.size();
+			if(incomingCount == 0)
+			{
+				wroteHeader = appendLintHeader(report, wroteHeader, "Fork Coverage");
+				appendLint(report, "ERROR", "Fork " + fork.getName() + " has no incoming transition.");
+			}
+			if(outgoingCount < 2)
+			{
+				wroteHeader = appendLintHeader(report, wroteHeader, "Fork Coverage");
+				appendLint(report, "ERROR", "Fork " + fork.getName() + " has " + outgoingCount
+						+ " outgoing transition(s). A fork should resolve to at least two branches.");
+			}
+			if(outgoingCount >= 2 && !hasDefaultTransition(outgoing))
+			{
+				wroteHeader = appendLintHeader(report, wroteHeader, "Fork Coverage");
+				appendLint(report, "WARN", "Fork " + fork.getName()
+						+ " has multiple outgoing branches but no default branch. Add an explicit final branch such as equation 1.");
+			}
+		}
+		if(wroteHeader)
+			report.append("\n");
+	}
+
+	private void appendReachabilityLint(StringBuffer report)
+	{
+		boolean wroteHeader = false;
+		LinkedList<StateObj> states = getRealStates();
+		if(states.size() == 0)
+			return;
+
+		StateObj reset = getStateObj(getMachineAttributeValue("reset_state"));
+		if(reset == null || reset.getType() != 0)
+			return;
+
+		HashSet<StateObj> reachable = new HashSet<StateObj>();
+		LinkedList<StateObj> queue = new LinkedList<StateObj>();
+		reachable.add(reset);
+		queue.add(reset);
+		while(queue.size() > 0)
+		{
+			StateObj state = queue.removeFirst();
+			LinkedList<StateObj> nextStates = getConcreteDestinationsFromState(state);
+			for(int i = 0; i < nextStates.size(); i++)
+			{
+				StateObj next = nextStates.get(i);
+				if(next.getType() == 0 && !reachable.contains(next))
+				{
+					reachable.add(next);
+					queue.add(next);
+				}
+			}
+		}
+
+		for(int i = 0; i < states.size(); i++)
+		{
+			StateObj state = states.get(i);
+			if(!reachable.contains(state))
+			{
+				wroteHeader = appendLintHeader(report, wroteHeader, "Reachability");
+				appendLint(report, "WARN", "State " + state.getName()
+						+ " is not reachable from reset_state " + reset.getName() + " through the drawn transitions.");
+			}
+		}
+		if(wroteHeader)
+			report.append("\n");
+	}
+
+	private void appendTransitionCoverageLint(StringBuffer report)
+	{
+		boolean wroteHeader = false;
+		boolean impliedLoopback = getMachineAttributeValue("implied_loopback").equals("1");
+		for(int i = 0; i < getRealStates().size(); i++)
+		{
+			StateObj state = getRealStates().get(i);
+			LinkedList<TransitionObj> outgoing = getEffectiveOutgoingTransitions(state);
+			if(outgoing.size() == 0 && !impliedLoopback)
+			{
+				wroteHeader = appendLintHeader(report, wroteHeader, "State Coverage");
+				appendLint(report, "WARN", "State " + state.getName()
+						+ " has no explicit outgoing transition and implied_loopback is disabled.");
+			}
+			else if(outgoing.size() > 1 && !hasDefaultTransition(outgoing))
+			{
+				wroteHeader = appendLintHeader(report, wroteHeader, "State Coverage");
+				appendLint(report, "WARN", "State " + state.getName()
+						+ " has multiple effective outgoing transitions with no default/else branch.");
+			}
+		}
+		if(wroteHeader)
+			report.append("\n");
+	}
+
+	private void appendOutputAndActionLint(StringBuffer report)
+	{
+		boolean wroteHeader = false;
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() != 1 && obj.getType() != 2)
+				continue;
+			LinkedList<ObjAttribute> attrs = obj.getAttributeList();
+			for(int j = 0; j < attrs.size(); j++)
+			{
+				ObjAttribute attr = attrs.get(j);
+				if(attr.getType().equals("output") && attr.getEditable(1) == ObjAttribute.LOCAL)
+				{
+					String value = attr.getValue().trim();
+					if(value.equals(""))
+					{
+						wroteHeader = appendLintHeader(report, wroteHeader, "Transition Actions");
+						appendLint(report, "ERROR", transitionLabel((TransitionObj)obj) + " has a blank transition action for output "
+								+ attr.getName() + ".");
+					}
+					if(value.indexOf("<=") >= 0 || value.indexOf("=") >= 0)
+					{
+						wroteHeader = appendLintHeader(report, wroteHeader, "Transition Actions");
+						appendLint(report, "WARN", transitionLabel((TransitionObj)obj) + " transition action for "
+								+ attr.getName() + " looks like a full assignment. Enter only the RHS expression.");
+					}
+				}
+			}
+		}
+		if(wroteHeader)
+			report.append("\n");
+	}
+
+	private boolean appendLintHeader(StringBuffer report, boolean wroteHeader, String title)
+	{
+		if(!wroteHeader)
+		{
+			report.append(title).append("\n");
+			for(int i = 0; i < title.length(); i++)
+				report.append("-");
+			report.append("\n");
+		}
+		return true;
+	}
+
+	private void appendLint(StringBuffer report, String severity, String message)
+	{
+		report.append("[").append(severity).append("] ").append(message).append("\n");
+	}
+
+	private String transitionLabel(TransitionObj trans)
+	{
+		return "Transition " + trans.getName();
+	}
+
+	private int parsePriority(String text)
+	{
+		try {
+			return Integer.parseInt(text.trim());
+		} catch(Exception e) {
+			return -1;
+		}
+	}
+
+	private String getTransitionEquation(TransitionObj trans)
+	{
+		ObjAttribute attr = getTransitionAttribute(trans, "equation");
+		return attr == null ? "" : attr.getValue().trim();
+	}
+
+	private ObjAttribute getTransitionAttribute(TransitionObj trans, String name)
+	{
+		LinkedList<ObjAttribute> attrs = trans.getAttributeList();
+		if(attrs == null)
+			return null;
+		for(int i = 0; i < attrs.size(); i++)
+		{
+			ObjAttribute attr = attrs.get(i);
+			if(attr.getName().equals(name))
+				return attr;
+		}
+		return null;
+	}
+
+	private boolean isDefaultEquation(String equation)
+	{
+		String normalized = equation == null ? "" : equation.trim().toLowerCase();
+		return normalized.equals("1") || normalized.equals("1'b1") || normalized.equals("1'b01")
+				|| normalized.equals("true") || normalized.equals("default");
+	}
+
+	private boolean hasDefaultTransition(LinkedList<TransitionObj> transitions)
+	{
+		for(int i = 0; i < transitions.size(); i++)
+		{
+			if(isDefaultEquation(getTransitionEquation(transitions.get(i))))
+				return true;
+		}
+		return false;
+	}
+
+	private LinkedHashMap<StateObj, LinkedList<TransitionObj>> getTransitionsByDestination()
+	{
+		LinkedHashMap<StateObj, LinkedList<TransitionObj>> transitionsByDestination = new LinkedHashMap<StateObj, LinkedList<TransitionObj>>();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() != 1 && obj.getType() != 2)
+				continue;
+			TransitionObj trans = (TransitionObj)obj;
+			StateObj dest = trans.getEndState();
+			if(dest == null)
+				dest = trans.getStartState();
+			if(dest == null)
+				continue;
+			LinkedList<TransitionObj> transitions = transitionsByDestination.get(dest);
+			if(transitions == null)
+			{
+				transitions = new LinkedList<TransitionObj>();
+				transitionsByDestination.put(dest, transitions);
+			}
+			transitions.add(trans);
+		}
+		return transitionsByDestination;
+	}
+
+	private LinkedList<StateObj> getRealStates()
+	{
+		LinkedList<StateObj> states = new LinkedList<StateObj>();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 0)
+				states.add((StateObj)obj);
+		}
+		return states;
+	}
+
+	private LinkedList<TransitionObj> getEffectiveOutgoingTransitions(StateObj state)
+	{
+		LinkedList<TransitionObj> transitions = new LinkedList<TransitionObj>();
+		LinkedHashMap<StateObj, LinkedList<TransitionObj>> bySource = getTransitionsBySource();
+		LinkedList<TransitionObj> stateTransitions = bySource.get(state);
+		if(stateTransitions != null)
+			transitions.addAll(stateTransitions);
+		StateGroupObj group = getContainingStateGroup(state);
+		if(group != null)
+		{
+			LinkedList<TransitionObj> groupTransitions = bySource.get(group);
+			if(groupTransitions != null)
+				transitions.addAll(groupTransitions);
+		}
+		return transitions;
+	}
+
+	private LinkedList<StateObj> getConcreteDestinationsFromState(StateObj state)
+	{
+		LinkedList<StateObj> destinations = new LinkedList<StateObj>();
+		LinkedList<TransitionObj> outgoing = getEffectiveOutgoingTransitions(state);
+		for(int i = 0; i < outgoing.size(); i++)
+			addConcreteDestinations(destinations, outgoing.get(i).getEndState(), new HashSet<StateObj>());
+		return destinations;
+	}
+
+	private void addConcreteDestinations(LinkedList<StateObj> destinations, StateObj endpoint, HashSet<StateObj> visitedForks)
+	{
+		if(endpoint == null)
+			return;
+		if(endpoint.getType() == 0)
+		{
+			if(!destinations.contains(endpoint))
+				destinations.add(endpoint);
+			return;
+		}
+		if(endpoint.getType() == 5)
+		{
+			StateGroupObj group = (StateGroupObj)endpoint;
+			updateStateGroupChildren(group);
+			StateObj entry = getStateObj(group.getEntryState());
+			if(entry != null && entry.getType() == 0 && !destinations.contains(entry))
+				destinations.add(entry);
+			return;
+		}
+		if(endpoint.getType() == 4)
+		{
+			if(visitedForks.contains(endpoint))
+				return;
+			visitedForks.add(endpoint);
+			LinkedHashMap<StateObj, LinkedList<TransitionObj>> bySource = getTransitionsBySource();
+			LinkedList<TransitionObj> outgoing = bySource.get(endpoint);
+			if(outgoing == null)
+				return;
+			for(int i = 0; i < outgoing.size(); i++)
+				addConcreteDestinations(destinations, outgoing.get(i).getEndState(), visitedForks);
+		}
+	}
+
+	private StateGroupObj getContainingStateGroup(StateObj state)
+	{
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 5 && ((StateGroupObj)obj).containsState(state))
+				return (StateGroupObj)obj;
+		}
+		return null;
+	}
+
 	private void appendDuplicateNameErrors(StringBuffer errors)
 	{
 		TreeMap<String, Integer> states = new TreeMap<String, Integer>();
