@@ -62,6 +62,11 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	private int mYTemp = 0;
 	private int mX0,mY0,mX1,mY1;
 	private LinkedList<Integer> selectedIndices = new LinkedList<Integer>();
+	private LinkedList<Integer> boxBaseSelectedIndices = new LinkedList<Integer>();
+	private static final int SELECT_REPLACE = 0;
+	private static final int SELECT_ADD = 1;
+	private static final int SELECT_TOGGLE = 2;
+	private int selectionBoxMode = SELECT_REPLACE;
 	private boolean ctrlDown = false;
 	private static final int PAN_DRAG_THRESHOLD = 4;
 	private boolean rightButtonDown = false;
@@ -435,6 +440,91 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		return obj.getType() == 3 && !((TextObj)obj).getGlobalTable();
 	}
 
+	private boolean isSelectableDiagramObject(GeneralObj obj)
+	{
+		return isTransitionEndpoint(obj) || isMovableTextObject(obj);
+	}
+
+	private void addSelectedIndex(int index)
+	{
+		if(!selectedIndices.contains(new Integer(index)))
+			selectedIndices.add(new Integer(index));
+	}
+
+	private void removeSelectedIndex(int index)
+	{
+		selectedIndices.remove(new Integer(index));
+	}
+
+	private void syncSelectionState()
+	{
+		normalizeStateGroupSelection();
+		objsSelected = selectedIndices.size() > 1;
+	}
+
+	private void refreshSelectedIndicesFromObjects()
+	{
+		selectedIndices.clear();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(isSelectableDiagramObject(obj) && obj.getSelectStatus() != 0)
+				selectedIndices.add(new Integer(i));
+		}
+	}
+
+	private int selectionModeForEvent(MouseEvent e)
+	{
+		if(e.isControlDown())
+			return SELECT_TOGGLE;
+		if(e.isShiftDown())
+			return SELECT_ADD;
+		return SELECT_REPLACE;
+	}
+
+	private int findSelectableIndexAt(int x, int y)
+	{
+		int[] typeOrder = {4, 0, 5, 3};
+		for(int t = 0; t < typeOrder.length; t++)
+		{
+			for(int i = objList.size() - 1; i >= 1; i--)
+			{
+				GeneralObj obj = (GeneralObj)objList.get(i);
+				if(obj.getType() == typeOrder[t] && isSelectableDiagramObject(obj) && hitTestObject(obj, x, y))
+					return i;
+			}
+		}
+		return -1;
+	}
+
+	private void selectIndex(int index, int x, int y)
+	{
+		GeneralObj obj = (GeneralObj)objList.get(index);
+		obj.setSelectStatus(x, y);
+		addSelectedIndex(index);
+	}
+
+	private void applyModifiedClickSelection(int index, int mode, int x, int y)
+	{
+		if(index < 0)
+			return;
+
+		refreshSelectedIndicesFromObjects();
+		GeneralObj obj = (GeneralObj)objList.get(index);
+		boolean wasSelected = selectedIndices.contains(new Integer(index)) || obj.getSelectStatus() != 0;
+		if(mode == SELECT_TOGGLE && wasSelected)
+		{
+			obj.unselect();
+			removeSelectedIndex(index);
+		}
+		else
+		{
+			selectIndex(index, x, y);
+		}
+		syncSelectionState();
+		repaint();
+	}
+
 	private void normalizeStateGroupSelection()
 	{
 		LinkedList<StateGroupObj> selectedGroups = getSelectedStateGroups();
@@ -451,6 +541,46 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				selectedIndices.remove(i);
 			}
 		}
+	}
+
+	private void applyBoxSelection()
+	{
+		LinkedList<Integer> boxHits = new LinkedList<Integer>();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.elementAt(i);
+			if(isSelectableDiagramObject(obj) && obj.setBoxSelectStatus(mX0, mY0, mX1, mY1))
+				boxHits.add(new Integer(i));
+		}
+
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.elementAt(i);
+			if(isSelectableDiagramObject(obj))
+				obj.unselect();
+		}
+
+		selectedIndices.clear();
+		if(selectionBoxMode == SELECT_REPLACE)
+		{
+			selectedIndices.addAll(boxHits);
+		}
+		else
+		{
+			selectedIndices.addAll(boxBaseSelectedIndices);
+			for(int i = 0; i < boxHits.size(); i++)
+			{
+				Integer index = boxHits.get(i);
+				if(selectionBoxMode == SELECT_TOGGLE && selectedIndices.contains(index))
+					selectedIndices.remove(index);
+				else if(!selectedIndices.contains(index))
+					selectedIndices.add(index);
+			}
+		}
+
+		for(int i = 0; i < selectedIndices.size(); i++)
+			((GeneralObj)objList.get(selectedIndices.get(i).intValue())).setSelectStatus(true);
+		syncSelectionState();
 	}
 
 	private void addHitCandidate(LinkedList<HitCandidate> hits, int index, GeneralObj obj)
@@ -1202,7 +1332,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			doubleClick = true;
 		
 		lastClick = e.getWhen();
-		boolean plainLeftClick = !popupMouse && !e.isControlDown() && !objsSelected
+		boolean plainLeftClick = !popupMouse && !e.isControlDown() && !e.isShiftDown() && !objsSelected
 				&& e.getButton() == MouseEvent.BUTTON1 && e.getModifiers() != 20;
 		LinkedList<HitCandidate> clickHits = plainLeftClick ? getHitCandidates(x, y) : null;
 		if(plainLeftClick && canContinueClickCycle(e, x, y, clickHits))
@@ -1210,53 +1340,37 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			pendingClickCycle = true;
 			pendingClickCycleHits = clickHits;
 		}
-		if(popupMouse || e.isControlDown())
+		if(popupMouse || e.isControlDown() || e.isShiftDown())
 		{
 			resetClickCycle();
 		}
-	
-		//check for ctrl click to select multiple
-		if(e.isControlDown() && e.getButton() == MouseEvent.BUTTON1)
+
+		boolean modifiedSelectionClick = !popupMouse && (e.isControlDown() || e.isShiftDown())
+				&& e.getButton() == MouseEvent.BUTTON1 && e.getModifiers() != 20;
+		if(modifiedSelectionClick)
 		{
-			//store selected objects and their indices
-			int numbSel = 0;
-			LinkedList<Integer> tempIndices = new LinkedList<Integer>();
-			for(int i = 1; i < objList.size(); i++)
+			int selectionMode = selectionModeForEvent(e);
+			int hitIndex = findSelectableIndexAt(x, y);
+			if(hitIndex >= 0)
 			{
-				GeneralObj obj = (GeneralObj) objList.get(i);
-				if(isTransitionEndpoint(obj) || isMovableTextObject(obj))
-				{
-					if(obj.getSelectStatus() != 0)
-					{
-						// deselect if clicked on when selected
-						if(obj.setSelectStatus(x,y))
-						{
-							obj.unselect();
-						}
-						else
-						{
-							obj.setSelectStatus(true);
-							numbSel++;
-							tempIndices.add(new Integer(i));
-						}
-					}
-					else if(obj.setSelectStatus(x,y))
-					{
-						numbSel++;
-						tempIndices.add(new Integer(i));
-				}
-				}
-				else
-					obj.unselect();
+				applyModifiedClickSelection(hitIndex, selectionMode, x, y);
+				return;
 			}
-			//if multiple items selected so far, update global selection list.
-			selectedIndices = tempIndices;
-			normalizeStateGroupSelection();
-			numbSel = selectedIndices.size();
-			objsSelected = numbSel > 1;
+			mXTemp = x;
+			mYTemp = y;
+			mX0 = 0;
+			mY0 = 0;
+			mX1 = 0;
+			mY1 = 0;
+			multipleSelect = true;
+			selectionBoxMode = selectionMode;
+			refreshSelectedIndicesFromObjects();
+			boxBaseSelectedIndices = (LinkedList<Integer>)selectedIndices.clone();
+			return;
 		}
+
 		//if multiple object selected
-		else if(objsSelected)
+		if(objsSelected)
 		{
 			setUndoPointMultiple();
 			if(e.getButton() == MouseEvent.BUTTON1 && e.getModifiers() != 20)
@@ -1432,6 +1546,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				mX1 = 0;
 				mY1 = 0;
 				multipleSelect = true;
+				selectionBoxMode = SELECT_REPLACE;
+				boxBaseSelectedIndices.clear();
 				objsSelected = false;
 				selectedIndices.clear();
 			}
@@ -1631,7 +1747,7 @@ public void updateTransitions()
 		}
 
 		//if multiple select is on, then check if any objects inside yet
-		else if(!arg0.isControlDown() && leftButtonDrag)
+		else if(multipleSelect && leftButtonDrag)
 		{
 			// correct box coordinates
 			if(x<mXTemp)
@@ -1655,24 +1771,7 @@ public void updateTransitions()
 				mY1 = y;
 			}
 			
-			int tempNumb = 0;
-			objsSelected = false;
-			selectedIndices.clear();
-			for (int i = 1; i < objList.size(); i++)
-			{
-				GeneralObj s = (GeneralObj) objList.elementAt(i);
-				if((isTransitionEndpoint(s) || isMovableTextObject(s)) && s.setBoxSelectStatus(mX0,mY0,mX1,mY1))
-				{
-					tempNumb++;
-					selectedIndices.add(new Integer(i));
-				}
-			}
-			normalizeStateGroupSelection();
-			tempNumb = selectedIndices.size();
-			if(tempNumb > 1)
-				objsSelected = true;
-			else
-				selectedIndices.clear();
+			applyBoxSelection();
 			repaint();
 		}
 	}
