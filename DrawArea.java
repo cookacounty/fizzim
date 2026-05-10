@@ -332,6 +332,12 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			((FizzimGui)frame).updateZoomControls();
 	}
 
+	private void notifyViewManuallyChanged()
+	{
+		if(frame instanceof FizzimGui)
+			((FizzimGui)frame).viewManuallyChanged();
+	}
+
 	private boolean isPopupMouse(MouseEvent e)
 	{
 		return e.getButton() == MouseEvent.BUTTON3 || e.getModifiers() == 20 || e.isPopupTrigger();
@@ -379,6 +385,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			return true;
 
 		rightButtonDragged = true;
+		notifyViewManuallyChanged();
 		clearPendingPopup();
 		JViewport viewport = (JViewport)SwingUtilities.getAncestorOfClass(JViewport.class, this);
 		if(viewport == null)
@@ -1626,6 +1633,7 @@ public void updateTransitions()
 		double newZoom = clampZoom(oldZoom * factor);
 		if(newZoom == oldZoom)
 			return;
+		notifyViewManuallyChanged();
 
 		JViewport viewport = (JViewport)SwingUtilities.getAncestorOfClass(JViewport.class, this);
 		Point cursorInViewport = null;

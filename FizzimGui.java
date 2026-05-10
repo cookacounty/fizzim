@@ -116,6 +116,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	int maxH = 1296;
 	int maxW = 936;
 	boolean loading = false;
+	private boolean zoomFitMode = false;
 	
 
 
@@ -817,14 +818,21 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	private void ZoomOutActionPerformed(ActionEvent evt) {
+		leaveZoomFitMode();
 		drawArea1.setZoom(drawArea1.getZoom() / 1.25);
 	}
 
 	private void ZoomInActionPerformed(ActionEvent evt) {
+		leaveZoomFitMode();
 		drawArea1.setZoom(drawArea1.getZoom() * 1.25);
 	}
 
 	private void ZoomFitActionPerformed(ActionEvent evt) {
+		enterZoomFitMode();
+		fitDiagramToViewport();
+	}
+
+	private void fitDiagramToViewport() {
 		Dimension viewport = jScrollPane1.getViewport().getExtentSize();
 		if(viewport.width <= 0 || viewport.height <= 0)
 			return;
@@ -832,6 +840,18 @@ public class FizzimGui extends javax.swing.JFrame {
 		double yZoom = viewport.getHeight() / drawArea1.getLogicalHeight();
 		drawArea1.setZoom(Math.min(xZoom, yZoom));
 		jScrollPane1.getViewport().setViewPosition(new Point(0, 0));
+	}
+
+	private void enterZoomFitMode() {
+		zoomFitMode = true;
+	}
+
+	private void leaveZoomFitMode() {
+		zoomFitMode = false;
+	}
+
+	public void viewManuallyChanged() {
+		leaveZoomFitMode();
 	}
 
 	public void updateZoomControls() {
@@ -1017,6 +1037,14 @@ public class FizzimGui extends javax.swing.JFrame {
 		jTabbedPane1.setSize(coord);
 		jPanel3.doLayout();
 		jPanel3.repaint();
+		if(zoomFitMode)
+		{
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					fitDiagramToViewport();
+				}
+			});
+		}
 
 	}//GEN-LAST:event_formComponentResized
 
@@ -1506,6 +1534,12 @@ public class FizzimGui extends javax.swing.JFrame {
 		setTitle(APP_TITLE + " - " + currFile.getName());
 		rememberRecentFile(currFile);
 		loading = false;
+		enterZoomFitMode();
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				fitDiagramToViewport();
+			}
+		});
 
 	}
 
