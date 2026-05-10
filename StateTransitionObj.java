@@ -683,7 +683,8 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 				g2D.setStroke(new BasicStroke(Math.max(2.5f, width + 1.5f)));
 			}
 
-		    g2D.setColor(isLintHighlighted() ? new Color(255, 140, 0) : color);
+		    Color drawColor = getDrawColor();
+		    g2D.setColor(isLintHighlighted() ? new Color(255, 140, 0) : drawColor);
 			
 			//draw arrow head for non-stub transitions
 			if(currPage == ePage && !stub)
@@ -741,7 +742,7 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 					g2D.setColor(Color.red);
 		            g2D.fillRect((int)startPt.getX()-3,(int)startPt.getY()-3,7,7);
 		            g2D.fillRect((int)pageS.getX()-3,(int)pageS.getY()-3,7,7);
-		            g2D.setColor(color);
+		            g2D.setColor(drawColor);
 		        }
 				
 			}
@@ -761,7 +762,7 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			        g2D.fillRect((int)endCtrlPt.getX()-3,(int)endCtrlPt.getY()-3,7,7);
 			        g2D.drawLine((int)startPt.getX(),(int)startPt.getY(),(int)startCtrlPt.getX(),(int)startCtrlPt.getY());
 			        g2D.drawLine((int)endPt.getX(),(int)endPt.getY(),(int)endCtrlPt.getX(),(int)endCtrlPt.getY());	
-			        g2D.setColor(color);
+			        g2D.setColor(drawColor);
 		        }
 			}
 			//draw page connector
@@ -800,7 +801,7 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			            g2D.drawLine((int)startPt.getX(),(int)startPt.getY(),(int)startCtrlPt.getX(),(int)startCtrlPt.getY());
 			            g2D.drawLine((int)pageS.getX(),(int)pageS.getY(),(int)pageSC.getX(),(int)pageSC.getY());	
 			        }
-					g2D.setColor(color);
+					g2D.setColor(drawColor);
 					g2D.draw(curve);	
 				}
 				//in on end page
@@ -829,7 +830,7 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			            g2D.drawLine((int)endPt.getX(),(int)endPt.getY(),(int)endCtrlPt.getX(),(int)endCtrlPt.getY());
 			            g2D.drawLine((int)pageE.getX(),(int)pageE.getY(),(int)pageEC.getX(),(int)pageEC.getY());	
 			        }	
-					g2D.setColor(color);
+					g2D.setColor(drawColor);
 					g2D.draw(curve);
 				}
 			}

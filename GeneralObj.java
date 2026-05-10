@@ -277,7 +277,7 @@ public abstract class GeneralObj implements Cloneable {
 			for (int j = 0; j < attrib.size(); j++)
 			{
 				ObjAttribute obj = attrib.get(j);
-				if(obj.getVisible())
+				if(obj.isCanvasVisible())
 					step++;
 				obj.paintComponent(g,currPage,getCenter(currPage),getSelectStatus(),step);
 			}

@@ -336,7 +336,7 @@ public class ObjAttribute implements Cloneable {
 			Point point, int parentSelectStatus, int step) {
 
 		currPage = curr;
-		if (myPage == currPage && getVisible()) {
+		if (myPage == currPage && isCanvasVisible()) {
                   g.setColor(currColor);
                   FontMetrics fm1 = g.getFontMetrics();
                   
@@ -399,7 +399,7 @@ public class ObjAttribute implements Cloneable {
 	}
 
 	public Rectangle getDrawBounds(FontMetrics fm, Point point, int page, int step) {
-		if(myPage != page || !getVisible())
+		if(myPage != page || !isCanvasVisible())
 			return null;
 
 		String text = getDrawText();
@@ -434,6 +434,16 @@ public class ObjAttribute implements Cloneable {
 		return name + " = " + value;
 	}
 
+	public boolean isCanvasVisible() {
+		return getVisible() && !isHiddenDefaultEquation();
+	}
+
+	private boolean isHiddenDefaultEquation() {
+		if(!name.equals("equation") || value == null)
+			return false;
+		return value.trim().equals("1");
+	}
+
 	//unselects object
 	public void unselect() {
 		selectStatus = 0;
@@ -442,7 +452,7 @@ public class ObjAttribute implements Cloneable {
 
 
 	public boolean setSelectStatus(int x, int y) {
-		if(myPage == currPage && getVisible())
+		if(myPage == currPage && isCanvasVisible())
 		{
 			xTemp = x;
 			yTemp = y;
@@ -468,7 +478,7 @@ public class ObjAttribute implements Cloneable {
 
 
 	public void adjustShapeOrPosition(int x, int y) {
-		if(myPage == currPage && getVisible())
+		if(myPage == currPage && isCanvasVisible())
 		{
 			if(selectStatus == 1)
 			{

@@ -38,8 +38,8 @@ part of the current codebase.
 - Added lint checks for transition priority ranges, duplicate source-local
   priorities, unreachable lower-priority branches behind default transitions,
   and missing default branches on prioritized transition sets.
-- Added fork linting for missing incoming transitions, too few outgoing
-  branches, and fork branch sets without a default branch.
+- Added fork linting for missing incoming or outgoing transitions while allowing
+  forks to be pass-through, fan-in, fan-out, or partial branch points.
 - Added interactive lint results: selecting an issue selects/highlights the
   associated state, fork, state group, or transition in the diagram.
 - Added transition-equation linting for references that are not declared in the
@@ -91,6 +91,8 @@ part of the current codebase.
     adjacent bend/control point with it, preserving the existing bend shape.
   - Transition labels now anchor to the actual visible Bezier curve midpoint, so
     labels stay near the visual line even after aggressive route edits.
+  - Default `equation == 1` transition labels are hidden on the canvas and the
+    corresponding always-true/default transition lines are drawn dark green.
   - Larger states and state groups expose finer connection points while keeping
     old saved connection indices compatible.
 - Improved automatic transition alignment so multiple transitions entering or

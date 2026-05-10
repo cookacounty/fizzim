@@ -487,7 +487,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		for(int i = 0; i < attrs.size(); i++)
 		{
 			ObjAttribute attr = attrs.get(i);
-			if(attr.getVisible())
+			if(attr.isCanvasVisible())
 				step++;
 			Rectangle attrBounds = attr.getDrawBounds(metrics, center, page, step);
 			if(attrBounds == null)
@@ -3731,7 +3731,7 @@ public void updateTransitions()
 				if(isDefaultEquation(getTransitionEquation(trans)))
 					hasDefault = true;
 			}
-			if(!hasDefault)
+			if(source.getType() != 4 && !hasDefault)
 			{
 				wroteHeader = appendLintHeader(report, wroteHeader, "Priority And Ordering");
 				appendLint(report, "WARN", "Source " + source.getName() + " has " + transitions.size()
@@ -3772,17 +3772,10 @@ public void updateTransitions()
 				wroteHeader = appendLintHeader(report, wroteHeader, "Fork Coverage");
 				appendLint(report, "ERROR", "Fork " + fork.getName() + " has no incoming transition.", fork);
 			}
-			if(outgoingCount < 2)
+			if(outgoingCount == 0)
 			{
 				wroteHeader = appendLintHeader(report, wroteHeader, "Fork Coverage");
-				appendLint(report, "ERROR", "Fork " + fork.getName() + " has " + outgoingCount
-						+ " outgoing transition(s). A fork should resolve to at least two branches.", fork);
-			}
-			if(outgoingCount >= 2 && !hasDefaultTransition(outgoing))
-			{
-				wroteHeader = appendLintHeader(report, wroteHeader, "Fork Coverage");
-				appendLint(report, "WARN", "Fork " + fork.getName()
-						+ " has multiple outgoing branches but no default branch. Add an explicit final branch such as equation 1.", fork);
+				appendLint(report, "ERROR", "Fork " + fork.getName() + " has no outgoing transition.", fork);
 			}
 		}
 		if(wroteHeader)

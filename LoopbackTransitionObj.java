@@ -278,7 +278,8 @@ private static final double BEND_ENDPOINT_PULL = 0.25;
 				float width = oldStroke instanceof BasicStroke ? ((BasicStroke)oldStroke).getLineWidth() : 1.0f;
 				g2D.setStroke(new BasicStroke(Math.max(2.5f, width + 1.5f)));
 			}
-			g2D.setColor(isLintHighlighted() ? new Color(255, 140, 0) : color);
+			Color drawColor = getDrawColor();
+			g2D.setColor(isLintHighlighted() ? new Color(255, 140, 0) : drawColor);
 			g2D.draw(loop);
 			
 			

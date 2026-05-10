@@ -78,6 +78,7 @@ public double getAngle(Point outer, Point inner)
 }
 
 public Color color = Color.BLACK;
+private static final Color DEFAULT_TRUE_COLOR = new Color(0, 100, 0);
 private boolean highestPriority = false;
 
 public void setColor(Color c)
@@ -97,6 +98,29 @@ public void setHighestPriority(boolean b)
 public boolean isHighestPriority()
 {
 	return highestPriority;
+}
+
+public boolean isDefaultTrueTransition()
+{
+	if(attrib == null)
+		return false;
+	for(int i = 0; i < attrib.size(); i++)
+	{
+		ObjAttribute attr = (ObjAttribute)attrib.get(i);
+		if(attr.getName().equals("equation"))
+		{
+			String value = attr.getValue();
+			if(value == null)
+				return false;
+			return value.trim().equals("1");
+		}
+	}
+	return false;
+}
+
+public Color getDrawColor()
+{
+	return isDefaultTrueTransition() ? DEFAULT_TRUE_COLOR : color;
 }
 
 public abstract void updateObjPages(int page);
