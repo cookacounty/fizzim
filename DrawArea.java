@@ -3543,7 +3543,7 @@ public void updateTransitions()
 				{
 					wroteHeader = appendLintHeader(report, wroteHeader, "Equation References");
 					appendLint(report, "WARN", transitionLabel(trans) + " equation references \""
-							+ ref + "\", which is not a known input, output, state, or built-in FSM signal.", trans);
+							+ ref + "\", which is not declared in the global input/output lists or as a built-in FSM signal.", trans);
 				}
 			}
 		}
@@ -3558,12 +3558,6 @@ public void updateTransitions()
 			names.add(baseIdentifier(globalList.get(1).get(i).getName()));
 		for(int i = 0; i < globalList.get(2).size(); i++)
 			names.add(baseIdentifier(globalList.get(2).get(i).getName()));
-		for(int i = 1; i < objList.size(); i++)
-		{
-			GeneralObj obj = (GeneralObj)objList.get(i);
-			if(obj.getType() == 0 || obj.getType() == 4 || obj.getType() == 5)
-				names.add(obj.getName());
-		}
 		names.add("state");
 		names.add("nextstate");
 		names.add("statename");

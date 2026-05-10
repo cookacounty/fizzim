@@ -38,8 +38,8 @@ part of the current codebase.
   branches, and fork branch sets without a default branch.
 - Added interactive lint results: selecting an issue selects/highlights the
   associated state, fork, state group, or transition in the diagram.
-- Added transition-equation linting for references to unknown signals or FSM
-  object names.
+- Added transition-equation linting for references that are not declared in the
+  global input/output lists or as built-in FSM signals.
 - Added reset reachability linting for real states, including paths through
   state-group exits, group default entries, and forks.
 - Added state coverage linting for states with no outgoing transition when

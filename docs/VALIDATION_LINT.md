@@ -20,8 +20,8 @@ sign off state-machine RTL.
   - no incoming transition is an error,
   - fewer than two outgoing transitions is an error,
   - multiple fork branches without a default branch is a warning.
-- Checks transition equations for references to names that are not known inputs,
-  outputs, states, forks, state groups, or built-in FSM signals.
+- Checks transition equations for references to names that are not declared in
+  the global input/output lists or as built-in FSM signals.
 - Checks reachability from `reset_state` through normal transitions, state-group
   exits, group default entries, and fork branches.
 - Checks state coverage:
