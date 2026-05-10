@@ -2370,7 +2370,7 @@ class GlobalProperties extends javax.swing.JDialog {
 		//GEN-FIRST:event_GPDeleteActionPerformed
 		private void GPOption2ActionPerformed(java.awt.event.ActionEvent evt) {
 			
-			ObjAttribute newObj = new ObjAttribute("","",ObjAttribute.NO,"","",Color.black,"","",editable);
+			ObjAttribute newObj = new ObjAttribute("",isOutputEditorTab(currTab) ? "0" : "",ObjAttribute.NO,"","",Color.black,"","",editable);
 			int tab1 = uiTabToGlobalTab(GPTabbedPane.getSelectedIndex());
 			if(currTab == TAB_INTERNALS)
 				OutputAttributeFilter.setInternal(newObj, true);
@@ -2416,7 +2416,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			}
 			if(currTab == TAB_OUTPUTS)
 			{
-				globalLists.get(2).add(new ObjAttribute("out", "", 2, "","",Color.black,"","",
+				globalLists.get(2).add(new ObjAttribute("out", "0", 2, "","",Color.black,"","",
 					editable));
 				refreshOutputViews();
 				GPTableOutputs.setValueAt("regdp", GPTableOutputs.getRowCount()-1, 3);
@@ -2425,7 +2425,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			}	
 			if(currTab == TAB_INTERNALS)
 			{
-				ObjAttribute newObj = new ObjAttribute("internal", "", 2, "","",Color.black,"suppress_portlist","",
+				ObjAttribute newObj = new ObjAttribute("internal", "0", 2, "","",Color.black,"suppress_portlist","",
 					editable);
 				globalLists.get(2).add(newObj);
 				refreshOutputViews();
@@ -2481,7 +2481,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			}
 			if(currTab == TAB_OUTPUTS)
 			{
-				globalLists.get(2).add(new ObjAttribute("out[1:0]", "", 2, "","",Color.black,"","",
+				globalLists.get(2).add(new ObjAttribute("out[1:0]", "0", 2, "","",Color.black,"","",
 					editable));
 				refreshOutputViews();
 				currTable.setValueAt("regdp", currTable.getRowCount()-1, 3);
@@ -2490,7 +2490,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			}	
 			if(currTab == TAB_INTERNALS)
 			{
-				globalLists.get(2).add(new ObjAttribute("internal[1:0]", "", 2, "","",Color.black,"suppress_portlist","",
+				globalLists.get(2).add(new ObjAttribute("internal[1:0]", "0", 2, "","",Color.black,"suppress_portlist","",
 					editable));
 				refreshOutputViews();
 				currTable.setValueAt("regdp", currTable.getRowCount()-1, 3);

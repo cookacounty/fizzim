@@ -146,6 +146,8 @@ part of the current codebase.
   state groups instead of their internal text, states inside state groups remain
   easy to select, and objects drawn over the global summary table are not
   blocked by that table.
+- Changed newly created output and internal variables to default to `0` instead
+  of a blank value.
 
 ### Verilog Backend
 
