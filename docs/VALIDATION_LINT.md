@@ -24,8 +24,8 @@ state-machine RTL.
   - multiple prioritized transitions without a default branch are warnings.
 - Checks fork structure:
   - no incoming transition is an error,
-  - fewer than two outgoing transitions is an error,
-  - multiple fork branches without a default branch is a warning.
+  - no outgoing transition is an error,
+  - pass-through, fan-in, fan-out, and partial-branch forks are allowed.
 - Checks transition equations for references to names that are not declared in
   the global input/output lists or as built-in FSM signals.
 - Checks reachability from `reset_state` through normal transitions, state-group
@@ -44,11 +44,9 @@ The public testcase area includes
 `testcases/generic_state_machine_lint_issues.fzm`. It is intentionally not a
 golden regression input. Instead, it is a compact GUI showcase for the lint
 interface. Open it in Fizzim and run `Tools > Validate / Lint Diagram` to see
-common findings such as undeclared transition-equation identifiers, bad
-priority values, fork branch coverage issues, duplicate source-local
-priorities, and missing registered-output reset values. It also includes simple
-structural lint examples for an unreachable state, a transition into a fork
-with no exit, and a fork branch with no incoming transition.
+common findings. It is rebuilt from the lint-clean generic source diagram and
+then adds simple structural examples for an unreachable state, a transition into
+a fork with no exit, and a fork branch with no incoming transition.
 
 ## RTL Rationale
 

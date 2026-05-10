@@ -685,6 +685,11 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 
 		    Color drawColor = getDrawColor();
 		    g2D.setColor(isLintHighlighted() ? new Color(255, 140, 0) : drawColor);
+			if(isHoverHighlighted())
+			{
+				g2D.setColor(new Color(65, 145, 220));
+				g2D.setStroke(new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+			}
 			
 			//draw arrow head for non-stub transitions
 			if(currPage == ePage && !stub)

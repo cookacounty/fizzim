@@ -123,6 +123,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	
 	private boolean loading = false;
 	private LinkedList<LintIssue> lastLintIssues = new LinkedList<LintIssue>();
+	private GeneralObj hoverObj = null;
 	
 	private boolean Redraw = false;
 
@@ -793,6 +794,11 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		return isTransitionEndpoint(obj) || isMovableTextObject(obj);
 	}
 
+	private boolean isInspectableDiagramObject(GeneralObj obj)
+	{
+		return isSelectableDiagramObject(obj) || obj.getType() == 1 || obj.getType() == 2;
+	}
+
 	private void copyDiagramSelection()
 	{
 		refreshSelectedIndicesFromObjects();
@@ -1030,6 +1036,65 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				text++;
 		}
 		((FizzimGui)frame).updateSelectionStatus(formatSelectionStatus(states, groups, forks, transitions, text));
+		((FizzimGui)frame).updatePropertyInspector(getSelectedObjectsForInspector());
+	}
+
+	public LinkedList<GeneralObj> getSelectedObjectsForInspector()
+	{
+		LinkedList<GeneralObj> selected = new LinkedList<GeneralObj>();
+		if(objList == null)
+			return selected;
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getSelectStatus() != 0 && isInspectableDiagramObject(obj))
+				selected.add(obj);
+		}
+		return selected;
+	}
+
+	public GeneralObj prepareInspectorEdit(GeneralObj current)
+	{
+		if(current == null)
+			return null;
+		String name = current.getName();
+		int type = current.getType();
+		setUndoPointAllObjects();
+		GeneralObj replacement = findObjectByNameAndType(name, type);
+		if(replacement != null)
+			replacement.setSelectStatus(true);
+		return replacement;
+	}
+
+	public void finishInspectorEdit()
+	{
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(!isTransitionEndpoint(obj))
+			{
+				obj.setParentModified(true);
+				obj.updateObj();
+				obj.setParentModified(false);
+			}
+		}
+		updateStates();
+		updateTrans();
+		validateStateGroupMembership(true);
+		updateCanvasExtents();
+		commitUndo();
+		syncSelectionState();
+	}
+
+	private GeneralObj findObjectByNameAndType(String name, int type)
+	{
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == type && obj.getName().equals(name))
+				return obj;
+		}
+		return null;
 	}
 
 	private String formatSelectionStatus(int states, int groups, int forks, int transitions, int text)
@@ -1236,6 +1301,26 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			if(obj.getType() == type && hitTestObject(obj, x, y))
 				addHitCandidate(hits, i, obj);
 		}
+	}
+
+	private GeneralObj findHoverObject(int x, int y)
+	{
+		LinkedList<HitCandidate> hits = getHitCandidates(x, y);
+		if(hits.size() > 0)
+			return hits.get(0).obj;
+		return null;
+	}
+
+	private void updateHoverObject(GeneralObj newHover)
+	{
+		if(hoverObj == newHover)
+			return;
+		if(hoverObj != null)
+			hoverObj.setHoverHighlighted(false);
+		hoverObj = newHover;
+		if(hoverObj != null)
+			hoverObj.setHoverHighlighted(true);
+		repaint();
 	}
 
 	private boolean sameCycleObjects(LinkedList<HitCandidate> hits)
@@ -1941,6 +2026,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 
 	public void mouseExited(MouseEvent e) {
 		//System.out.println("mouseeExited:" + " Button:" + e.getButton() + " Modifiers:" + e.getModifiers() + " Popup Trigger:" + e.isPopupTrigger() + " ControlDown:" + e.isControlDown());
+		updateHoverObject(null);
 	}
 	
 	public void mouseHandle(MouseEvent e) {
@@ -2413,6 +2499,7 @@ public void updateTransitions()
 		setToolTipText(null);
 		int x = modelX(arg0);
 		int y = modelY(arg0);
+		updateHoverObject(findHoverObject(x, y));
 		boolean overRouteHandle = false;
 		for (int i = objList.size() - 1; i >= 1; i--)
 		{
@@ -2939,6 +3026,18 @@ public void updateTransitions()
     {
 		return obj.getType() == 0 || obj.getType() == 4 || obj.getType() == 5;
     }
+
+	public Vector<StateObj> getTransitionEndpointObjects()
+	{
+		Vector<StateObj> endpoints = new Vector<StateObj>();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(isTransitionEndpoint(obj))
+				endpoints.add((StateObj)obj);
+		}
+		return endpoints;
+	}
 
 	private LinkedList<StateObj> getContainedTransitionEndpoints(StateGroupObj stateGroup)
 	{
@@ -3579,6 +3678,141 @@ public void updateTransitions()
 		}
 		updateCanvasExtents();
 		commitUndo();
+		repaint();
+	}
+
+	public void cleanSelectedTransitionRoutes()
+	{
+		LinkedList<Integer> routeIndices = new LinkedList<Integer>();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if((obj.getType() == 1 || obj.getType() == 2) && obj.getSelectStatus() != 0)
+				routeIndices.add(new Integer(i));
+		}
+		if(routeIndices.size() == 0)
+		{
+			cleanTransitionRoutes();
+			return;
+		}
+
+		setUndoPointForRouteEdits();
+		for(int i = 0; i < routeIndices.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(routeIndices.get(i).intValue());
+			if(obj.getType() == 1)
+				((StateTransitionObj)obj).resetRoute();
+			else if(obj.getType() == 2)
+				((LoopbackTransitionObj)obj).resetRoute();
+			LinkedList<ObjAttribute> attrs = obj.getAttributeList();
+			for(int j = 0; j < attrs.size(); j++)
+				attrs.get(j).resetTextOffset();
+		}
+		updateCanvasExtents();
+		commitUndo();
+		repaint();
+	}
+
+	public void alignSelectedCenters(boolean horizontal)
+	{
+		LinkedList<GeneralObj> endpoints = getSelectedMovableEndpoints();
+		if(endpoints.size() < 2)
+			return;
+		int total = 0;
+		for(int i = 0; i < endpoints.size(); i++)
+		{
+			Point center = endpoints.get(i).getCenter(currPage);
+			total += horizontal ? center.y : center.x;
+		}
+		int target = Math.round((float)total / endpoints.size());
+		setUndoPointMultiple();
+		LinkedList<GeneralObj> moved = new LinkedList<GeneralObj>();
+		for(int i = 0; i < endpoints.size(); i++)
+		{
+			GeneralObj obj = findObjectByNameAndType(endpoints.get(i).getName(), endpoints.get(i).getType());
+			if(obj == null)
+				continue;
+			Point center = obj.getCenter(currPage);
+			moveEndpointAndChildren((StateObj)obj, horizontal ? 0 : target - center.x, horizontal ? target - center.y : 0, moved);
+		}
+		finishEndpointCleanupMove(moved);
+	}
+
+	public void distributeSelectedCenters(boolean horizontal)
+	{
+		LinkedList<GeneralObj> endpoints = getSelectedMovableEndpoints();
+		if(endpoints.size() < 3)
+			return;
+		Collections.sort(endpoints, new Comparator<GeneralObj>() {
+			public int compare(GeneralObj a, GeneralObj b) {
+				Point ca = a.getCenter(currPage);
+				Point cb = b.getCenter(currPage);
+				return horizontal ? ca.x - cb.x : ca.y - cb.y;
+			}
+		});
+		int first = horizontal ? endpoints.getFirst().getCenter(currPage).x : endpoints.getFirst().getCenter(currPage).y;
+		int last = horizontal ? endpoints.getLast().getCenter(currPage).x : endpoints.getLast().getCenter(currPage).y;
+		if(first == last)
+			return;
+		setUndoPointMultiple();
+		LinkedList<GeneralObj> moved = new LinkedList<GeneralObj>();
+		for(int i = 1; i < endpoints.size() - 1; i++)
+		{
+			int target = first + Math.round((last - first) * ((float)i / (endpoints.size() - 1)));
+			GeneralObj obj = findObjectByNameAndType(endpoints.get(i).getName(), endpoints.get(i).getType());
+			if(obj == null)
+				continue;
+			Point center = obj.getCenter(currPage);
+			moveEndpointAndChildren((StateObj)obj, horizontal ? target - center.x : 0, horizontal ? 0 : target - center.y, moved);
+		}
+		finishEndpointCleanupMove(moved);
+	}
+
+	private LinkedList<GeneralObj> getSelectedMovableEndpoints()
+	{
+		refreshSelectedIndicesFromObjects();
+		LinkedList<GeneralObj> endpoints = new LinkedList<GeneralObj>();
+		LinkedList<StateGroupObj> selectedGroups = getSelectedStateGroups();
+		for(int i = 0; i < selectedIndices.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(selectedIndices.get(i).intValue());
+			if(!isTransitionEndpoint(obj) || obj.getSelectStatus() != StateObj.CENTER)
+				continue;
+			if((obj.getType() == 0 || obj.getType() == 4)
+					&& isContainedInSelectedStateGroup((StateObj)obj, selectedGroups))
+				continue;
+			endpoints.add(obj);
+		}
+		return endpoints;
+	}
+
+	private void moveEndpointAndChildren(StateObj obj, int dx, int dy, LinkedList<GeneralObj> moved)
+	{
+		if(dx == 0 && dy == 0)
+			return;
+		obj.moveBy(dx, dy);
+		moved.add(obj);
+		if(obj.getType() == 5)
+		{
+			LinkedList<StateObj> children = getContainedTransitionEndpoints((StateGroupObj)obj);
+			for(int j = 0; j < children.size(); j++)
+			{
+				children.get(j).moveBy(dx, dy);
+				moved.add(children.get(j));
+			}
+		}
+	}
+
+	private void finishEndpointCleanupMove(LinkedList<GeneralObj> moved)
+	{
+		if(moved.size() == 0)
+			return;
+		updateTransitionsForMovedEndpoints(moved);
+		validateStateGroupMembership(true);
+		updateCanvasExtents();
+		commitUndo();
+		refreshSelectedIndicesFromObjects();
+		syncSelectionState();
 		repaint();
 	}
 

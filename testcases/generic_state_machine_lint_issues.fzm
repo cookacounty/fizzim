@@ -1,4 +1,4 @@
-## File last modified by Fizzim: 12:53:54 PM on 5/10/26
+## File last modified by Fizzim: 3:36:40 PM on 5/10/26
 <version>
    14.02.28
 </version>
@@ -833,7 +833,7 @@
             </status>
          </useratts>
          <resetval>
-         
+         0
             <status>
             GLOBAL_VAR
             </status>
@@ -3067,7 +3067,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         1000
+         1
             <status>
             LOCAL
             </status>
@@ -3811,16 +3811,16 @@ fzm_globalTable
       </trigger1[1:0]>
    </attributes>
    <x0>
-   927
+   906
    </x0>
    <y0>
-   458
+   487
    </y0>
    <x1>
-   1521
+   1500
    </x1>
    <y1>
-   1183
+   1212
    </y1>
    <page>
    1
@@ -4188,16 +4188,16 @@ fzm_globalTable
       </trigger1[1:0]>
    </attributes>
    <x0>
-   1150
+   1129
    </x0>
    <y0>
-   536
+   565
    </y0>
    <x1>
-   1280
+   1259
    </x1>
    <y1>
-   666
+   695
    </y1>
    <reset>
    false
@@ -4551,16 +4551,16 @@ fzm_globalTable
       </trigger1[1:0]>
    </attributes>
    <x0>
-   1150
+   1129
    </x0>
    <y0>
-   727
+   756
    </y0>
    <x1>
-   1280
+   1259
    </x1>
    <y1>
-   857
+   886
    </y1>
    <reset>
    false
@@ -4579,16 +4579,16 @@ fzm_globalTable
    fork43
    </name>
    <x0>
-   1205
+   1184
    </x0>
    <y0>
-   898
+   927
    </y0>
    <x1>
-   1225
+   1204
    </x1>
    <y1>
-   918
+   947
    </y1>
    <page>
    1
@@ -4687,7 +4687,7 @@ fzm_globalTable
             ABS
             </status>
          <value>
-         break_req && missing_input
+         break_req
             <status>
             LOCAL
             </status>
@@ -4743,7 +4743,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         1000
+         0
             <status>
             LOCAL
             </status>
@@ -5082,10 +5082,10 @@ fzm_globalTable
    fork44
    </endState>
    <startPtX>
-   927.0
+   906.0
    </startPtX>
    <startPtY>
-   821.0
+   850.0
    </startPtY>
    <endPtX>
    537.0
@@ -5094,16 +5094,16 @@ fzm_globalTable
    948.0
    </endPtY>
    <startCtrlPtX>
-   827.0
+   809.0
    </startCtrlPtX>
    <startCtrlPtY>
-   848.0
+   869.0
    </startCtrlPtY>
    <endCtrlPtY>
-   659.0
+   651.0
    </endCtrlPtY>
    <endCtrlPtY>
-   962.0
+   959.0
    </endCtrlPtY>
    <startStateIndex>
    18
@@ -5629,7 +5629,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         1201
+         0
             <status>
             LOCAL
             </status>
@@ -6096,9 +6096,9 @@ fzm_globalTable
             ABS
             </status>
          <value>
-         start
+         1
             <status>
-            LOCAL
+            GLOBAL_VAR
             </status>
          </value>
          <vis>
@@ -6152,7 +6152,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         1000
+         1
             <status>
             LOCAL
             </status>
@@ -6619,9 +6619,9 @@ fzm_globalTable
             ABS
             </status>
          <value>
-         1
+         trigger
             <status>
-            GLOBAL_VAR
+            LOCAL
             </status>
          </value>
          <vis>
@@ -6675,7 +6675,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         1000
+         0
             <status>
             LOCAL
             </status>
@@ -7537,28 +7537,28 @@ fzm_globalTable
    S_YELLOW
    </endState>
    <startPtX>
-   1215.0
+   1194.0
    </startPtX>
    <startPtY>
-   666.0
+   695.0
    </startPtY>
    <endPtX>
-   1215.0
+   1194.0
    </endPtX>
    <endPtY>
-   727.0
+   756.0
    </endPtY>
    <startCtrlPtX>
-   1215.0
+   1194.0
    </startCtrlPtX>
    <startCtrlPtY>
-   683.0
+   712.0
    </startCtrlPtY>
    <endCtrlPtY>
-   1215.0
+   1194.0
    </endCtrlPtY>
    <endCtrlPtY>
-   709.0
+   738.0
    </endCtrlPtY>
    <startStateIndex>
    9
@@ -7942,16 +7942,16 @@ fzm_globalTable
       </trigger1[1:0]>
    </attributes>
    <x0>
-   1023
+   1002
    </x0>
    <y0>
-   957
+   986
    </y0>
    <x1>
-   1153
+   1132
    </x1>
    <y1>
-   1087
+   1116
    </y1>
    <reset>
    false
@@ -8305,16 +8305,16 @@ fzm_globalTable
       </trigger1[1:0]>
    </attributes>
    <x0>
-   1266
+   1245
    </x0>
    <y0>
-   957
+   986
    </y0>
    <x1>
-   1396
+   1375
    </x1>
    <y1>
-   1087
+   1116
    </y1>
    <reset>
    false
@@ -8447,7 +8447,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         1000
+         1
             <status>
             LOCAL
             </status>
@@ -8786,28 +8786,28 @@ fzm_globalTable
    S_RED
    </endState>
    <startPtX>
-   1206.0
+   1185.0
    </startPtX>
    <startPtY>
-   913.0
+   942.0
    </startPtY>
    <endPtX>
-   1153.0
+   1132.0
    </endPtX>
    <endPtY>
-   967.0
+   996.0
    </endPtY>
    <startCtrlPtX>
-   1200.0
+   1179.0
    </startCtrlPtX>
    <startCtrlPtY>
-   930.0
+   959.0
    </startCtrlPtY>
    <endCtrlPtY>
-   1169.0
+   1148.0
    </endCtrlPtY>
    <endCtrlPtY>
-   963.0
+   992.0
    </endCtrlPtY>
    <startStateIndex>
    15
@@ -8914,7 +8914,7 @@ fzm_globalTable
             ABS
             </status>
          <value>
-         1
+         trigger==1
             <status>
             LOCAL
             </status>
@@ -8970,7 +8970,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         1000
+         0
             <status>
             LOCAL
             </status>
@@ -9309,28 +9309,28 @@ fzm_globalTable
    S_BLUE
    </endState>
    <startPtX>
-   1223.0
+   1202.0
    </startPtX>
    <startPtY>
-   913.0
+   942.0
    </startPtY>
    <endPtX>
-   1266.0
+   1245.0
    </endPtX>
    <endPtY>
-   967.0
+   996.0
    </endPtY>
    <startCtrlPtX>
-   1236.0
+   1215.0
    </startCtrlPtX>
    <startCtrlPtY>
-   917.0
+   946.0
    </startCtrlPtY>
    <endCtrlPtY>
-   1262.0
+   1241.0
    </endCtrlPtY>
    <endCtrlPtY>
-   949.0
+   978.0
    </endCtrlPtY>
    <startStateIndex>
    3
@@ -9832,28 +9832,28 @@ fzm_globalTable
    fork43
    </endState>
    <startPtX>
-   1215.0
+   1194.0
    </startPtX>
    <startPtY>
-   857.0
+   886.0
    </startPtY>
    <endPtX>
-   1215.0
+   1194.0
    </endPtX>
    <endPtY>
-   898.0
+   927.0
    </endPtY>
    <startCtrlPtX>
-   1215.0
+   1194.0
    </startCtrlPtX>
    <startCtrlPtY>
-   868.0
+   897.0
    </startCtrlPtY>
    <endCtrlPtY>
-   1215.0
+   1194.0
    </endCtrlPtY>
    <endCtrlPtY>
-   886.0
+   915.0
    </endCtrlPtY>
    <startStateIndex>
    9
@@ -10386,28 +10386,28 @@ fzm_globalTable
    692.0
    </startPtY>
    <endPtX>
-   927.0
+   906.0
    </endPtX>
    <endPtY>
-   712.0
+   678.0
    </endPtY>
    <startCtrlPtX>
-   785.0
+   766.0
    </startCtrlPtX>
    <startCtrlPtY>
-   700.0
+   691.0
    </startCtrlPtY>
    <endCtrlPtY>
-   886.0
+   859.0
    </endCtrlPtY>
    <endCtrlPtY>
-   714.0
+   675.0
    </endCtrlPtY>
    <startStateIndex>
    0
    </startStateIndex>
    <endStateIndex>
-   20
+   21
    </endStateIndex>
    <page>
    1
@@ -12707,7 +12707,7 @@ fzm_globalTable
             GLOBAL_FIXED
             </status>
          <value>
-         1000
+         1
             <status>
             LOCAL
             </status>
@@ -13046,34 +13046,34 @@ fzm_globalTable
    SG_2
    </endState>
    <startPtX>
-   927.0
+   906.0
    </startPtX>
    <startPtY>
-   1038.0
+   1021.0
    </startPtY>
    <endPtX>
    232.0
    </endPtX>
    <endPtY>
-   1036.0
+   941.0
    </endPtY>
    <startCtrlPtX>
-   755.0
+   736.0
    </startCtrlPtX>
    <startCtrlPtY>
-   1049.0
+   1037.0
    </startCtrlPtY>
    <endCtrlPtY>
-   451.0
+   443.0
    </endCtrlPtY>
    <endCtrlPtY>
-   1041.0
+   949.0
    </endCtrlPtY>
    <startStateIndex>
-   88
+   15
    </startStateIndex>
    <endStateIndex>
-   35
+   32
    </endStateIndex>
    <page>
    1
@@ -13633,8 +13633,7 @@ fzm_globalTable
    </stub>
 </transition>
 ## END STATE TRANSITION OBJECT
-## END OBJECTS
-## START STATE OBJECT
+
 <state>
    <attributes>
       <name>
@@ -15093,3 +15092,4 @@ fzm_globalTable
    </stub>
 </transition>
 ## END STATE TRANSITION OBJECT
+## END OBJECTS

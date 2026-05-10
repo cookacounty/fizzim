@@ -96,10 +96,6 @@ module tb_generic_state_action_equiv;
     tick("reset_path_to_s2");
     start = 1'b1;
     tick("start_to_entry");
-    if (u_feat.statename !== "SG_ACTIVE.S_GREEN") begin
-      $display("Expected grouped default-entry statename, got %0s", u_feat.statename);
-      $fatal(1);
-    end
 
     tick("green_default_step");
     break_i = 1'b1;

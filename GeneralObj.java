@@ -71,6 +71,7 @@ public abstract class GeneralObj implements Cloneable {
 
 	public boolean modifiedParent = false;
 	private boolean lintHighlighted = false;
+	private boolean hoverHighlighted = false;
 
 	public void setParentModified(boolean b)
 	{
@@ -85,6 +86,16 @@ public abstract class GeneralObj implements Cloneable {
 	public boolean isLintHighlighted()
 	{
 		return lintHighlighted;
+	}
+
+	public void setHoverHighlighted(boolean b)
+	{
+		hoverHighlighted = b;
+	}
+
+	public boolean isHoverHighlighted()
+	{
+		return hoverHighlighted;
 	}
 
 

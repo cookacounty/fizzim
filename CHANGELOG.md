@@ -144,6 +144,16 @@ part of the current codebase.
   with each moved tab.
 - Added a clean transition route command for resetting transition routing and
   labels without moving states.
+- Added a right-side property inspector for the current selection. Single
+  selected states, state groups, transitions, and loopbacks can be edited from
+  the main window, with the full modal editors still available as a fallback.
+- Converted the lint interface from a separate blocking workflow into a docked
+  bottom panel with issue and report tabs, rerun/close controls, and live canvas
+  highlighting.
+- Added blue hover affordances for states, state groups, forks, transitions, and
+  loopbacks so editable canvas targets are easier to discover before clicking.
+- Added selected-object cleanup commands for selected-route cleanup, selected
+  horizontal/vertical alignment, and selected horizontal/vertical distribution.
 - Added automatic transition priority normalization for sources with multiple
   outgoing transitions. The highest-priority outgoing transition is highlighted
   in bold, while single outgoing transitions keep priority implied and hidden by
