@@ -485,6 +485,8 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			Point endCoords = endState.getRealCenter(myPage);
 			endStateIndex = nearestBorderIndex(endBorderPts, endState, startCoords);
 			startStateIndex = nearestBorderIndex(startBorderPts, startState, endCoords);
+			startStateIndex = drawArea.getDistributedBorderIndex(startState, this, "start", startStateIndex, startBorderPts);
+			endStateIndex = drawArea.getDistributedBorderIndex(endState, this, "end", endStateIndex, endBorderPts);
 			//try to prevent overlapping
 			if(startCoords.getX()<endCoords.getX())
 			{

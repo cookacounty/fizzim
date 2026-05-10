@@ -1054,6 +1054,36 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		return null;
 	}
 
+	private GeneralObj selectTransitionEndpointType(MouseEvent e, int endpointType)
+	{
+		boolean popupMouse = isPopupMouse(e);
+		int x = modelX(e);
+		int y = modelY(e);
+		for(int i = objList.size() - 1; i >= 1; i--)
+		{
+			GeneralObj s = (GeneralObj)objList.elementAt(i);
+			if(s.getType() != endpointType)
+				continue;
+
+			if(s.setSelectStatus(x, y))
+			{
+				if(popupMouse)
+				{
+					setUndoPoint(i, s.getType());
+					unselectObjsExcept(i);
+					queuePopup(s, e, 1);
+				}
+				else
+				{
+					setUndoPoint(i, s.getType());
+					unselectObjsExcept(i);
+				}
+				return s;
+			}
+		}
+		return null;
+	}
+
 	public void mouseEntered(MouseEvent e) {
 		//System.out.println("mouseEntered:" + " Button:" + e.getButton() + " Modifiers:" + e.getModifiers() + " Popup Trigger:" + e.isPopupTrigger() + " ControlDown:" + e.isControlDown());
 	}
@@ -1171,8 +1201,10 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		}
 		else
 		{
+			bestMatch = selectTransitionEndpointType(e, 4);
+
 			//if object already selected
-			for (int i = 1; i < objList.size(); i++)
+			for (int i = 1; bestMatch == null && i < objList.size(); i++)
 			{
 				GeneralObj s = (GeneralObj) objList.elementAt(i);
 				if(s.getSelectStatus() != 0 && s.setSelectStatus(x,y))
@@ -3113,6 +3145,162 @@ public void updateTransitions()
 			avg = (int)(totalNumb/2);
 		int finalOffset = (numb-avg)*40;
 		return finalOffset;
+	}
+
+	public int getDistributedBorderIndex(StateObj state, StateTransitionObj transObj, String type,
+			int baseIndex, Vector<Point> borderPts)
+	{
+		if(state == null || transObj == null || borderPts == null || borderPts.size() == 0
+				|| transObj.getStub())
+			return baseIndex;
+
+		StateObj otherState = getConnectedTransitionState(transObj, state);
+		if(otherState == null || otherState.getPage() != state.getPage())
+			return baseIndex;
+
+		int side = sideFromTarget(state, otherState.getRealCenter(state.getPage()));
+		LinkedList<TransitionSlot> slots = new LinkedList<TransitionSlot>();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() != 1)
+				continue;
+
+			StateTransitionObj trans = (StateTransitionObj)obj;
+			if(trans.getStub())
+				continue;
+
+			StateObj candidateOther = getConnectedTransitionState(trans, state);
+			if(candidateOther == null || candidateOther.getPage() != state.getPage())
+				continue;
+			if(sideFromTarget(state, candidateOther.getRealCenter(state.getPage())) != side)
+				continue;
+
+			Point candidateCenter = candidateOther.getRealCenter(state.getPage());
+			slots.add(new TransitionSlot(trans, i, edgeSortValue(side, candidateCenter)));
+		}
+
+		if(slots.size() <= 1)
+			return baseIndex;
+
+		Collections.sort(slots, new Comparator<TransitionSlot>() {
+			public int compare(TransitionSlot a, TransitionSlot b) {
+				if(a.sortValue != b.sortValue)
+					return a.sortValue - b.sortValue;
+				return a.objectIndex - b.objectIndex;
+			}
+		});
+
+		int slotIndex = -1;
+		for(int i = 0; i < slots.size(); i++)
+		{
+			if(slots.get(i).transition == transObj)
+			{
+				slotIndex = i;
+				break;
+			}
+		}
+		if(slotIndex < 0)
+			return baseIndex;
+
+		return borderIndexForSlot(state, side, borderPts, slotIndex, slots.size(), baseIndex);
+	}
+
+	private StateObj getConnectedTransitionState(StateTransitionObj trans, StateObj state)
+	{
+		if(trans.getStartState() == state && trans.getStartState().getPage() == trans.getEndState().getPage())
+			return trans.getEndState();
+		if(trans.getEndState() == state && trans.getStartState().getPage() == trans.getEndState().getPage())
+			return trans.getStartState();
+		return null;
+	}
+
+	private int sideFromTarget(StateObj state, Point target)
+	{
+		Point center = state.getRealCenter(state.getPage());
+		int dx = target.x - center.x;
+		int dy = target.y - center.y;
+		if(Math.abs(dx) >= Math.abs(dy))
+			return dx >= 0 ? 1 : 3;
+		return dy >= 0 ? 2 : 0;
+	}
+
+	private int edgeSide(StateObj state, Point borderPt)
+	{
+		int[] coords = state.getCoords();
+		int left = coords[0];
+		int top = coords[1];
+		int right = coords[2];
+		int bottom = coords[3];
+		int dl = Math.abs(borderPt.x - left);
+		int dr = Math.abs(borderPt.x - right);
+		int dt = Math.abs(borderPt.y - top);
+		int db = Math.abs(borderPt.y - bottom);
+		int min = Math.min(Math.min(dl, dr), Math.min(dt, db));
+		if(min == dt)
+			return 0;
+		if(min == dr)
+			return 1;
+		if(min == db)
+			return 2;
+		return 3;
+	}
+
+	private int edgeSortValue(int side, Point point)
+	{
+		if(side == 1 || side == 3)
+			return point.y;
+		return point.x;
+	}
+
+	private int borderIndexForSlot(StateObj state, int side, Vector<Point> borderPts,
+			int slotIndex, int slotCount, int fallbackIndex)
+	{
+		LinkedList<Integer> sideIndices = new LinkedList<Integer>();
+		int min = Integer.MAX_VALUE;
+		int max = Integer.MIN_VALUE;
+		for(int i = 0; i < borderPts.size(); i++)
+		{
+			Point point = borderPts.get(i);
+			if(edgeSide(state, point) != side)
+				continue;
+			int value = edgeSortValue(side, point);
+			min = Math.min(min, value);
+			max = Math.max(max, value);
+			sideIndices.add(new Integer(i));
+		}
+		if(sideIndices.size() == 0 || max <= min)
+			return fallbackIndex;
+
+		double fraction = (double)(slotIndex + 1) / (slotCount + 1);
+		int target = (int)Math.round(min + (max - min) * fraction);
+		int bestIndex = fallbackIndex;
+		int bestDistance = Integer.MAX_VALUE;
+		for(int i = 0; i < sideIndices.size(); i++)
+		{
+			int index = sideIndices.get(i).intValue();
+			int distance = Math.abs(edgeSortValue(side, borderPts.get(index)) - target);
+			if(distance < bestDistance)
+			{
+				bestDistance = distance;
+				bestIndex = index;
+			}
+		}
+		return bestIndex;
+	}
+
+	private static class TransitionSlot
+	{
+		StateTransitionObj transition;
+		int objectIndex;
+		int sortValue;
+
+		TransitionSlot(StateTransitionObj transition, int objectIndex, int sortValue)
+		{
+			this.transition = transition;
+			this.objectIndex = objectIndex;
+			this.sortValue = sortValue;
+		}
 	}
 
 	public void pageConnUpdate(StateObj startState, StateObj endState) {
