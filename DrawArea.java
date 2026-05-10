@@ -134,6 +134,12 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	private double zoom = 1.0;
 	private int logicalWidth = 936;
 	private int logicalHeight = 1296;
+	private static final int SMART_ALIGN_THRESHOLD = 10;
+	private static final int SMART_SPACING_ROW_THRESHOLD = 35;
+	private Integer smartGuideX = null;
+	private Integer smartGuideY = null;
+	private Integer smartSpacingGuideX = null;
+	private Integer smartSpacingGuideY = null;
 
 	private class HitCandidate {
 		int index;
@@ -227,12 +233,36 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			g2D.setColor(Color.RED);
 			g2D.drawRect(mX0, mY0, mX1-mX0, mY1-mY0);
 		}
+		paintSmartGuides(g2D);
 		if(loading)
 		{
 			updateGlobalTable();
 			loading = false;
 			repaint();
 		}
+	}
+
+	private void paintSmartGuides(Graphics2D g2D)
+	{
+		if(smartGuideX == null && smartGuideY == null && smartSpacingGuideX == null && smartSpacingGuideY == null)
+			return;
+
+		Stroke oldStroke = g2D.getStroke();
+		Color oldColor = g2D.getColor();
+		float[] dash = {6.0f, 6.0f};
+		g2D.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, dash, 0.0f));
+		g2D.setColor(new Color(70, 130, 180));
+		if(smartGuideX != null)
+			g2D.drawLine(smartGuideX.intValue(), 0, smartGuideX.intValue(), logicalHeight);
+		if(smartGuideY != null)
+			g2D.drawLine(0, smartGuideY.intValue(), logicalWidth, smartGuideY.intValue());
+		g2D.setColor(new Color(120, 90, 180));
+		if(smartSpacingGuideX != null)
+			g2D.drawLine(smartSpacingGuideX.intValue(), 0, smartSpacingGuideX.intValue(), logicalHeight);
+		if(smartSpacingGuideY != null)
+			g2D.drawLine(0, smartSpacingGuideY.intValue(), logicalWidth, smartSpacingGuideY.intValue());
+		g2D.setStroke(oldStroke);
+		g2D.setColor(oldColor);
 	}
 
 	public double getZoom()
@@ -510,6 +540,137 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		{
 			editText((TextObj) obj);
 		}
+	}
+
+	private void clearSmartGuides()
+	{
+		smartGuideX = null;
+		smartGuideY = null;
+		smartSpacingGuideX = null;
+		smartSpacingGuideY = null;
+	}
+
+	private void applySmartAlignment(StateObj moving, HashSet<GeneralObj> movedBySelectedGroup, boolean snapDisabled)
+	{
+		clearSmartGuides();
+		if(snapDisabled || moving.getSelectStatus() != StateObj.CENTER)
+			return;
+
+		Point center = moving.getRealCenter(currPage);
+		int bestDx = 0;
+		int bestDy = 0;
+		int bestXDistance = SMART_ALIGN_THRESHOLD + 1;
+		int bestYDistance = SMART_ALIGN_THRESHOLD + 1;
+
+		LinkedList<StateObj> candidates = getSmartAlignCandidates(moving, movedBySelectedGroup);
+		for(int i = 0; i < candidates.size(); i++)
+		{
+			Point candidateCenter = candidates.get(i).getRealCenter(currPage);
+			int dx = candidateCenter.x - center.x;
+			int dy = candidateCenter.y - center.y;
+			if(Math.abs(dx) < Math.abs(bestXDistance))
+			{
+				bestDx = dx;
+				bestXDistance = dx;
+				smartGuideX = new Integer(candidateCenter.x);
+			}
+			if(Math.abs(dy) < Math.abs(bestYDistance))
+			{
+				bestDy = dy;
+				bestYDistance = dy;
+				smartGuideY = new Integer(candidateCenter.y);
+			}
+		}
+
+		int spacingDx = findSpacingSnapDelta(center, candidates, true);
+		if(Math.abs(spacingDx) <= SMART_ALIGN_THRESHOLD
+				&& (Math.abs(bestXDistance) > SMART_ALIGN_THRESHOLD || Math.abs(spacingDx) < Math.abs(bestDx)))
+		{
+			bestDx = spacingDx;
+			smartGuideX = null;
+			smartSpacingGuideX = new Integer(center.x + spacingDx);
+		}
+
+		int spacingDy = findSpacingSnapDelta(center, candidates, false);
+		if(Math.abs(spacingDy) <= SMART_ALIGN_THRESHOLD
+				&& (Math.abs(bestYDistance) > SMART_ALIGN_THRESHOLD || Math.abs(spacingDy) < Math.abs(bestDy)))
+		{
+			bestDy = spacingDy;
+			smartGuideY = null;
+			smartSpacingGuideY = new Integer(center.y + spacingDy);
+		}
+
+		if(Math.abs(bestDx) > SMART_ALIGN_THRESHOLD)
+		{
+			bestDx = 0;
+			smartGuideX = null;
+			smartSpacingGuideX = null;
+		}
+		if(Math.abs(bestDy) > SMART_ALIGN_THRESHOLD)
+		{
+			bestDy = 0;
+			smartGuideY = null;
+			smartSpacingGuideY = null;
+		}
+		if(bestDx != 0 || bestDy != 0)
+			moving.moveBy(bestDx, bestDy);
+	}
+
+	private LinkedList<StateObj> getSmartAlignCandidates(StateObj moving, HashSet<GeneralObj> movedBySelectedGroup)
+	{
+		LinkedList<StateObj> candidates = new LinkedList<StateObj>();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.elementAt(i);
+			if(!isTransitionEndpoint(obj) || obj == moving || movedBySelectedGroup.contains(obj))
+				continue;
+			if(obj.getPage() != currPage)
+				continue;
+			if(moving.getType() == 5 && (obj.getType() == 0 || obj.getType() == 4)
+					&& ((StateGroupObj)moving).containsState((StateObj)obj))
+				continue;
+			candidates.add((StateObj)obj);
+		}
+		return candidates;
+	}
+
+	private int findSpacingSnapDelta(Point center, LinkedList<StateObj> candidates, boolean horizontal)
+	{
+		int bestDelta = SMART_ALIGN_THRESHOLD + 1;
+		for(int i = 0; i < candidates.size(); i++)
+		{
+			Point a = candidates.get(i).getRealCenter(currPage);
+			for(int j = i + 1; j < candidates.size(); j++)
+			{
+				Point b = candidates.get(j).getRealCenter(currPage);
+				if(horizontal)
+				{
+					if(Math.abs(a.y - center.y) > SMART_SPACING_ROW_THRESHOLD
+							|| Math.abs(b.y - center.y) > SMART_SPACING_ROW_THRESHOLD)
+						continue;
+					bestDelta = closerDelta(bestDelta, (2 * a.x) - b.x - center.x);
+					bestDelta = closerDelta(bestDelta, (2 * b.x) - a.x - center.x);
+					bestDelta = closerDelta(bestDelta, ((a.x + b.x) / 2) - center.x);
+				}
+				else
+				{
+					if(Math.abs(a.x - center.x) > SMART_SPACING_ROW_THRESHOLD
+							|| Math.abs(b.x - center.x) > SMART_SPACING_ROW_THRESHOLD)
+						continue;
+					bestDelta = closerDelta(bestDelta, (2 * a.y) - b.y - center.y);
+					bestDelta = closerDelta(bestDelta, (2 * b.y) - a.y - center.y);
+					bestDelta = closerDelta(bestDelta, ((a.y + b.y) / 2) - center.y);
+				}
+			}
+		}
+		return bestDelta;
+	}
+
+	private int closerDelta(int current, int candidate)
+	{
+		if(Math.abs(candidate) <= SMART_ALIGN_THRESHOLD && Math.abs(candidate) < Math.abs(current))
+			return candidate;
+		return current;
 	}
 	
 	
@@ -1178,6 +1339,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		panScreenStart = null;
 		panViewStart = null;
 		clearPendingPopup();
+		clearSmartGuides();
 		
 		repaint();
 	}
@@ -1213,9 +1375,11 @@ public void updateTransitions()
 			y=fgui.maxH;
 
 		// move object if multiple select is off
-		if(!multipleSelect && !arg0.isControlDown() && arg0.getModifiers() == 16)
+		boolean leftButtonDrag = (arg0.getModifiersEx() & MouseEvent.BUTTON1_DOWN_MASK) != 0;
+		if(!multipleSelect && !arg0.isControlDown() && leftButtonDrag)
 		{
 			HashSet<GeneralObj> movedBySelectedGroup = new HashSet<GeneralObj>();
+			boolean snapDisabled = arg0.isAltDown();
 			for (int i = 1; i < objList.size(); i++)
 			{
 				GeneralObj s = (GeneralObj) objList.elementAt(i);
@@ -1230,7 +1394,13 @@ public void updateTransitions()
 						oldCoords = ((StateObj)s).getCoords();
 						childEndpoints = getContainedTransitionEndpoints((StateGroupObj)s);
 					}
+					if(snapDisabled && isTransitionEndpoint(s) && s.getSelectStatus() == StateObj.CENTER)
+						((StateObj)s).setGrid(false, gridS);
 					s.adjustShapeOrPosition(x,y);
+					if(snapDisabled && isTransitionEndpoint(s))
+						((StateObj)s).setGrid(grid, gridS);
+					if(isTransitionEndpoint(s) && s.getSelectStatus() == StateObj.CENTER)
+						applySmartAlignment((StateObj)s, movedBySelectedGroup, snapDisabled);
 					if(oldCoords != null)
 					{
 						int[] newCoords = ((StateObj)s).getCoords();
@@ -1264,7 +1434,7 @@ public void updateTransitions()
 		}
 
 		//if multiple select is on, then check if any objects inside yet
-		else if(!arg0.isControlDown() && arg0.getModifiers() == 16)
+		else if(!arg0.isControlDown() && leftButtonDrag)
 		{
 			// correct box coordinates
 			if(x<mXTemp)

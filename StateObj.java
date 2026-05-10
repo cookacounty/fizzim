@@ -195,11 +195,6 @@ public class StateObj extends GeneralObj implements Cloneable {
 		if (myPage == currPage) {
 			// move object stuff
 			if (selectStatus == CENTER) {
-				if (grid) {
-					x -= (x % gridS);
-					y -= (y % gridS);
-
-				}
 				x0 += x - xTemp;
 				y0 += y - yTemp;
 				x1 += x - xTemp;
@@ -209,8 +204,12 @@ public class StateObj extends GeneralObj implements Cloneable {
 				if (grid) {
 					int w = x1 - x0;
 					int h = y1 - y0;
-					x0 -= (x0 % gridS);
-					y0 -= (y0 % gridS);
+					int centerX = x0 + w / 2;
+					int centerY = y0 + h / 2;
+					int snappedCenterX = Math.round((float)centerX / gridS) * gridS;
+					int snappedCenterY = Math.round((float)centerY / gridS) * gridS;
+					x0 += snappedCenterX - centerX;
+					y0 += snappedCenterY - centerY;
 					x1 = x0 + w;
 					y1 = y0 + h;
 				}
