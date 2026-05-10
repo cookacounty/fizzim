@@ -203,7 +203,30 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				selectAllDiagramObjects();
 			}
 		});
+		installNudgeKeyBindings();
 
+	}
+
+	private void installNudgeKeyBindings()
+	{
+		bindNudge("nudgeLeft", KeyEvent.VK_LEFT, 0, -1, 0);
+		bindNudge("nudgeRight", KeyEvent.VK_RIGHT, 0, 1, 0);
+		bindNudge("nudgeUp", KeyEvent.VK_UP, 0, 0, -1);
+		bindNudge("nudgeDown", KeyEvent.VK_DOWN, 0, 0, 1);
+		bindNudge("nudgeLeftFast", KeyEvent.VK_LEFT, InputEvent.SHIFT_DOWN_MASK, -10, 0);
+		bindNudge("nudgeRightFast", KeyEvent.VK_RIGHT, InputEvent.SHIFT_DOWN_MASK, 10, 0);
+		bindNudge("nudgeUpFast", KeyEvent.VK_UP, InputEvent.SHIFT_DOWN_MASK, 0, -10);
+		bindNudge("nudgeDownFast", KeyEvent.VK_DOWN, InputEvent.SHIFT_DOWN_MASK, 0, 10);
+	}
+
+	private void bindNudge(String actionName, int keyCode, int modifiers, final int dx, final int dy)
+	{
+		getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(keyCode, modifiers), actionName);
+		getActionMap().put(actionName, new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				nudgeSelectedEndpoints(dx, dy);
+			}
+		});
 	}
 	    
 	public void paintComponent(Graphics g)
@@ -340,6 +363,26 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		updateZoomedSize();
 	}
 
+	private void expandCanvasExtentsForDrag()
+	{
+		Rectangle bounds = getDiagramBounds(currPage);
+		int right = bounds.x + bounds.width + DIAGRAM_PADDING;
+		int bottom = bounds.y + bounds.height + DIAGRAM_PADDING;
+		boolean changed = false;
+		if(right > originX + logicalWidth)
+		{
+			logicalWidth = Math.max(logicalWidth, right - originX);
+			changed = true;
+		}
+		if(bottom > originY + logicalHeight)
+		{
+			logicalHeight = Math.max(logicalHeight, bottom - originY);
+			changed = true;
+		}
+		if(changed)
+			updateZoomedSize();
+	}
+
 	public Rectangle getDiagramBounds(int page)
 	{
 		Rectangle bounds = null;
@@ -366,23 +409,50 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	{
 		if(obj.getPage() != page && obj.getType() != 1)
 			return null;
+		Rectangle bounds = null;
 		if(obj instanceof StateObj)
 		{
 			int[] coords = ((StateObj)obj).getCoords();
-			return normalizedBounds(coords[0], coords[1], coords[2], coords[3], 20);
+			bounds = normalizedBounds(coords[0], coords[1], coords[2], coords[3], 20);
 		}
-		if(obj instanceof TextObj)
+		else if(obj instanceof TextObj)
 		{
 			TextObj textObj = (TextObj)obj;
 			if(textObj.getGlobalTable())
 				return null;
-			return textObj.getBounds();
+			bounds = textObj.getBounds();
 		}
-		if(obj instanceof StateTransitionObj)
-			return getStateTransitionBounds((StateTransitionObj)obj, page);
-		if(obj instanceof LoopbackTransitionObj)
-			return getLoopbackTransitionBounds((LoopbackTransitionObj)obj, page);
-		return null;
+		else if(obj instanceof StateTransitionObj)
+			bounds = getStateTransitionBounds((StateTransitionObj)obj, page);
+		else if(obj instanceof LoopbackTransitionObj)
+			bounds = getLoopbackTransitionBounds((LoopbackTransitionObj)obj, page);
+
+		return addAttributeBounds(bounds, obj, page);
+	}
+
+	private Rectangle addAttributeBounds(Rectangle bounds, GeneralObj obj, int page)
+	{
+		LinkedList<ObjAttribute> attrs = obj.getAttributeList();
+		if(attrs == null)
+			return bounds;
+
+		FontMetrics metrics = getFontMetrics(currFont);
+		Point center = obj.getCenter(page);
+		int step = -1;
+		for(int i = 0; i < attrs.size(); i++)
+		{
+			ObjAttribute attr = attrs.get(i);
+			if(attr.getVisible())
+				step++;
+			Rectangle attrBounds = attr.getDrawBounds(metrics, center, page, step);
+			if(attrBounds == null)
+				continue;
+			if(bounds == null)
+				bounds = new Rectangle(attrBounds);
+			else
+				bounds.add(attrBounds);
+		}
+		return bounds;
 	}
 
 	private Rectangle getStateTransitionBounds(StateTransitionObj trans, int page)
@@ -596,6 +666,63 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	{
 		normalizeStateGroupSelection();
 		objsSelected = selectedIndices.size() > 1;
+		notifySelectionChanged();
+	}
+
+	private void notifySelectionChanged()
+	{
+		if(!(frame instanceof FizzimGui) || objList == null)
+			return;
+
+		int states = 0;
+		int groups = 0;
+		int forks = 0;
+		int transitions = 0;
+		int text = 0;
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getSelectStatus() == 0)
+				continue;
+			if(obj.getType() == 0)
+				states++;
+			else if(obj.getType() == 5)
+				groups++;
+			else if(obj.getType() == 4)
+				forks++;
+			else if(obj.getType() == 1 || obj.getType() == 2)
+				transitions++;
+			else if(obj.getType() == 3 && !((TextObj)obj).getGlobalTable())
+				text++;
+		}
+		((FizzimGui)frame).updateSelectionStatus(formatSelectionStatus(states, groups, forks, transitions, text));
+	}
+
+	private String formatSelectionStatus(int states, int groups, int forks, int transitions, int text)
+	{
+		LinkedList<String> parts = new LinkedList<String>();
+		addSelectionPart(parts, states, "state", "states");
+		addSelectionPart(parts, groups, "state group", "state groups");
+		addSelectionPart(parts, forks, "fork", "forks");
+		addSelectionPart(parts, transitions, "transition", "transitions");
+		addSelectionPart(parts, text, "text", "text");
+		if(parts.size() == 0)
+			return "No selection";
+		StringBuffer sb = new StringBuffer("Selected: ");
+		for(int i = 0; i < parts.size(); i++)
+		{
+			if(i > 0)
+				sb.append(", ");
+			sb.append(parts.get(i));
+		}
+		return sb.toString();
+	}
+
+	private void addSelectionPart(LinkedList<String> parts, int count, String singular, String plural)
+	{
+		if(count == 0)
+			return;
+		parts.add(count + " " + (count == 1 ? singular : plural));
 	}
 
 	private void refreshSelectedIndicesFromObjects()
@@ -809,6 +936,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		GeneralObj selectedObj = (GeneralObj)objList.get(hit.index);
 		unselectObjs();
 		selectedObj.setSelectStatus(x, y);
+		refreshSelectedIndicesFromObjects();
+		syncSelectionState();
 		lastCycleX = x;
 		lastCycleY = y;
 		lastCycleTime = e.getWhen();
@@ -899,6 +1028,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			if(i != keepIndex)
 				((GeneralObj)objList.get(i)).unselect();
 		}
+		refreshSelectedIndicesFromObjects();
+		syncSelectionState();
 	}
 
 	private void clearSmartGuides()
@@ -1212,6 +1343,18 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				clonedTrans.notifyChange(entry.getKey(), entry.getValue());
 			clonedTrans.setParentModified(true);
 			objList.set(i, clonedTrans);
+		}
+	}
+
+	private void setUndoPointForRouteEdits()
+	{
+		tempList = null;
+		tempList = (Vector<Object>) objList.clone();
+		for(int i = 1; i < tempList.size(); i++)
+		{
+			GeneralObj oldObj = (GeneralObj) tempList.get(i);
+			if(oldObj.getType() == 1 || oldObj.getType() == 2)
+				objList.set(i, cloneObj(oldObj));
 		}
 	}
 	
@@ -1871,6 +2014,7 @@ public void updateTransitions()
 				if(!isTransitionEndpoint(obj) && obj.isParentModified())
 					obj.updateObj();
 			}
+			expandCanvasExtentsForDrag();
 			repaint();
 		}
 
@@ -2503,6 +2647,63 @@ public void updateTransitions()
 		}
 	}
 
+	private void nudgeSelectedEndpoints(int dx, int dy)
+	{
+		refreshSelectedIndicesFromObjects();
+		LinkedList<Integer> movableIndices = new LinkedList<Integer>();
+		for(int i = 0; i < selectedIndices.size(); i++)
+		{
+			int index = selectedIndices.get(i).intValue();
+			GeneralObj obj = (GeneralObj)objList.get(index);
+			if(isTransitionEndpoint(obj) && obj.getSelectStatus() == StateObj.CENTER)
+				movableIndices.add(new Integer(index));
+		}
+		if(movableIndices.size() == 0)
+			return;
+
+		setUndoPointMultiple();
+		LinkedList<GeneralObj> movedEndpointsBatch = new LinkedList<GeneralObj>();
+		HashSet<GeneralObj> movedBySelectedGroup = new HashSet<GeneralObj>();
+		LinkedList<StateGroupObj> selectedGroups = getSelectedStateGroups();
+
+		for(int i = 0; i < movableIndices.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(movableIndices.get(i).intValue());
+			if(movedBySelectedGroup.contains(obj))
+				continue;
+			if((obj.getType() == 0 || obj.getType() == 4)
+					&& isContainedInSelectedStateGroup((StateObj)obj, selectedGroups))
+				continue;
+
+			((StateObj)obj).moveBy(dx, dy);
+			movedEndpointsBatch.add(obj);
+			if(obj.getType() == 5)
+			{
+				LinkedList<StateObj> childEndpoints = getContainedTransitionEndpoints((StateGroupObj)obj);
+				for(int j = 0; j < childEndpoints.size(); j++)
+				{
+					childEndpoints.get(j).moveBy(dx, dy);
+					movedBySelectedGroup.add(childEndpoints.get(j));
+					movedEndpointsBatch.add(childEndpoints.get(j));
+				}
+			}
+		}
+
+		updateTransitionsForMovedEndpoints(movedEndpointsBatch);
+		for(int j = 1; j < objList.size(); j++)
+		{
+			GeneralObj obj = (GeneralObj) objList.elementAt(j);
+			if(!isTransitionEndpoint(obj) && obj.isParentModified())
+				obj.updateObj();
+		}
+		validateStateGroupMembership(true);
+		updateCanvasExtents();
+		commitUndo();
+		refreshSelectedIndicesFromObjects();
+		syncSelectionState();
+		repaint();
+	}
+
     private boolean isTransitionEndpointType(int type)
     {
 		return type == 0 || type == 4 || type == 5;
@@ -2851,7 +3052,7 @@ public void updateTransitions()
 
 	public void resetTransitionLabelPositions()
 	{
-		setUndoPoint(-1, -1);
+		setUndoPointForRouteEdits();
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj obj = (GeneralObj)objList.get(i);
@@ -2862,6 +3063,29 @@ public void updateTransitions()
 					attrs.get(j).resetTextOffset();
 			}
 		}
+		commitUndo();
+		repaint();
+	}
+
+	public void cleanTransitionRoutes()
+	{
+		setUndoPointForRouteEdits();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 1)
+				((StateTransitionObj)obj).resetRoute();
+			else if(obj.getType() == 2)
+				((LoopbackTransitionObj)obj).resetRoute();
+
+			if(obj.getType() == 1 || obj.getType() == 2)
+			{
+				LinkedList<ObjAttribute> attrs = obj.getAttributeList();
+				for(int j = 0; j < attrs.size(); j++)
+					attrs.get(j).resetTextOffset();
+			}
+		}
+		updateCanvasExtents();
 		commitUndo();
 		repaint();
 	}
@@ -3349,6 +3573,10 @@ public void updateTransitions()
 			GeneralObj s = (GeneralObj) objList.elementAt(i);
 			s.unselect();				
 		}
+		selectedIndices.clear();
+		objsSelected = false;
+		multipleSelect = false;
+		notifySelectionChanged();
 	}
 
 	public void resetUndo() {

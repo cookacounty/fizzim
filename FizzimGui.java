@@ -219,6 +219,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		zoomInButton = new javax.swing.JButton();
 		zoomFitButton = new javax.swing.JButton();
 		zoomPercentLabel = new javax.swing.JLabel();
+		selectionStatusLabel = new javax.swing.JLabel();
 		jTabbedPane1 = new MyJTabbedPane();
 		jScrollPane1 = new javax.swing.JScrollPane();
 		jPanel1 = new javax.swing.JPanel();
@@ -352,6 +353,10 @@ public class FizzimGui extends javax.swing.JFrame {
 		getContentPane().add(jPanel3, java.awt.BorderLayout.CENTER);
 
 		zoomPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 4, 3));
+		selectionStatusLabel.setText("No selection");
+		selectionStatusLabel.setPreferredSize(new java.awt.Dimension(260, 22));
+		selectionStatusLabel.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+		zoomPanel.add(selectionStatusLabel);
 		zoomOutButton.setText("-");
 		zoomOutButton.setToolTipText("Zoom out");
 		zoomOutButton.addActionListener(new java.awt.event.ActionListener() {
@@ -592,6 +597,14 @@ public class FizzimGui extends javax.swing.JFrame {
 		});
 		toolsMenu.add(resetLabelsItem);
 
+		JMenuItem cleanRoutesItem = new JMenuItem("Clean Transition Routes");
+		cleanRoutesItem.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ToolsCleanTransitionRoutesActionPerformed(evt);
+			}
+		});
+		toolsMenu.add(cleanRoutesItem);
+
 		JMenuItem defaultsItem = new JMenuItem("New FSM Defaults");
 		defaultsItem.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -771,6 +784,10 @@ public class FizzimGui extends javax.swing.JFrame {
 		drawArea1.resetTransitionLabelPositions();
 	}
 
+	private void ToolsCleanTransitionRoutesActionPerformed(ActionEvent evt) {
+		drawArea1.cleanTransitionRoutes();
+	}
+
 	private void ToolsNewFsmDefaultsActionPerformed(ActionEvent evt) {
 		JTextField clockField = new JTextField(getDefaultClockName(), 12);
 		JComboBox clockEdge = new JComboBox(new String[] {"posedge", "negedge"});
@@ -836,6 +853,11 @@ public class FizzimGui extends javax.swing.JFrame {
 	public void updateZoomControls() {
 		if(zoomPercentLabel != null)
 			zoomPercentLabel.setText(Integer.toString((int)Math.round(drawArea1.getZoom() * 100)) + "%");
+	}
+
+	public void updateSelectionStatus(String text) {
+		if(selectionStatusLabel != null)
+			selectionStatusLabel.setText(text);
 	}
 
 	protected void FileExportPNGActionPerformed(ActionEvent evt) {
@@ -1767,6 +1789,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JButton zoomInButton;
 	private javax.swing.JButton zoomFitButton;
 	private javax.swing.JLabel zoomPercentLabel;
+	private javax.swing.JLabel selectionStatusLabel;
 	private javax.swing.JScrollPane jScrollPane1;
 	private javax.swing.JSeparator jSeparator1;
 	private javax.swing.JSeparator jSeparator2;

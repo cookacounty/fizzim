@@ -2,6 +2,7 @@ import java.awt.Color;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.Arrays;
@@ -395,6 +396,42 @@ public class ObjAttribute implements Cloneable {
                     g.drawLine(selectboxRight,selectboxTop,selectboxRight,selectboxBottom);  // Right
                   }
 		}
+	}
+
+	public Rectangle getDrawBounds(FontMetrics fm, Point point, int page, int step) {
+		if(myPage != page || !getVisible())
+			return null;
+
+		String text = getDrawText();
+		int height = fm.getHeight();
+		int width = fm.stringWidth(text);
+		int tx = (int) point.getX();
+		int ty = (int) point.getY() + height * step;
+		int txbase = tx + x2Obj - width / 2;
+		int tybase = ty + y2Obj;
+		int yoffset = 0;
+
+		if(text.indexOf("\\n") != -1) {
+			width = 0;
+			String tempText = text;
+			while(tempText.indexOf("\\n") > -1) {
+				String line = tempText.substring(0, tempText.indexOf("\\n"));
+				width = Math.max(width, fm.stringWidth(line));
+				tempText = tempText.substring(tempText.indexOf("\\n") + 2);
+				yoffset += height;
+			}
+			width = Math.max(width, fm.stringWidth(tempText));
+		}
+
+		return new Rectangle(txbase - 4, tybase - height + 2, width + 8, yoffset + height + 6);
+	}
+
+	private String getDrawText() {
+		if(name.equals("name") || name.equals("equation"))
+			return value;
+		if(outputTypeReg || outputTypeFlag)
+			return name + " <= " + value;
+		return name + " = " + value;
 	}
 
 	//unselects object
