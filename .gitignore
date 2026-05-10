@@ -6,3 +6,6 @@ testcases/generated/
 
 # Local environment helpers
 setup_java.ps1
+
+# Local GitHub wiki checkout used when editing wiki pages
+.wiki/
