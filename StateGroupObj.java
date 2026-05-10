@@ -28,6 +28,13 @@ public class StateGroupObj extends StateObj {
 		return 5;
 	}
 
+	public Object clone() throws CloneNotSupportedException {
+		StateGroupObj copy = (StateGroupObj) super.clone();
+		copy.childNames = (LinkedList<String>) childNames.clone();
+		copy.entryState = entryState;
+		return copy;
+	}
+
 	public void paintComponent(Graphics g) {
 		if (myPage == currPage) {
 			Graphics2D g2D = (Graphics2D) g;

@@ -57,6 +57,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	private Vector<Object> objList;
 	//holds previous lists of objects
 	private Vector<Vector<Object>> undoList;
+	private Vector<GeneralObj> diagramClipboard = new Vector<GeneralObj>();
+	private int pasteCount = 0;
 	
 	//temp lists
 	private Vector<Object> tempList;
@@ -225,6 +227,18 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		getActionMap().put("selectAllDiagramObjects", new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
 				selectAllDiagramObjects();
+			}
+		});
+		getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_C, InputEvent.CTRL_DOWN_MASK), "copyDiagramSelection");
+		getActionMap().put("copyDiagramSelection", new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				copyDiagramSelection();
+			}
+		});
+		getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_V, InputEvent.CTRL_DOWN_MASK), "pasteDiagramSelection");
+		getActionMap().put("pasteDiagramSelection", new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				pasteDiagramSelection();
 			}
 		});
 		installNudgeKeyBindings();
@@ -723,6 +737,198 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	private boolean isSelectableDiagramObject(GeneralObj obj)
 	{
 		return isTransitionEndpoint(obj) || isMovableTextObject(obj);
+	}
+
+	private void copyDiagramSelection()
+	{
+		refreshSelectedIndicesFromObjects();
+		LinkedHashSet<GeneralObj> selectedObjects = new LinkedHashSet<GeneralObj>();
+		LinkedHashSet<GeneralObj> endpointObjects = new LinkedHashSet<GeneralObj>();
+
+		for(int i = 0; i < selectedIndices.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(selectedIndices.get(i).intValue());
+			if(isSelectableDiagramObject(obj))
+			{
+				selectedObjects.add(obj);
+				if(isTransitionEndpoint(obj))
+					endpointObjects.add(obj);
+				if(obj.getType() == 5)
+				{
+					LinkedList<StateObj> children = getContainedTransitionEndpoints((StateGroupObj)obj);
+					for(int j = 0; j < children.size(); j++)
+					{
+						selectedObjects.add(children.get(j));
+						endpointObjects.add(children.get(j));
+					}
+				}
+			}
+		}
+
+		if(selectedObjects.size() == 0)
+			return;
+
+		LinkedHashSet<GeneralObj> copiedObjects = new LinkedHashSet<GeneralObj>(selectedObjects);
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if((obj.getType() == 1 || obj.getType() == 2) && isTransitionFullyCovered((TransitionObj)obj, endpointObjects))
+				copiedObjects.add(obj);
+		}
+
+		LinkedHashMap<GeneralObj, GeneralObj> copyMap = new LinkedHashMap<GeneralObj, GeneralObj>();
+		Vector<GeneralObj> clipboard = new Vector<GeneralObj>();
+		for(GeneralObj obj : copiedObjects)
+		{
+			GeneralObj cloned = cloneObj(obj);
+			copyMap.put(obj, cloned);
+			clipboard.add(cloned);
+		}
+		for(GeneralObj cloned : clipboard)
+		{
+			if(cloned.getType() == 1 || cloned.getType() == 2)
+			{
+				for(Map.Entry<GeneralObj, GeneralObj> entry : copyMap.entrySet())
+					cloned.notifyChange(entry.getKey(), entry.getValue());
+			}
+		}
+		diagramClipboard = clipboard;
+		pasteCount = 0;
+	}
+
+	private boolean isTransitionFullyCovered(TransitionObj trans, LinkedHashSet<GeneralObj> endpoints)
+	{
+		StateObj start = trans.getStartState();
+		StateObj end = trans.getEndState();
+		if(start == null)
+			return false;
+		if(end == null)
+			return endpoints.contains(start);
+		return endpoints.contains(start) && endpoints.contains(end);
+	}
+
+	private void pasteDiagramSelection()
+	{
+		if(diagramClipboard == null || diagramClipboard.size() == 0)
+			return;
+
+		setUndoPointAllObjects();
+		unselectObjs();
+
+		int offset = 40 + (pasteCount % 4) * 20;
+		pasteCount++;
+		HashSet<String> usedNames = collectObjectNames();
+		LinkedHashMap<GeneralObj, GeneralObj> pasteMap = new LinkedHashMap<GeneralObj, GeneralObj>();
+		LinkedHashMap<String, String> nameMap = new LinkedHashMap<String, String>();
+		Vector<GeneralObj> pastedObjects = new Vector<GeneralObj>();
+
+		for(int i = 0; i < diagramClipboard.size(); i++)
+		{
+			GeneralObj source = diagramClipboard.get(i);
+			GeneralObj pasted = cloneObj(source);
+			pasted.setPage(currPage);
+			String oldName = source.getName();
+			if(oldName != null && oldName.length() > 0)
+			{
+				String newName = uniqueCopyName(oldName, usedNames);
+				renameObjectForPaste(pasted, newName);
+				nameMap.put(oldName, newName);
+				usedNames.add(newName);
+			}
+			if(isTransitionEndpoint(pasted))
+				((StateObj)pasted).moveBy(offset, offset);
+			else if(isMovableTextObject(pasted))
+				((TextObj)pasted).moveBy(offset, offset);
+			pasteMap.put(source, pasted);
+			pastedObjects.add(pasted);
+		}
+
+		for(GeneralObj pasted : pastedObjects)
+		{
+			if(pasted.getType() == 5)
+				remapStateGroupNames((StateGroupObj)pasted, nameMap);
+			if(pasted.getType() == 1 || pasted.getType() == 2)
+			{
+				for(Map.Entry<GeneralObj, GeneralObj> entry : pasteMap.entrySet())
+					pasted.notifyChange(entry.getKey(), entry.getValue());
+				pasted.setParentModified(true);
+				pasted.updateObj();
+			}
+			objList.add(pasted);
+		}
+
+		for(int i = objList.size() - pastedObjects.size(); i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(isSelectableDiagramObject(obj))
+			{
+				obj.setSelectStatus(true);
+				selectedIndices.add(new Integer(i));
+			}
+		}
+		validateStateGroupMembership(true);
+		updateStates();
+		updateTrans();
+		updateCanvasExtents();
+		syncSelectionState();
+		commitUndo();
+		repaint();
+	}
+
+	private HashSet<String> collectObjectNames()
+	{
+		HashSet<String> names = new HashSet<String>();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getName() != null && obj.getName().length() > 0)
+				names.add(obj.getName());
+		}
+		return names;
+	}
+
+	private String uniqueCopyName(String baseName, HashSet<String> usedNames)
+	{
+		String candidate = baseName + "_copy";
+		int suffix = 2;
+		while(usedNames.contains(candidate))
+		{
+			candidate = baseName + "_copy" + suffix;
+			suffix++;
+		}
+		return candidate;
+	}
+
+	private void renameObjectForPaste(GeneralObj obj, String newName)
+	{
+		obj.setName(newName);
+		LinkedList<ObjAttribute> attrs = obj.getAttributeList();
+		if(attrs == null)
+			return;
+		for(int i = 0; i < attrs.size(); i++)
+		{
+			ObjAttribute attr = attrs.get(i);
+			if(attr.getName().equals("name"))
+			{
+				attr.setValue(newName);
+				attr.setEditable(1, ObjAttribute.LOCAL);
+			}
+		}
+	}
+
+	private void remapStateGroupNames(StateGroupObj group, LinkedHashMap<String, String> nameMap)
+	{
+		LinkedList<String> remapped = new LinkedList<String>();
+		LinkedList<String> children = group.getChildNames();
+		for(int i = 0; i < children.size(); i++)
+		{
+			String child = children.get(i);
+			remapped.add(nameMap.containsKey(child) ? nameMap.get(child) : child);
+		}
+		group.setChildNames(remapped);
+		String entry = group.getEntryState();
+		if(entry != null && nameMap.containsKey(entry))
+			group.setEntryState(nameMap.get(entry));
 	}
 
 	private void addSelectedIndex(int index)

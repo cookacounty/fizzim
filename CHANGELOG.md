@@ -100,6 +100,10 @@ part of the current codebase.
   - Shift-click adds objects to the current selection.
   - Drag selection replaces by default, Shift-drag adds, and Ctrl-drag toggles.
   - Ctrl+A selects all movable diagram objects.
+- Added Ctrl+C/Ctrl+V diagram copy and paste for selected states, state groups,
+  forks, and free text. Pasted state-machine objects get unique names, copied
+  state groups keep their copied children, and transitions are copied when their
+  endpoints are part of the copied selection.
 - Added a selection status display showing the current selected object counts,
   including updates after Ctrl+A and empty-space deselection.
 - Improved batch movement of selected states, state groups, forks, and text so

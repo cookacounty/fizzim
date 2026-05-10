@@ -208,6 +208,13 @@ public class TextObj extends GeneralObj {
 	{
 		text = str;
 	}
+
+	public void moveBy(int dx, int dy)
+	{
+		tX += dx;
+		tY += dy;
+		modified = true;
+	}
 	
 	@Override
 	public void adjustShapeOrPosition(int x, int y) {
