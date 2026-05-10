@@ -67,9 +67,13 @@ part of the current codebase.
   - Shift-click adds objects to the current selection.
   - Drag selection replaces by default, Shift-drag adds, and Ctrl-drag toggles.
   - Ctrl+A selects all movable diagram objects.
+- Added a selection status display showing the current selected object counts,
+  including updates after Ctrl+A and empty-space deselection.
 - Improved batch movement of selected states, state groups, forks, and text so
   connected transitions move with the selected objects and state-group children
   are not moved twice.
+- Added keyboard nudging for selected states, state groups, and forks with arrow
+  keys, plus larger Shift+arrow steps.
 - Added zoom controls for the canvas:
   - `+` and `-` zoom buttons.
   - Zoom percentage display.
@@ -77,16 +81,29 @@ part of the current codebase.
   - Ctrl + mouse wheel zoom targeting the mouse position.
 - Added right-button drag panning while preserving quick right-click context
   menus.
+- Expanded right-button panning so users can pan beyond the current object
+  extents without being pinned to the existing canvas edge.
 - Added fit-mode behavior. Opening a diagram or pressing `Fit` fits the diagram
   to the viewport, and resizing the window keeps refitting until the user
   manually zooms or pans.
 - Replaced the fixed page-sized editing canvas with an object-extents canvas.
   The visible canvas, zoom fit, and image export now size around the current
   page's actual objects plus padding rather than the legacy page setup size.
+- Improved zoom-to-fit behavior so it includes visible attribute labels and the
+  global state-machine information table, uses a tighter fit margin, and avoids
+  zooming above 100% on small or new diagrams.
 - Removed the user-facing `Page Setup` menu item because page size no longer
   defines the editor canvas.
 - Added Open Recent support for the last 10 opened diagram files.
 - Allowed multiple diagram windows to be open at the same time.
+- Added page-tab drag reordering while preserving the diagram content associated
+  with each moved tab.
+- Added a clean transition route command for resetting transition routing and
+  labels without moving states.
+- Added automatic transition priority normalization for sources with multiple
+  outgoing transitions. The highest-priority outgoing transition is highlighted
+  in bold, while single outgoing transitions keep priority implied and hidden by
+  default.
 - Added default new-FSM settings for `posedge clk`, `negedge rst_l`, and implied
   loopback behavior.
 
