@@ -2384,10 +2384,12 @@ public class FizzimGui extends javax.swing.JFrame {
 	    	Dimension labelSize = label.getPreferredSize();
 	    	label.setBounds(0, 0,(int) labelSize.getWidth(), (int)labelSize.getHeight());
 	    	
-	    	JLabel vers = new JLabel("v" + currVer);
-	    	vers.setFont(new Font("Arial",Font.BOLD,22));
+	    	JLabel vers = new JLabel("v" + currVer, SwingConstants.CENTER);
+	    	vers.setFont(new Font("Segoe UI",Font.BOLD,14));
+	    	vers.setForeground(new Color(66, 100, 116));
 	    	Dimension versSize = vers.getPreferredSize();
-	    	vers.setBounds(176, 65,(int) versSize.getWidth(), (int)versSize.getHeight());
+	    	vers.setBounds(0, (int)labelSize.getHeight() - (int)versSize.getHeight() - 16,
+	    			(int)labelSize.getWidth(), (int)versSize.getHeight());
 	    	
 	        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 	        
