@@ -827,6 +827,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			for(int i = objList.size() - 1; i >= 1; i--)
 			{
 				GeneralObj obj = (GeneralObj)objList.get(i);
+				if(obj.getType() == 3 && ((TextObj)obj).getGlobalTable())
+					continue;
 				if(obj.getType() == typeOrder[t] && isSelectableDiagramObject(obj) && hitTestObject(obj, x, y))
 					return i;
 			}
@@ -969,6 +971,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		for(int i = objList.size() - 1; i >= 1; i--)
 		{
 			GeneralObj obj = (GeneralObj)objList.elementAt(i);
+			if(obj.getType() == 3 && ((TextObj)obj).getGlobalTable())
+				continue;
 			if(obj.getType() == type && hitTestObject(obj, x, y))
 				addHitCandidate(hits, i, obj);
 		}
@@ -1612,7 +1616,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		boolean popupMouse = isPopupMouse(e);
 		int x = modelX(e);
 		int y = modelY(e);
-		for (int i = 1; i < objList.size(); i++)
+		for (int i = objList.size() - 1; i >= 1; i--)
 		{
 			GeneralObj s = (GeneralObj) objList.elementAt(i);
 			if(!isTransitionEndpoint(s))
@@ -1848,7 +1852,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				for (int i = 1; i < objList.size(); i++)
 				{
 					GeneralObj s = (GeneralObj) objList.elementAt(i);
-					if(s.getType() == 3 && s.setSelectStatus(x,y))
+					if(s.getType() == 3 && !((TextObj)s).getGlobalTable() && s.setSelectStatus(x,y))
 					{
 						bestMatch = s;
 							

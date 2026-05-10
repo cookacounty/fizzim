@@ -142,6 +142,10 @@ part of the current codebase.
 - Switched canvas text, the global canvas table, and attribute-editor table
   cells to Java's logical `Monospaced` font so HDL names and expressions align
   consistently across Windows and Linux.
+- Refined canvas selection behavior so initial drags prefer moving states and
+  state groups instead of their internal text, states inside state groups remain
+  easy to select, and objects drawn over the global summary table are not
+  blocked by that table.
 
 ### Verilog Backend
 

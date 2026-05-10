@@ -359,17 +359,13 @@ public class TextObj extends GeneralObj {
 			xTemp = x;
 			yTemp = y;
 			selectStatus = 0;
-			
+			if(globalTable)
+				return false;
+
 			// check if inside square
-                        if (!globalTable) {
-			  if(x >= selectboxLeft && x <= selectboxRight && y >= selectboxTop && y <= selectboxBottom) {
-                            selectStatus = 1;
-                          }
-                        } else if (tableVis) {
-			  if (x >= tX-4 && x <= tX+tW+3 && y >= tY-(tH/col1.size())+2 && y <= tY+4+tH-(tH/col1.size())) {
-                            selectStatus = 1;			
-                          }
-                        }
+			if(x >= selectboxLeft && x <= selectboxRight && y >= selectboxTop && y <= selectboxBottom) {
+				selectStatus = 1;
+			}
 
 			if(selectStatus == 0)
 				return false;
@@ -458,9 +454,11 @@ public class TextObj extends GeneralObj {
 	@Override
 	public boolean setBoxSelectStatus(int x0, int y0, int x1, int y1) {
 		selectStatus = 0;
+		if(globalTable)
+			return false;
 		if(myPage == currPage && x0 <= tX-4 && x1 >= tX+tW+3)
 		{
-			
+
 			if(!globalTable && y0 <= tY-tH+2 && y1 >= tY+4)
 			{
 				selectStatus = 1;
@@ -481,6 +479,8 @@ public class TextObj extends GeneralObj {
 	{
 		xTemp = x;
 		yTemp = y;
+		if(globalTable)
+			return false;
 		if(myPage == currPage && x >= tX-4 && x <= tX+tW+3)
 		{
 			
