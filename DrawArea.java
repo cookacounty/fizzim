@@ -94,6 +94,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	private static final int PAN_DRAG_THRESHOLD = 4;
 	private boolean rightButtonDown = false;
 	private boolean rightButtonDragged = false;
+	private boolean blankCanvasPan = false;
 	private Point panScreenStart = null;
 	private Point panViewStart = null;
 	private MouseEvent pendingPopupEvent = null;
@@ -659,6 +660,59 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		newY = Math.max(0, Math.min(newY, Math.max(0, getHeight() - viewport.getHeight())));
 		viewport.setViewPosition(new Point(newX, newY));
 		return true;
+	}
+
+	private void startBlankCanvasPan(MouseEvent e)
+	{
+		blankCanvasPan = true;
+		panScreenStart = new Point(e.getXOnScreen(), e.getYOnScreen());
+		JViewport viewport = (JViewport)SwingUtilities.getAncestorOfClass(JViewport.class, this);
+		panViewStart = viewport == null ? null : viewport.getViewPosition();
+	}
+
+	private boolean panBlankCanvas(MouseEvent e)
+	{
+		if(!blankCanvasPan || (e.getModifiersEx() & MouseEvent.BUTTON1_DOWN_MASK) == 0
+				|| panScreenStart == null || panViewStart == null)
+			return false;
+
+		int dx = e.getXOnScreen() - panScreenStart.x;
+		int dy = e.getYOnScreen() - panScreenStart.y;
+		if(Math.abs(dx) < PAN_DRAG_THRESHOLD && Math.abs(dy) < PAN_DRAG_THRESHOLD)
+			return true;
+
+		notifyViewManuallyChanged();
+		JViewport viewport = (JViewport)SwingUtilities.getAncestorOfClass(JViewport.class, this);
+		if(viewport == null)
+			return true;
+
+		ensurePanCanvasMargin(viewport);
+		setViewportPosition(viewport, panViewStart.x - dx, panViewStart.y - dy);
+		return true;
+	}
+
+	private void panViewportByWheel(MouseWheelEvent e)
+	{
+		JViewport viewport = (JViewport)SwingUtilities.getAncestorOfClass(JViewport.class, this);
+		if(viewport == null)
+			return;
+		e.consume();
+		notifyViewManuallyChanged();
+		ensurePanCanvasMargin(viewport);
+		Point viewPosition = viewport.getViewPosition();
+		int delta = (int)Math.round(e.getPreciseWheelRotation() * 80.0);
+		if(delta == 0)
+			delta = e.getWheelRotation() == 0 ? 0 : e.getWheelRotation() * 40;
+		int dx = e.isShiftDown() ? delta : 0;
+		int dy = e.isShiftDown() ? 0 : delta;
+		setViewportPosition(viewport, viewPosition.x + dx, viewPosition.y + dy);
+	}
+
+	private void setViewportPosition(JViewport viewport, int x, int y)
+	{
+		int newX = Math.max(0, Math.min(x, Math.max(0, getWidth() - viewport.getWidth())));
+		int newY = Math.max(0, Math.min(y, Math.max(0, getHeight() - viewport.getHeight())));
+		viewport.setViewPosition(new Point(newX, newY));
 	}
 
 	private void ensurePanCanvasMargin(JViewport viewport)
@@ -2127,18 +2181,11 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			{
 				resetClickCycle();
 				unselectObjs();
-				mXTemp = x;
-				mYTemp = y;
-				mX0 = 0;
-				mY0 = 0;
-				mX1 = 0;
-				mY1 = 0;
-				multipleSelect = true;
-				selectionBoxMode = SELECT_REPLACE;
-				boxBaseSelectedIndices.clear();
+				multipleSelect = false;
 				objsSelected = false;
 				selectedIndices.clear();
 				notifySelectionChanged();
+				startBlankCanvasPan(e);
 			}
 			else if(plainLeftClick)
 			{
@@ -2154,6 +2201,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		boolean showPendingPopup = rightButtonDown && !rightButtonDragged && pendingPopupEvent != null;
 	
 		multipleSelect = false;
+		blankCanvasPan = false;
 		if(!objsSelected)
 		{
 			selectedIndices.clear();
@@ -2249,6 +2297,8 @@ public void updateTransitions()
 
 	public void mouseDragged(MouseEvent arg0) {
 		if(panCanvas(arg0))
+			return;
+		if(panBlankCanvas(arg0))
 			return;
 		pendingClickCycle = false;
 		pendingClickCycleHits = null;
@@ -2390,12 +2440,17 @@ public void updateTransitions()
 	{
 		if(!e.isControlDown())
 		{
+			panViewportByWheel(e);
 			return;
 		}
 
 		e.consume();
+		zoomAt(e, Math.pow(1.1, -e.getPreciseWheelRotation()));
+	}
+
+	private void zoomAt(MouseEvent e, double factor)
+	{
 		double oldZoom = zoom;
-		double factor = Math.pow(1.1, -e.getPreciseWheelRotation());
 		double newZoom = clampZoom(oldZoom * factor);
 		if(newZoom == oldZoom)
 			return;
@@ -2418,9 +2473,7 @@ public void updateTransitions()
 		{
 			int newViewX = (int)Math.round(anchorModelX * zoom - cursorInViewport.x);
 			int newViewY = (int)Math.round(anchorModelY * zoom - cursorInViewport.y);
-			newViewX = Math.max(0, Math.min(newViewX, Math.max(0, getWidth() - viewport.getWidth())));
-			newViewY = Math.max(0, Math.min(newViewY, Math.max(0, getHeight() - viewport.getHeight())));
-			viewport.setViewPosition(new Point(newViewX, newViewY));
+			setViewportPosition(viewport, newViewX, newViewY);
 		}
 
 		repaint();

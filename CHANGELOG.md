@@ -120,6 +120,9 @@ part of the current codebase.
   menus.
 - Expanded right-button panning so users can pan beyond the current object
   extents without being pinned to the existing canvas edge.
+- Added touchpad-friendly canvas gestures: trackpad scroll pans the canvas,
+  precision-touchpad pinch/ctrl-wheel zooms at the pointer, and dragging from
+  empty canvas space pans without needing a right mouse button.
 - Added fit-mode behavior. Opening a diagram or pressing `Fit` fits the diagram
   to the viewport, and resizing the window keeps refitting until the user
   manually zooms or pans.
