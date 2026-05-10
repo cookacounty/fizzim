@@ -32,6 +32,27 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 public class DrawArea extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener, ActionListener,Printable {
 
+	public static class LintIssue {
+		public String severity;
+		public String message;
+		public String targetName;
+		public int targetType;
+
+		public LintIssue(String severity, String message, GeneralObj target) {
+			this.severity = severity;
+			this.message = message;
+			this.targetName = target == null ? null : target.getName();
+			this.targetType = target == null ? -1 : target.getType();
+		}
+
+		public String toString() {
+			String prefix = "[" + severity + "] ";
+			if(targetName != null)
+				return prefix + targetName + ": " + message;
+			return prefix + message;
+		}
+	}
+
 	//holds all objects to be currently drawn
 	private Vector<Object> objList;
 	//holds previous lists of objects
@@ -98,6 +119,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	private JColorChooser colorChooser = new JColorChooser();
 	
 	private boolean loading = false;
+	private LinkedList<LintIssue> lastLintIssues = new LinkedList<LintIssue>();
 	
 	private boolean Redraw = false;
 
@@ -1750,6 +1772,11 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		else
 		{
 			bestMatch = selectTransitionEndpointType(e, 4);
+			if(bestMatch != null && doubleClick)
+			{
+				new StateProperties(this,frame, true, (StateObj) bestMatch).setVisible(true);
+				return;
+			}
 
 			//if object already selected
 			for (int i = 1; bestMatch == null && i < objList.size(); i++)
@@ -1777,7 +1804,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 					}
 					else
 					{
-						if(s.getType() == 0 || s.getType() == 5)
+						if(s.getType() == 0 || s.getType() == 4 || s.getType() == 5)
 						{
 							new StateProperties(this,frame, true, (StateObj) s)
 							.setVisible(true);
@@ -3306,6 +3333,7 @@ public void updateTransitions()
 
 	public String lintDiagram()
 	{
+		lastLintIssues.clear();
 		StringBuffer report = new StringBuffer();
 		report.append("Fizzim RTL/FSM Lint Report\n");
 		report.append("==========================\n\n");
@@ -3320,6 +3348,40 @@ public void updateTransitions()
 		if(report.indexOf("[ERROR]") < 0 && report.indexOf("[WARN]") < 0)
 			report.append("[PASS] No lint issues found. The FSM structure looks ready for backend generation.\n");
 		return report.toString();
+	}
+
+	public LinkedList<LintIssue> getLastLintIssues()
+	{
+		return lastLintIssues;
+	}
+
+	public void selectLintIssue(LintIssue issue)
+	{
+		if(issue == null || issue.targetName == null)
+			return;
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == issue.targetType && obj.getName().equals(issue.targetName))
+			{
+				unselectObjs();
+				if(frame instanceof FizzimGui)
+					((FizzimGui)frame).showPage(obj.getPage());
+				obj.setSelectStatus(true);
+				selectedIndices.clear();
+				if(isSelectableDiagramObject(obj))
+					selectedIndices.add(new Integer(i));
+				syncSelectionState();
+				Rectangle bounds = getObjectBounds(obj, obj.getPage());
+				if(bounds != null)
+					scrollRectToVisible(new Rectangle((int)Math.round((bounds.x - originX) * zoom),
+							(int)Math.round((bounds.y - originY) * zoom),
+							Math.max(40, (int)Math.round(bounds.width * zoom)),
+							Math.max(40, (int)Math.round(bounds.height * zoom))));
+				repaint();
+				return;
+			}
+		}
 	}
 
 	private void appendStructuralLint(StringBuffer report)
@@ -3361,13 +3423,13 @@ public void updateTransitions()
 				{
 					wroteHeader = appendLintHeader(report, wroteHeader, "Priority And Ordering");
 					appendLint(report, "ERROR", transitionLabel(trans) + " from " + source.getName()
-							+ " has priority \"" + priorityText + "\". Use an integer from 0 to 1000.");
+							+ " has priority \"" + priorityText + "\". Use an integer from 0 to 1000.", trans);
 				}
 				else if(seen.containsKey(new Integer(priority)))
 				{
 					wroteHeader = appendLintHeader(report, wroteHeader, "Priority And Ordering");
 					appendLint(report, "ERROR", transitionLabel(trans) + " and " + seen.get(new Integer(priority))
-							+ " both use priority " + priority + " from source " + source.getName() + ".");
+							+ " both use priority " + priority + " from source " + source.getName() + ".", trans);
 				}
 				else
 				{
@@ -3380,7 +3442,7 @@ public void updateTransitions()
 			{
 				wroteHeader = appendLintHeader(report, wroteHeader, "Priority And Ordering");
 				appendLint(report, "WARN", "Source " + source.getName() + " has " + transitions.size()
-						+ " prioritized outgoing transitions but no default/else branch. ASIC RTL should make uncovered conditions intentional.");
+						+ " prioritized outgoing transitions but no default/else branch. ASIC RTL should make uncovered conditions intentional.", source);
 			}
 			sortTransitionsByPriority(transitions);
 			for(int i = 0; i < transitions.size() - 1; i++)
@@ -3389,7 +3451,7 @@ public void updateTransitions()
 				{
 					wroteHeader = appendLintHeader(report, wroteHeader, "Priority And Ordering");
 					appendLint(report, "ERROR", transitionLabel(transitions.get(i)) + " from " + source.getName()
-							+ " is an always-true/default transition above lower-priority transitions. Those lower-priority branches are unreachable.");
+							+ " is an always-true/default transition above lower-priority transitions. Those lower-priority branches are unreachable.", transitions.get(i));
 				}
 			}
 		}
@@ -3415,19 +3477,25 @@ public void updateTransitions()
 			if(incomingCount == 0)
 			{
 				wroteHeader = appendLintHeader(report, wroteHeader, "Fork Coverage");
-				appendLint(report, "ERROR", "Fork " + fork.getName() + " has no incoming transition.");
+				appendLint(report, "ERROR", "Fork " + fork.getName() + " has no incoming transition.", fork);
+			}
+			if(incomingCount > 1)
+			{
+				wroteHeader = appendLintHeader(report, wroteHeader, "Fork Coverage");
+				appendLint(report, "WARN", "Fork " + fork.getName() + " has " + incomingCount
+						+ " incoming transitions. Safety-oriented statechart guidelines avoid junction backtracking and ambiguous merge/split paths; prefer one fork per shared source condition.", fork);
 			}
 			if(outgoingCount < 2)
 			{
 				wroteHeader = appendLintHeader(report, wroteHeader, "Fork Coverage");
 				appendLint(report, "ERROR", "Fork " + fork.getName() + " has " + outgoingCount
-						+ " outgoing transition(s). A fork should resolve to at least two branches.");
+						+ " outgoing transition(s). A fork should resolve to at least two branches.", fork);
 			}
 			if(outgoingCount >= 2 && !hasDefaultTransition(outgoing))
 			{
 				wroteHeader = appendLintHeader(report, wroteHeader, "Fork Coverage");
 				appendLint(report, "WARN", "Fork " + fork.getName()
-						+ " has multiple outgoing branches but no default branch. Add an explicit final branch such as equation 1.");
+						+ " has multiple outgoing branches but no default branch. Add an explicit final branch such as equation 1.", fork);
 			}
 		}
 		if(wroteHeader)
@@ -3452,7 +3520,7 @@ public void updateTransitions()
 				{
 					wroteHeader = appendLintHeader(report, wroteHeader, "Equation References");
 					appendLint(report, "WARN", transitionLabel(trans) + " equation references \""
-							+ ref + "\", which is not a known input, output, state, or built-in FSM signal.");
+							+ ref + "\", which is not a known input, output, state, or built-in FSM signal.", trans);
 				}
 			}
 		}
@@ -3552,7 +3620,7 @@ public void updateTransitions()
 			{
 				wroteHeader = appendLintHeader(report, wroteHeader, "Reachability");
 				appendLint(report, "WARN", "State " + state.getName()
-						+ " is not reachable from reset_state " + reset.getName() + " through the drawn transitions.");
+						+ " is not reachable from reset_state " + reset.getName() + " through the drawn transitions.", state);
 			}
 		}
 		if(wroteHeader)
@@ -3571,13 +3639,13 @@ public void updateTransitions()
 			{
 				wroteHeader = appendLintHeader(report, wroteHeader, "State Coverage");
 				appendLint(report, "WARN", "State " + state.getName()
-						+ " has no explicit outgoing transition and implied_loopback is disabled.");
+						+ " has no explicit outgoing transition and implied_loopback is disabled.", state);
 			}
 			else if(outgoing.size() > 1 && !hasDefaultTransition(outgoing))
 			{
 				wroteHeader = appendLintHeader(report, wroteHeader, "State Coverage");
 				appendLint(report, "WARN", "State " + state.getName()
-						+ " has multiple effective outgoing transitions with no default/else branch.");
+						+ " has multiple effective outgoing transitions with no default/else branch.", state);
 			}
 		}
 		if(wroteHeader)
@@ -3614,13 +3682,13 @@ public void updateTransitions()
 					{
 						wroteHeader = appendLintHeader(report, wroteHeader, "Transition Actions");
 						appendLint(report, "ERROR", transitionLabel((TransitionObj)obj) + " has a blank transition action for output "
-								+ attr.getName() + ".");
+								+ attr.getName() + ".", obj);
 					}
 					if(value.indexOf("<=") >= 0 || value.indexOf("=") >= 0)
 					{
 						wroteHeader = appendLintHeader(report, wroteHeader, "Transition Actions");
 						appendLint(report, "WARN", transitionLabel((TransitionObj)obj) + " transition action for "
-								+ attr.getName() + " looks like a full assignment. Enter only the RHS expression.");
+								+ attr.getName() + " looks like a full assignment. Enter only the RHS expression.", obj);
 					}
 				}
 			}
@@ -3643,6 +3711,12 @@ public void updateTransitions()
 
 	private void appendLint(StringBuffer report, String severity, String message)
 	{
+		appendLint(report, severity, message, null);
+	}
+
+	private void appendLint(StringBuffer report, String severity, String message, GeneralObj target)
+	{
+		lastLintIssues.add(new LintIssue(severity, message, target));
 		report.append("[").append(severity).append("] ").append(message).append("\n");
 	}
 

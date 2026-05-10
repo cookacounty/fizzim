@@ -18,6 +18,8 @@ sign off state-machine RTL.
   - multiple prioritized transitions without a default branch are warnings.
 - Checks fork structure:
   - no incoming transition is an error,
+  - multiple incoming transitions are warned because they can behave like a
+    merge/split junction with harder-to-review priority and backtracking intent,
   - fewer than two outgoing transitions is an error,
   - multiple fork branches without a default branch is a warning.
 - Checks transition equations for references to names that are not known inputs,
@@ -49,12 +51,33 @@ These checks line up with common RTL lint themes from Verilator and Verible:
 incomplete decision coverage, unreachable branches, accidental priority logic,
 bad assignment style, and synthesis/simulation mismatch risk.
 
+They also borrow deliberately from safety-oriented statechart practice:
+
+- MathWorks/Stateflow edit-time checks flag dangling transitions, transition
+  shadowing, unreachable states and junctions, invalid default/entry paths, and
+  unexpected backtracking.
+- MAB/MAAB Stateflow guidelines call out unconnected states/transitions,
+  default transition discipline, and backtracking prevention in transition
+  paths.
+- NASA safety guidance stresses known safe initialization, safe transitions
+  between predefined states, and verifying transition preconditions and
+  postconditions for safety-critical behavior.
+- DO-331-style model-based development guidance emphasizes model verification
+  and model coverage, which maps well to Fizzim checks for unreachable states,
+  uncovered branches, and unintended behavior before Verilog generation.
+
 ## Good Next Checks
 
 - Parse transition equations enough to detect exact duplicate conditions from
   the same source.
 - Detect simple complementary branch coverage, such as `pass` plus `!pass`, and
   suppress default-branch warnings when the branch set is provably exhaustive.
+- Detect transition shadowing where an earlier condition fully contains a later
+  condition from the same source.
+- Detect fork cycles and transition paths that can backtrack through forks
+  before reaching a concrete destination.
+- Add explicit precondition/postcondition style annotations for safety-critical
+  transitions and lint when they are missing from selected states or groups.
 - Add a project-level allow-list for intentionally external/package-scope
   equation identifiers.
 - Flag state and transition actions that assign unknown outputs.

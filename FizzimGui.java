@@ -792,13 +792,32 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	private void ToolsLintActionPerformed(ActionEvent evt) {
 		String report = drawArea1.lintDiagram();
+		final java.util.LinkedList<DrawArea.LintIssue> issues = drawArea1.getLastLintIssues();
+		javax.swing.DefaultListModel issueModel = new javax.swing.DefaultListModel();
+		for(int i = 0; i < issues.size(); i++)
+			issueModel.addElement(issues.get(i));
+		final javax.swing.JList issueList = new javax.swing.JList(issueModel);
+		issueList.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+		issueList.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
+			public void valueChanged(javax.swing.event.ListSelectionEvent e) {
+				if(e.getValueIsAdjusting())
+					return;
+				DrawArea.LintIssue issue = (DrawArea.LintIssue)issueList.getSelectedValue();
+				drawArea1.selectLintIssue(issue);
+			}
+		});
 		JTextArea text = new JTextArea(report, 28, 90);
 		text.setEditable(false);
 		text.setLineWrap(true);
 		text.setWrapStyleWord(true);
-		JScrollPane scroll = new JScrollPane(text);
+		JScrollPane reportScroll = new JScrollPane(text);
+		JScrollPane issueScroll = new JScrollPane(issueList);
+		issueScroll.setPreferredSize(new java.awt.Dimension(900, 180));
+		javax.swing.JTabbedPane tabs = new javax.swing.JTabbedPane();
+		tabs.addTab("Issues", issueScroll);
+		tabs.addTab("Report", reportScroll);
 		JOptionPane.showMessageDialog(this,
-				scroll,
+				tabs,
 				"Fizzim RTL/FSM Lint",
 				report.indexOf("[ERROR]") >= 0 ? JOptionPane.ERROR_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
 	}
@@ -1888,7 +1907,16 @@ public class FizzimGui extends javax.swing.JFrame {
 	{
 		return jTabbedPane1.getTitleAt(i);
 	}
-	
+
+	public void showPage(int page)
+	{
+		if(page <= 0 || page >= jTabbedPane1.getTabCount())
+			return;
+		jTabbedPane1.setSelectedIndex(page);
+		drawArea1.setCurrPage(page);
+		jTabbedPane1.setComponentAt(page, jScrollPane1);
+	}
+
 	public int getPageIndex(String name) {
 		for(int i = 1; i < jTabbedPane1.getTabCount(); i++)
 		{
