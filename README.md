@@ -3,6 +3,8 @@
 Finite State Machine design tool for building readable FSM diagrams and
 generating Verilog/SystemVerilog.
 
+![Fizzim 2.0 splash](splash.png)
+
 ![Fizzim 2.0 overview](docs/images/fizzim-2-overview.svg)
 
 ## Documentation
@@ -35,6 +37,12 @@ make.cmd clean
 ```
 
 The jar builds with Java 11-compatible bytecode by default.
+
+## Branding
+
+Fizzim 2.0 uses a simplified dark-header splash screen with an integrated `F²`
+wordmark, plus a matching `F²` app icon, to reflect the updated GUI and modeling
+features.
 
 ## Credits
 

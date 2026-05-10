@@ -218,5 +218,8 @@ part of the current codebase.
 - Added diagrams for forks, state groups, priority behavior, and the Fizzim 2.0
   overview.
 - Updated the app title bar and splash screen for Fizzim 2.0.
+- Refined the Fizzim 2.0 branding with a simpler modern splash screen, an
+  integrated `F²` wordmark, and a larger `F²` application icon for better
+  Windows readability.
 - Kept attribution to original author Michael Zimmer and added Aaron Cook for
   Fizzim 2.0 feature updates.
