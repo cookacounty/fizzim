@@ -1,5 +1,11 @@
 # Fizzim RTL/FSM Lint
 
+Detailed documentation now lives in the GitHub wiki:
+
+https://github.com/cookacounty/fizzim/wiki/Validation-and-Lint
+
+This file is kept as a repo-local design note and may lag the wiki.
+
 This document captures the intent behind the Fizzim 2.0
 `Tools > Validate / Lint Diagram` interface. The command runs structural checks
 that should block generation, then adds a deeper ASIC/RTL review pass for legal

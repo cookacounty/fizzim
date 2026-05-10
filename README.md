@@ -7,18 +7,17 @@ generating Verilog/SystemVerilog.
 
 ## Documentation
 
-The main documentation now lives in the GitHub wiki:
+The detailed documentation lives in the GitHub wiki:
 
 https://github.com/cookacounty/fizzim/wiki
 
-Useful starting points:
+Start with [Getting Started](https://github.com/cookacounty/fizzim/wiki/Getting-Started)
+for build/run instructions, then see
+[Modeling Features](https://github.com/cookacounty/fizzim/wiki/Modeling-Features)
+for forks, state groups, and transition actions.
 
-- [Getting Started](https://github.com/cookacounty/fizzim/wiki/Getting-Started)
-- [Modeling Features](https://github.com/cookacounty/fizzim/wiki/Modeling-Features)
-- [Validation and Lint](https://github.com/cookacounty/fizzim/wiki/Validation-and-Lint)
-- [Backend and Regression Testing](https://github.com/cookacounty/fizzim/wiki/Backend-and-Regression-Testing)
-- [Legacy Documentation](https://github.com/cookacounty/fizzim/wiki/Legacy-Documentation)
-- [Changelog](CHANGELOG.md)
+The repo keeps only short reference material here. The wiki is the source of
+truth for detailed usage, lint, backend testing, and legacy documentation.
 
 ## Quick Build
 

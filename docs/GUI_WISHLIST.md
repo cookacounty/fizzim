@@ -1,5 +1,11 @@
 # GUI Modernization Wishlist
 
+Detailed documentation now lives in the GitHub wiki:
+
+https://github.com/cookacounty/fizzim/wiki/GUI-Wishlist
+
+This file is kept as a repo-local backlog note and may lag the wiki.
+
 This file tracks user-experience ideas that are useful but not required for the
 current Fizzim 2.0 feature set. These are intentionally written as a practical
 backlog, not as committed design promises.
