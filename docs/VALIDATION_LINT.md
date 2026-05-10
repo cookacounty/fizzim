@@ -40,7 +40,9 @@ golden regression input. Instead, it is a compact GUI showcase for the lint
 interface. Open it in Fizzim and run `Tools > Lint Diagram` to see common
 findings such as undeclared transition-equation identifiers, bad priority
 values, fork branch coverage issues, duplicate source-local priorities, and
-missing registered-output reset values.
+missing registered-output reset values. It also includes simple structural
+lint examples for an unreachable state, a transition into a fork with no exit,
+and a fork branch with no incoming transition.
 
 ## RTL Rationale
 

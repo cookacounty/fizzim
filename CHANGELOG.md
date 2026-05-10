@@ -56,6 +56,9 @@ part of the current codebase.
 - Added `testcases/generic_state_machine_lint_issues.fzm`, a deliberately
   imperfect generic diagram for exercising and demonstrating common lint
   findings in the GUI.
+- Expanded the lint showcase diagram with unreachable-state and malformed-fork
+  examples, including a fork with an incoming transition but no exits and a fork
+  branch with no incoming transition.
 
 ### Diagram Editing
 

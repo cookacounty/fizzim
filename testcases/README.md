@@ -52,6 +52,9 @@ generic FSM but intentionally includes common problems:
 - a fork branch set without a default branch
 - duplicate outgoing priorities from the same fork
 - a registered output with no reset value
+- an unreachable state
+- a transition into a fork that has no outgoing branch
+- a fork branch that has no incoming transition
 
 Use this diagram when changing lint behavior or lint highlighting. It should
 open and display normally, but it is expected to report lint findings and is not
