@@ -56,6 +56,9 @@ private int xTemp, yTemp, tempSI,tempEI,lengthS,lengthE;
 
 private double ctrlAngleS, ctrlAngleE;
 private Point bendStartCtrlPt, bendEndCtrlPt;
+private Point bendStartPt, bendEndPt;
+private int bendEndpoint = NONE;
+private static final double BEND_ENDPOINT_PULL = 0.25;
 	
 	public LoopbackTransitionObj(int _x, int _y, int numb, int page, Color c)
 	{
@@ -178,6 +181,12 @@ private Point bendStartCtrlPt, bendEndCtrlPt;
 	public boolean isRouteEditHit(int x, int y)
 	{
 		return isRouteHandleHit(x, y) || isRouteLineHit(x, y);
+	}
+
+	private int nearestEndpointTo(int x, int y)
+	{
+		Point click = new Point(x, y);
+		return click.distanceSq(startPt) <= click.distanceSq(endPt) ? START : END;
 	}
 
 	private void moveAttributeTextOffsets(int dx, int dy)
@@ -331,9 +340,11 @@ private Point bendStartCtrlPt, bendEndCtrlPt;
 		{
 			if(selectStatus == START)
 			{
+				Point oldPt = new Point(startPt);
 				Point currPt = new Point(x,y);
 				startStateIndex = nearestBorderIndex(stateBorderPts, currPt);
 				startPt.setLocation(stateBorderPts.get(startStateIndex).getX(),stateBorderPts.get(startStateIndex).getY());
+				moveControlWithEndpoint(startCtrlPt, oldPt, startPt);
 			}
 			if(selectStatus == STARTCTRL)
 				startCtrlPt.setLocation(x,y);
@@ -341,9 +352,11 @@ private Point bendStartCtrlPt, bendEndCtrlPt;
 				endCtrlPt.setLocation(x,y);
 			if(selectStatus == END)
 			{
+				Point oldPt = new Point(endPt);
 				Point currPt = new Point(x,y);
 				endStateIndex = nearestBorderIndex(stateBorderPts, currPt);
 				endPt.setLocation(stateBorderPts.get(endStateIndex).getX(),stateBorderPts.get(endStateIndex).getY());
+				moveControlWithEndpoint(endCtrlPt, oldPt, endPt);
 			}
 			if(selectStatus == TXT)
 			{
@@ -370,7 +383,7 @@ private Point bendStartCtrlPt, bendEndCtrlPt;
 					int dy = y - yTemp;
 					startCtrlPt.setLocation(startCtrlPt.x + dx, startCtrlPt.y + dy);
 					endCtrlPt.setLocation(endCtrlPt.x + dx, endCtrlPt.y + dy);
-					moveAttributeTextOffsets(dx, dy);
+					moveBendEndpointToward(x, y);
 					xTemp = x;
 					yTemp = y;
 				}
@@ -391,9 +404,12 @@ private Point bendStartCtrlPt, bendEndCtrlPt;
 
 	@Override
 	public boolean setSelectStatus(int x, int y) {
-		
+
 		if(currPage == myPage)
 		{
+			bendEndpoint = NONE;
+			bendStartPt = null;
+			bendEndPt = null;
 			if(selectStatus != 5 || !loop.contains(x,y))
 			{
 				selectStatus = NONE;
@@ -450,8 +466,11 @@ private Point bendStartCtrlPt, bendEndCtrlPt;
 						if(isRouteLineHit(x,y))
 						{
 							selectStatus = 5;
+							bendEndpoint = nearestEndpointTo(x, y);
 							bendStartCtrlPt = new Point(startCtrlPt);
 							bendEndCtrlPt = new Point(endCtrlPt);
+							bendStartPt = new Point(startPt);
+							bendEndPt = new Point(endPt);
 							//break;
 						}
 					//}
@@ -465,7 +484,42 @@ private Point bendStartCtrlPt, bendEndCtrlPt;
 		else
 			return false;
 	}
-	
+
+	private void moveBendEndpointToward(int x, int y)
+	{
+		if(bendEndpoint == START)
+		{
+			Point basePt = bendStartPt == null ? startPt : bendStartPt;
+			Point oldPt = new Point(startPt);
+			Point currPt = easedEndpointTarget(basePt, x, y);
+			startStateIndex = nearestBorderIndex(stateBorderPts, currPt);
+			startPt.setLocation(stateBorderPts.get(startStateIndex).getX(), stateBorderPts.get(startStateIndex).getY());
+			startCtrlPt.setLocation(startCtrlPt.x + startPt.x - oldPt.x, startCtrlPt.y + startPt.y - oldPt.y);
+		}
+		else if(bendEndpoint == END)
+		{
+			Point basePt = bendEndPt == null ? endPt : bendEndPt;
+			Point oldPt = new Point(endPt);
+			Point currPt = easedEndpointTarget(basePt, x, y);
+			endStateIndex = nearestBorderIndex(stateBorderPts, currPt);
+			endPt.setLocation(stateBorderPts.get(endStateIndex).getX(), stateBorderPts.get(endStateIndex).getY());
+			endCtrlPt.setLocation(endCtrlPt.x + endPt.x - oldPt.x, endCtrlPt.y + endPt.y - oldPt.y);
+		}
+	}
+
+	private Point easedEndpointTarget(Point basePt, int x, int y)
+	{
+		int targetX = (int)Math.round(basePt.x + (x - basePt.x) * BEND_ENDPOINT_PULL);
+		int targetY = (int)Math.round(basePt.y + (y - basePt.y) * BEND_ENDPOINT_PULL);
+		return new Point(targetX, targetY);
+	}
+
+	private void moveControlWithEndpoint(Point ctrlPt, Point oldEndpoint, Point newEndpoint)
+	{
+		ctrlPt.setLocation(ctrlPt.x + newEndpoint.x - oldEndpoint.x,
+				ctrlPt.y + newEndpoint.y - oldEndpoint.y);
+	}
+
 	public int getType()
 	{
 		return 2;
@@ -565,42 +619,21 @@ private Point bendStartCtrlPt, bendEndCtrlPt;
 	{
 		if(!ready)
 			return new Point(0,0);
-		int large;
-		int small;
-		int index;
-		if(startStateIndex > endStateIndex)
-		{
-			large = startStateIndex;
-			small = endStateIndex;
-		}
-		else
-		{
-			small = startStateIndex;
-			large = endStateIndex;	
-		}
-		
-		if(large-small > 18)
-		{
-			index = small-(36-large+small)/2;
-			if(index < 0)
-				index += 36;
-		}
-		
-		else
-			index = (large-small)/2 + small;
-		
-		
-		
-		double len = startPt.distance(startCtrlPt);
-		Point bord = stateBorderPts.get(index);
-		
-	
-		return new Point((int) (len*Math.cos(index*2*Math.PI/36) + bord.getX()), (int) (len*Math.sin(index*2*Math.PI/36) + bord.getY()));
-		
-		
-			
-			
-		
+		return bezierPoint(startPt, startCtrlPt, endCtrlPt, endPt, 0.5);
+	}
+
+	private Point bezierPoint(Point p0, Point p1, Point p2, Point p3, double t)
+	{
+		double inv = 1.0 - t;
+		double x = inv * inv * inv * p0.x
+				+ 3 * inv * inv * t * p1.x
+				+ 3 * inv * t * t * p2.x
+				+ t * t * t * p3.x;
+		double y = inv * inv * inv * p0.y
+				+ 3 * inv * inv * t * p1.y
+				+ 3 * inv * t * t * p2.y
+				+ t * t * t * p3.y;
+		return new Point((int)Math.round(x), (int)Math.round(y));
 	}
 
 

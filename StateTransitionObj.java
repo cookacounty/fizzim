@@ -75,6 +75,10 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 	int edy;
 	private Point bendStartCtrlPt;
 	private Point bendEndCtrlPt;
+	private Point bendStartPt;
+	private Point bendEndPt;
+	private int bendEndpoint = NONE;
+	private static final double BEND_ENDPOINT_PULL = 0.25;
 	
 	//for stubs
 	int len;
@@ -331,6 +335,14 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 	public boolean isRouteEditHit(int x, int y)
 	{
 		return isRouteHandleHit(x, y) || isRouteLineHit(x, y);
+	}
+
+	private int nearestEndpointTo(int x, int y)
+	{
+		if(stub)
+			return START;
+		Point click = new Point(x, y);
+		return click.distanceSq(startPt) <= click.distanceSq(endPt) ? START : END;
 	}
 
 	private int nearestBorderIndex(Vector<Point> borderPts, StateObj state, Point target)
@@ -825,10 +837,12 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 	public void adjustShapeOrPosition(int x, int y) {
 		if(selectStatus == START)
 		{
+			Point oldPt = new Point(startPt);
 			Point currPt = new Point(x,y);
 			startStateIndex = nearestBorderIndex(startBorderPts, startState, currPt);
 			startPt.setLocation(startBorderPts.get(startStateIndex).getX(),startBorderPts.get(startStateIndex).getY());
-			
+			moveControlWithEndpoint(startCtrlPt, oldPt, startPt);
+
 			if(stub)
 			{
 				angle = getAngle(startPt,startState.getRealCenter(myPage));
@@ -841,9 +855,11 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			endCtrlPt.setLocation(x,y);
 		if(selectStatus == END)
 		{
+			Point oldPt = new Point(endPt);
 			Point currPt = new Point(x,y);
 			endStateIndex = nearestBorderIndex(endBorderPts, endState, currPt);
 			endPt.setLocation(endBorderPts.get(endStateIndex).getX(),endBorderPts.get(endStateIndex).getY());
+			moveControlWithEndpoint(endCtrlPt, oldPt, endPt);
 		}
 		if(selectStatus == PAGES)
 		{
@@ -878,7 +894,7 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			int dy = y - yTemp;
 			startCtrlPt.setLocation(startCtrlPt.x + dx, startCtrlPt.y + dy);
 			endCtrlPt.setLocation(endCtrlPt.x + dx, endCtrlPt.y + dy);
-			moveAttributeTextOffsets(dx, dy);
+			moveBendEndpointToward(x, y);
 			xTemp = x;
 			yTemp = y;
 		}
@@ -917,8 +933,11 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 
 	@Override
 	public boolean setSelectStatus(int x, int y) {
-		
+
 		selectStatus = NONE;
+		bendEndpoint = NONE;
+		bendStartPt = null;
+		bendEndPt = null;
 		xTemp = x;
 		yTemp = y;
 		//check for text
@@ -974,8 +993,11 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 	        	if(isRouteLineHit(x, y))
 	        	{
 	        		selectStatus = ALL;
+					bendEndpoint = nearestEndpointTo(x, y);
 	        		bendStartCtrlPt = new Point(startCtrlPt);
 	        		bendEndCtrlPt = new Point(endCtrlPt);
+					bendStartPt = new Point(startPt);
+					bendEndPt = new Point(endPt);
 	        	}
 	        }	
 
@@ -985,8 +1007,48 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		else
 			return true;
 	}
-	
-	
+
+	private void moveBendEndpointToward(int x, int y)
+	{
+		if(bendEndpoint == START)
+		{
+			Point basePt = bendStartPt == null ? startPt : bendStartPt;
+			Point oldPt = new Point(startPt);
+			Point currPt = easedEndpointTarget(basePt, x, y);
+			startStateIndex = nearestBorderIndex(startBorderPts, startState, currPt);
+			startPt.setLocation(startBorderPts.get(startStateIndex).getX(), startBorderPts.get(startStateIndex).getY());
+			startCtrlPt.setLocation(startCtrlPt.x + startPt.x - oldPt.x, startCtrlPt.y + startPt.y - oldPt.y);
+			if(stub)
+			{
+				angle = getAngle(startPt,startState.getRealCenter(myPage));
+				pageS.setLocation(new Point((int)(startPt.getX()+len*Math.cos(angle)),(int)(startPt.getY()-len*Math.sin(angle))));
+			}
+		}
+		else if(bendEndpoint == END)
+		{
+			Point basePt = bendEndPt == null ? endPt : bendEndPt;
+			Point oldPt = new Point(endPt);
+			Point currPt = easedEndpointTarget(basePt, x, y);
+			endStateIndex = nearestBorderIndex(endBorderPts, endState, currPt);
+			endPt.setLocation(endBorderPts.get(endStateIndex).getX(), endBorderPts.get(endStateIndex).getY());
+			endCtrlPt.setLocation(endCtrlPt.x + endPt.x - oldPt.x, endCtrlPt.y + endPt.y - oldPt.y);
+		}
+	}
+
+	private Point easedEndpointTarget(Point basePt, int x, int y)
+	{
+		int targetX = (int)Math.round(basePt.x + (x - basePt.x) * BEND_ENDPOINT_PULL);
+		int targetY = (int)Math.round(basePt.y + (y - basePt.y) * BEND_ENDPOINT_PULL);
+		return new Point(targetX, targetY);
+	}
+
+	private void moveControlWithEndpoint(Point ctrlPt, Point oldEndpoint, Point newEndpoint)
+	{
+		ctrlPt.setLocation(ctrlPt.x + newEndpoint.x - oldEndpoint.x,
+				ctrlPt.y + newEndpoint.y - oldEndpoint.y);
+	}
+
+
 
 
 
@@ -1121,9 +1183,7 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		{
 			if(!stub)
 			{
-				int x = (int) ((endPt.getX() - startPt.getX())/2 + startPt.getX());
-				int y = (int) ((endPt.getY() - startPt.getY())/2 + startPt.getY());
-				return new Point(x,y);
+				return bezierPoint(startPt, startCtrlPt, endCtrlPt, endPt, 0.5);
 			}
 			else
 			{
@@ -1145,6 +1205,20 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 				return new Point(x,y);
 			}
 		}
+	}
+
+	private Point bezierPoint(Point p0, Point p1, Point p2, Point p3, double t)
+	{
+		double inv = 1.0 - t;
+		double x = inv * inv * inv * p0.x
+				+ 3 * inv * inv * t * p1.x
+				+ 3 * inv * t * t * p2.x
+				+ t * t * t * p3.x;
+		double y = inv * inv * inv * p0.y
+				+ 3 * inv * inv * t * p1.y
+				+ 3 * inv * t * t * p2.y
+				+ t * t * t * p3.y;
+		return new Point((int)Math.round(x), (int)Math.round(y));
 	}
 
 
