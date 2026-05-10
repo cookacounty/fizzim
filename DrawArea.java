@@ -145,6 +145,9 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	private double zoom = 1.0;
 	private int logicalWidth = 936;
 	private int logicalHeight = 1296;
+	private int originX = 0;
+	private int originY = 0;
+	private static final int DIAGRAM_PADDING = 140;
 	private static final int SMART_ALIGN_THRESHOLD = 3;
 	private static final int SMART_SPACING_ROW_THRESHOLD = 16;
 	private Integer smartGuideX = null;
@@ -209,6 +212,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		super.paintComponent(original);
 		Graphics2D g2D = (Graphics2D) original.create();
 		g2D.scale(zoom, zoom);
+		g2D.translate(-originX, -originY);
 		paintDiagram(g2D);
 		g2D.dispose();
 	}
@@ -218,6 +222,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		Graphics2D g2D = (Graphics2D) g;
 		g2D.setColor(getBackground());
 		g2D.fillRect(0, 0, logicalWidth, logicalHeight);
+		g2D.translate(-originX, -originY);
 		paintDiagram(g2D);
 	}
 
@@ -270,14 +275,14 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		g2D.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, dash, 0.0f));
 		g2D.setColor(new Color(70, 130, 180));
 		if(smartGuideX != null)
-			g2D.drawLine(smartGuideX.intValue(), 0, smartGuideX.intValue(), logicalHeight);
+			g2D.drawLine(smartGuideX.intValue(), originY, smartGuideX.intValue(), originY + logicalHeight);
 		if(smartGuideY != null)
-			g2D.drawLine(0, smartGuideY.intValue(), logicalWidth, smartGuideY.intValue());
+			g2D.drawLine(originX, smartGuideY.intValue(), originX + logicalWidth, smartGuideY.intValue());
 		g2D.setColor(new Color(120, 90, 180));
 		if(smartSpacingGuideX != null)
-			g2D.drawLine(smartSpacingGuideX.intValue(), 0, smartSpacingGuideX.intValue(), logicalHeight);
+			g2D.drawLine(smartSpacingGuideX.intValue(), originY, smartSpacingGuideX.intValue(), originY + logicalHeight);
 		if(smartSpacingGuideY != null)
-			g2D.drawLine(0, smartSpacingGuideY.intValue(), logicalWidth, smartSpacingGuideY.intValue());
+			g2D.drawLine(originX, smartSpacingGuideY.intValue(), originX + logicalWidth, smartSpacingGuideY.intValue());
 		g2D.setStroke(oldStroke);
 		g2D.setColor(oldColor);
 	}
@@ -297,9 +302,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 
 	public void setLogicalSize(int width, int height)
 	{
-		logicalWidth = width;
-		logicalHeight = height;
-		updateZoomedSize();
+		updateCanvasExtents();
 	}
 
 	public int getLogicalWidth()
@@ -327,14 +330,147 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		revalidate();
 	}
 
+	public void updateCanvasExtents()
+	{
+		Rectangle bounds = getDiagramBounds(currPage);
+		originX = bounds.x - DIAGRAM_PADDING;
+		originY = bounds.y - DIAGRAM_PADDING;
+		logicalWidth = Math.max(1, bounds.width + DIAGRAM_PADDING * 2);
+		logicalHeight = Math.max(1, bounds.height + DIAGRAM_PADDING * 2);
+		updateZoomedSize();
+	}
+
+	public Rectangle getDiagramBounds(int page)
+	{
+		Rectangle bounds = null;
+		if(objList != null)
+		{
+			for(int i = 1; i < objList.size(); i++)
+			{
+				GeneralObj obj = (GeneralObj)objList.elementAt(i);
+				Rectangle objBounds = getObjectBounds(obj, page);
+				if(objBounds == null)
+					continue;
+				if(bounds == null)
+					bounds = new Rectangle(objBounds);
+				else
+					bounds.add(objBounds);
+			}
+		}
+		if(bounds == null)
+			bounds = new Rectangle(0, 0, 1, 1);
+		return bounds;
+	}
+
+	private Rectangle getObjectBounds(GeneralObj obj, int page)
+	{
+		if(obj.getPage() != page && obj.getType() != 1)
+			return null;
+		if(obj instanceof StateObj)
+		{
+			int[] coords = ((StateObj)obj).getCoords();
+			return normalizedBounds(coords[0], coords[1], coords[2], coords[3], 20);
+		}
+		if(obj instanceof TextObj)
+		{
+			TextObj textObj = (TextObj)obj;
+			if(textObj.getGlobalTable())
+				return null;
+			return textObj.getBounds();
+		}
+		if(obj instanceof StateTransitionObj)
+			return getStateTransitionBounds((StateTransitionObj)obj, page);
+		if(obj instanceof LoopbackTransitionObj)
+			return getLoopbackTransitionBounds((LoopbackTransitionObj)obj, page);
+		return null;
+	}
+
+	private Rectangle getStateTransitionBounds(StateTransitionObj trans, int page)
+	{
+		Rectangle bounds = null;
+		if(trans.getSPage() == page)
+		{
+			bounds = addPointToBounds(bounds, trans.startPt);
+			bounds = addPointToBounds(bounds, trans.startCtrlPt);
+			if(trans.getSPage() == trans.getEPage())
+			{
+				bounds = addPointToBounds(bounds, trans.endCtrlPt);
+				bounds = addPointToBounds(bounds, trans.endPt);
+			}
+			else
+			{
+				bounds = addPointToBounds(bounds, trans.pageSC);
+				bounds = addPointToBounds(bounds, trans.pageS);
+			}
+		}
+		if(trans.getEPage() == page && trans.getSPage() != trans.getEPage())
+		{
+			bounds = addPointToBounds(bounds, trans.pageE);
+			bounds = addPointToBounds(bounds, trans.pageEC);
+			bounds = addPointToBounds(bounds, trans.endCtrlPt);
+			bounds = addPointToBounds(bounds, trans.endPt);
+		}
+		if(bounds != null)
+			bounds.grow(24, 24);
+		return bounds;
+	}
+
+	private Rectangle getLoopbackTransitionBounds(LoopbackTransitionObj trans, int page)
+	{
+		if(trans.getPage() != page)
+			return null;
+		Rectangle bounds = null;
+		bounds = addPointToBounds(bounds, trans.startPt);
+		bounds = addPointToBounds(bounds, trans.startCtrlPt);
+		bounds = addPointToBounds(bounds, trans.endCtrlPt);
+		bounds = addPointToBounds(bounds, trans.endPt);
+		if(bounds != null)
+			bounds.grow(24, 24);
+		return bounds;
+	}
+
+	private Rectangle normalizedBounds(int x0, int y0, int x1, int y1, int grow)
+	{
+		int x = Math.min(x0, x1);
+		int y = Math.min(y0, y1);
+		int w = Math.abs(x1 - x0);
+		int h = Math.abs(y1 - y0);
+		Rectangle bounds = new Rectangle(x, y, w, h);
+		bounds.grow(grow, grow);
+		return bounds;
+	}
+
+	private Rectangle addPointToBounds(Rectangle bounds, Point point)
+	{
+		if(point == null)
+			return bounds;
+		if(bounds == null)
+			return new Rectangle(point.x, point.y, 1, 1);
+		bounds.add(point);
+		return bounds;
+	}
+
+	public void fitDiagramToViewport(Dimension viewport)
+	{
+		if(viewport == null || viewport.width <= 0 || viewport.height <= 0)
+			return;
+		updateCanvasExtents();
+		double xZoom = viewport.getWidth() / logicalWidth;
+		double yZoom = viewport.getHeight() / logicalHeight;
+		setZoom(Math.min(xZoom, yZoom));
+		JViewport scrollViewport = (JViewport)SwingUtilities.getAncestorOfClass(JViewport.class, this);
+		if(scrollViewport != null)
+			scrollViewport.setViewPosition(new Point(0, 0));
+	}
+
 	private int modelX(MouseEvent e)
 	{
-		return (int)Math.round(e.getX() / zoom);
+		return (int)Math.round(e.getX() / zoom) + originX;
 	}
 
 	private int modelY(MouseEvent e)
 	{
-		return (int)Math.round(e.getY() / zoom);
+		return (int)Math.round(e.getY() / zoom) + originY;
 	}
 
 	private void notifyZoomChanged()
@@ -1615,6 +1751,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		{
 			commitUndo();
 			validateStateGroupMembership(true);
+			updateCanvasExtents();
 		}
 
 		if(pendingClickCycle && !toCommit && e.getButton() == MouseEvent.BUTTON1
@@ -1666,15 +1803,6 @@ public void updateTransitions()
 		//keep movement within page
 		int x = modelX(arg0);
 		int y = modelY(arg0);
-		if(x<0)
-			x=0;
-		if(y<0)
-			y=0;
-		FizzimGui fgui = (FizzimGui) frame;
-		if(x>fgui.maxW)
-			x=fgui.maxW;
-		if(y>fgui.maxH)
-			y=fgui.maxH;
 
 		// move object if multiple select is off
 		boolean leftButtonDrag = (arg0.getModifiersEx() & MouseEvent.BUTTON1_DOWN_MASK) != 0;

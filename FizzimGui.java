@@ -235,7 +235,6 @@ public class FizzimGui extends javax.swing.JFrame {
 		FileExportJPEG = new javax.swing.JMenuItem();
 		jSeparator1 = new javax.swing.JSeparator();
 		FilePref = new javax.swing.JMenuItem();
-		FileItemPageSetup = new javax.swing.JMenuItem();
 		FileItemPrint = new javax.swing.JMenuItem();
 		jSeparator2 = new javax.swing.JSeparator();
 		FileItemExit = new javax.swing.JMenuItem();
@@ -385,10 +384,6 @@ public class FizzimGui extends javax.swing.JFrame {
 		
 		
 		Dimension coord = getScrollPaneSize();
-		if (coord.height > maxH)
-			coord.setSize(coord.width, maxH);
-		if (coord.width > maxW)
-			coord.setSize(maxW + 23, coord.height);
 
 		jTabbedPane1.setMinimumSize(coord);
 		jTabbedPane1.setSize(coord);
@@ -508,17 +503,6 @@ public class FizzimGui extends javax.swing.JFrame {
 		});
 
 		FileMenu.add(FilePref);
-
-		FileItemPageSetup.setText("Page Setup");
-		FileItemPageSetup.setMnemonic(java.awt.event.KeyEvent.VK_U);
-		FileItemPageSetup
-				.addActionListener(new java.awt.event.ActionListener() {
-					public void actionPerformed(java.awt.event.ActionEvent evt) {
-						FileItemPageSetupActionPerformed(evt);
-					}
-		});
-
-		FileMenu.add(FileItemPageSetup);
 
 		FileItemPrint.setAccelerator(javax.swing.KeyStroke.getKeyStroke(
 				java.awt.event.KeyEvent.VK_P,
@@ -834,12 +818,7 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	private void fitDiagramToViewport() {
 		Dimension viewport = jScrollPane1.getViewport().getExtentSize();
-		if(viewport.width <= 0 || viewport.height <= 0)
-			return;
-		double xZoom = viewport.getWidth() / drawArea1.getLogicalWidth();
-		double yZoom = viewport.getHeight() / drawArea1.getLogicalHeight();
-		drawArea1.setZoom(Math.min(xZoom, yZoom));
-		jScrollPane1.getViewport().setViewPosition(new Point(0, 0));
+		drawArea1.fitDiagramToViewport(viewport);
 	}
 
 	private void enterZoomFitMode() {
@@ -892,7 +871,8 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	protected void FileExportClipboardActionPerformed(ActionEvent evt) {
-		BufferedImage bufferedImage = new BufferedImage(maxW,maxH, BufferedImage.TYPE_INT_RGB);
+		drawArea1.updateCanvasExtents();
+		BufferedImage bufferedImage = new BufferedImage(drawArea1.getLogicalWidth(), drawArea1.getLogicalHeight(), BufferedImage.TYPE_INT_RGB);
 		Graphics2D tempG = bufferedImage.createGraphics();
 		drawArea1.unselectObjs();
 		drawArea1.paintUnscaled(tempG);
@@ -946,7 +926,8 @@ public class FizzimGui extends javax.swing.JFrame {
 	
 	private RenderedImage getImage()
 	{
-		BufferedImage bufferedImage = new BufferedImage(maxW,maxH, BufferedImage.TYPE_INT_RGB);
+		drawArea1.updateCanvasExtents();
+		BufferedImage bufferedImage = new BufferedImage(drawArea1.getLogicalWidth(), drawArea1.getLogicalHeight(), BufferedImage.TYPE_INT_RGB);
 		Graphics2D tempG = bufferedImage.createGraphics();
 		drawArea1.paintUnscaled(tempG);
 		
@@ -1017,24 +998,15 @@ public class FizzimGui extends javax.swing.JFrame {
 		
 	}
 
-	//GEN-FIRST:event_FileItemPageSetupActionPerformed
-	private void FileItemPageSetupActionPerformed(java.awt.event.ActionEvent evt) {
-		new PageSetup(this, true).setVisible(true);
-	}//GEN-LAST:event_FileItemPageSetupActionPerformed
-
 	//GEN-FIRST:event_formComponentResized
 	private void formComponentResized(java.awt.event.ComponentEvent evt) {
 		//this method makes sure that the draw area size is mostly restricted
 		// to dimensions set in page setup
 		
 		Dimension coord = getScrollPaneSize();
-		if (coord.height > maxH)
-			coord.setSize(coord.width, maxH);
-		if (coord.width > maxW)
-			coord.setSize(maxW + 23, coord.height);
-		drawArea1.setLogicalSize(maxW,maxH);
 		jTabbedPane1.setMinimumSize(coord);
 		jTabbedPane1.setSize(coord);
+		drawArea1.updateCanvasExtents();
 		jPanel3.doLayout();
 		jPanel3.repaint();
 		if(zoomFitMode)
@@ -1767,7 +1739,6 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JMenuItem FileItemOpen;
 	private javax.swing.JMenu FileOpenRecent;
 	private javax.swing.JMenuItem FilePref;
-	private javax.swing.JMenuItem FileItemPageSetup;
 	private javax.swing.JMenuItem FileItemPrint;
 	private javax.swing.JMenuItem FileItemSave;
 	private javax.swing.JMenuItem FileItemSaveAs;
@@ -1852,19 +1823,13 @@ public class FizzimGui extends javax.swing.JFrame {
 	{
 		maxW = w;
 		maxH = h;
-		
-		drawArea1.setLogicalSize(maxW, maxH);
-		
-		//try to clean up resized page
+
+		// Page setup is kept for legacy page connectors, but the editor canvas
+		// now sizes itself from the diagram extents.
 		drawArea1.updatePageConn();
-		drawArea1.moveOnResize(maxW, maxH);
-		
+		drawArea1.updateCanvasExtents();
+
 		Dimension coord = getScrollPaneSize();
-		if (coord.height > maxH)
-			coord.setSize(coord.width, maxH);
-		if (coord.width > maxW)
-			coord.setSize(maxW + 23, coord.height);
-		
 		jTabbedPane1.setMinimumSize(coord);
 		jTabbedPane1.setSize(coord);
 		jTabbedPane1.doLayout();

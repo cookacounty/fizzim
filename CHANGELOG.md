@@ -50,9 +50,26 @@ part of the current codebase.
   - Hover cursor feedback over route handles and editable transition routes.
   - A `Reset Transition Route` context-menu action.
   - Dragging a transition line bends the existing Bezier route.
-  - Transition labels move with the line while bending.
+  - Dragging a transition line now lightly pulls the nearest endpoint while
+    still favoring line bowing, making route shaping more natural.
+  - Dragging a connection point along a state or state-group edge now moves the
+    adjacent bend/control point with it, preserving the existing bend shape.
+  - Transition labels now anchor to the actual visible Bezier curve midpoint, so
+    labels stay near the visual line even after aggressive route edits.
   - Larger states and state groups expose finer connection points while keeping
     old saved connection indices compatible.
+- Improved automatic transition alignment so multiple transitions entering or
+  leaving the same state, fork, or state group are distributed along the relevant
+  edge instead of stacking on the same connection point.
+- Updated selection behavior to follow standard desktop conventions:
+  - Plain click selects one object.
+  - Ctrl-click toggles objects in and out of the current selection.
+  - Shift-click adds objects to the current selection.
+  - Drag selection replaces by default, Shift-drag adds, and Ctrl-drag toggles.
+  - Ctrl+A selects all movable diagram objects.
+- Improved batch movement of selected states, state groups, forks, and text so
+  connected transitions move with the selected objects and state-group children
+  are not moved twice.
 - Added zoom controls for the canvas:
   - `+` and `-` zoom buttons.
   - Zoom percentage display.
@@ -60,6 +77,14 @@ part of the current codebase.
   - Ctrl + mouse wheel zoom targeting the mouse position.
 - Added right-button drag panning while preserving quick right-click context
   menus.
+- Added fit-mode behavior. Opening a diagram or pressing `Fit` fits the diagram
+  to the viewport, and resizing the window keeps refitting until the user
+  manually zooms or pans.
+- Replaced the fixed page-sized editing canvas with an object-extents canvas.
+  The visible canvas, zoom fit, and image export now size around the current
+  page's actual objects plus padding rather than the legacy page setup size.
+- Removed the user-facing `Page Setup` menu item because page size no longer
+  defines the editor canvas.
 - Added Open Recent support for the last 10 opened diagram files.
 - Allowed multiple diagram windows to be open at the same time.
 - Added default new-FSM settings for `posedge clk`, `negedge rst_l`, and implied

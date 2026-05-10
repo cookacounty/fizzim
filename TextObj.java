@@ -4,6 +4,7 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.font.FontRenderContext;
 import java.awt.font.TextLayout;
 import java.io.BufferedWriter;
@@ -386,6 +387,11 @@ public class TextObj extends GeneralObj {
 	public Point getCenter(int page)
 	{
 		return new Point(tX +(tW/2), tY + (tH/2));
+	}
+
+	public Rectangle getBounds()
+	{
+		return new Rectangle(tX - 8, tY - Math.max(20, tH), Math.max(16, tW + 16), Math.max(24, tH + 12));
 	}
 
 
