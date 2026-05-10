@@ -5,6 +5,7 @@ This folder now uses one source diagram:
 | File | Purpose |
 | --- | --- |
 | `generic_state_machine.fzm` | Fizzim 2.0 source diagram using forks, state groups, state-group default entry, and transition actions. |
+| `generic_state_machine_lint_issues.fzm` | Copy of the generic diagram with intentional lint issues for GUI validation demos. This is not used by the backend equivalence regression. |
 | `generate_fizzim1_compat.js` | Generates a Fizzim 1.0-compatible golden diagram from the source diagram. |
 | `tb_generic_state_action_equiv.sv` | Drives the generated golden RTL and feature RTL with identical inputs. |
 
@@ -39,6 +40,22 @@ plain old Fizzim constructs:
 
 The compatible diagram removes `<fork>`, `<stategroup>`, and `<entryState>` so
 it can be used as the old-style golden reference.
+
+## Lint Showcase Diagram
+
+`generic_state_machine_lint_issues.fzm` is meant for exercising
+`Tools > Lint Diagram` from the GUI. It stays visually close to the normal
+generic FSM but intentionally includes common problems:
+
+- a transition equation that references an undeclared signal
+- a transition priority outside the allowed `0` to `1000` range
+- a fork branch set without a default branch
+- duplicate outgoing priorities from the same fork
+- a registered output with no reset value
+
+Use this diagram when changing lint behavior or lint highlighting. It should
+open and display normally, but it is expected to report lint findings and is not
+used by `make test`.
 
 ## Priority Rules Under Test
 

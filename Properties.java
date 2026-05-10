@@ -7,6 +7,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.text.NumberFormat;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Vector;
@@ -50,6 +51,58 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
+class OutputAttributeFilter {
+	static boolean isInternal(ObjAttribute attr) {
+		return hasUserAttribute(attr, "suppress_portlist");
+	}
+
+	static boolean hasUserAttribute(ObjAttribute attr, String attribute) {
+		String userAtts = attr.getUserAtts();
+		if(userAtts == null)
+			return false;
+		String[] tokens = userAtts.split("[,;\\s]+");
+		for(int i = 0; i < tokens.length; i++) {
+			if(tokens[i].equals(attribute))
+				return true;
+		}
+		return false;
+	}
+
+	static void setInternal(ObjAttribute attr, boolean internal) {
+		if(internal) {
+			addUserAttribute(attr, "suppress_portlist");
+			return;
+		}
+		removeUserAttribute(attr, "suppress_portlist");
+	}
+
+	private static void addUserAttribute(ObjAttribute attr, String attribute) {
+		if(hasUserAttribute(attr, attribute))
+			return;
+		String userAtts = attr.getUserAtts();
+		if(userAtts == null || userAtts.trim().equals(""))
+			attr.setUserAtts(attribute);
+		else
+			attr.setUserAtts(userAtts.trim() + " " + attribute);
+	}
+
+	private static void removeUserAttribute(ObjAttribute attr, String attribute) {
+		String userAtts = attr.getUserAtts();
+		if(userAtts == null || userAtts.trim().equals(""))
+			return;
+		String[] tokens = userAtts.split("[,;\\s]+");
+		String newUserAtts = "";
+		for(int i = 0; i < tokens.length; i++) {
+			if(tokens[i].equals("") || tokens[i].equals(attribute))
+				continue;
+			if(!newUserAtts.equals(""))
+				newUserAtts += " ";
+			newUserAtts += tokens[i];
+		}
+		attr.setUserAtts(newUserAtts);
+	}
+}
 
 class MyTableModel extends AbstractTableModel {
 	
@@ -465,6 +518,53 @@ class MyTableModel extends AbstractTableModel {
 
 
 
+    }
+
+class FilteredOutputTableModel extends MyTableModel {
+	private boolean internal;
+
+	FilteredOutputTableModel(LinkedList<LinkedList<ObjAttribute>> globalL, DrawArea da, boolean showInternal) {
+		super((LinkedList<ObjAttribute>)globalL.get(2), globalL, da);
+		internal = showInternal;
+	}
+
+	private ArrayList<Integer> visibleRows() {
+		ArrayList<Integer> rows = new ArrayList<Integer>();
+		for(int i = 0; i < attrib.size(); i++) {
+			if(OutputAttributeFilter.isInternal(attrib.get(i)) == internal)
+				rows.add(new Integer(i));
+		}
+		return rows;
+	}
+
+	int actualRow(int visibleRow) {
+		return visibleRows().get(visibleRow).intValue();
+	}
+
+	public int getRowCount() {
+		return visibleRows().size();
+	}
+
+	public Object getValueAt(int row, int col) {
+		return super.getValueAt(actualRow(row), col);
+	}
+
+	public Class getColumnClass(int col) {
+		if(getRowCount() == 0)
+			return String.class;
+		return getValueAt(0, col).getClass();
+	}
+
+	public boolean isCellEditable(int row, int col) {
+		return super.isCellEditable(actualRow(row), col);
+	}
+
+	public void setValueAt(Object value, int row, int col) {
+		int actualRow = actualRow(row);
+		super.setValueAt(value, actualRow, col);
+		if(col == 6)
+			fireTableDataChanged();
+	}
 }
 
 class MyJColorRenderer extends JLabel implements TableCellRenderer {
@@ -1656,6 +1756,13 @@ class StateProperties extends javax.swing.JDialog {
 * @author  __USER__
 */
 class GlobalProperties extends javax.swing.JDialog {
+	
+	private static final int TAB_MACHINE = 0;
+	private static final int TAB_INPUTS = 1;
+	private static final int TAB_OUTPUTS = 2;
+	private static final int TAB_INTERNALS = 3;
+	private static final int TAB_STATES = 4;
+	private static final int TAB_TRANSITIONS = 5;
 
 	LinkedList<LinkedList<ObjAttribute>> globalLists;
 	DrawArea drawArea;
@@ -1675,6 +1782,8 @@ class GlobalProperties extends javax.swing.JDialog {
 	MyJComboBoxEditor stateSelect_editor;
 	private JTable currTable = null;
 	private int currTab = 0;
+	private FilteredOutputTableModel outputTableModel;
+	private FilteredOutputTableModel internalTableModel;
 	int[] editable = { ObjAttribute.GLOBAL_FIXED, ObjAttribute.GLOBAL_VAR,
 			ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR};
 	int[] editable2 = { ObjAttribute.ABS, ObjAttribute.GLOBAL_VAR,
@@ -1691,9 +1800,10 @@ class GlobalProperties extends javax.swing.JDialog {
 		stateSelect_editor = new MyJComboBoxEditor(stateObjs);
 		colorChooser = drawArea.getColorChooser();
 		initComponents();
-		GPTabbedPane.setSelectedIndex(tab);
-		currTab = tab;
-		setTable(tab);
+		int uiTab = tabToUiTab(tab);
+		GPTabbedPane.setSelectedIndex(uiTab);
+		currTab = uiTab;
+		setTable(uiTab);
 		
 	}
 	
@@ -1759,6 +1869,8 @@ class GlobalProperties extends javax.swing.JDialog {
 			GPTableInputs = new javax.swing.JTable();
 			GPScrollOutputs = new javax.swing.JScrollPane();
 			GPTableOutputs = new javax.swing.JTable();
+			GPScrollInternals = new javax.swing.JScrollPane();
+			GPTableInternals = new javax.swing.JTable();
 			GPCancel = new javax.swing.JButton();
 			GPOK = new javax.swing.JButton();
 			GPOption1 = new javax.swing.JButton();
@@ -1805,7 +1917,8 @@ class GlobalProperties extends javax.swing.JDialog {
 			GPScrollInputs.setViewportView(GPTableInputs);
 			GPTabbedPane.addTab("Inputs", GPScrollInputs);
 			
-			GPTableOutputs.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(2),globalLists, drawArea));
+			outputTableModel = new FilteredOutputTableModel(globalLists, drawArea, false);
+			GPTableOutputs.setModel(outputTableModel);
 			GPTableOutputs.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
                         // Visibility
 			column = GPTableOutputs.getColumnModel().getColumn(2);
@@ -1820,6 +1933,22 @@ class GlobalProperties extends javax.swing.JDialog {
 			column.setCellRenderer(new MyJColorRenderer());
 			GPScrollOutputs.setViewportView(GPTableOutputs);
 			GPTabbedPane.addTab("Outputs", GPScrollOutputs);
+
+			internalTableModel = new FilteredOutputTableModel(globalLists, drawArea, true);
+			GPTableInternals.setModel(internalTableModel);
+			GPTableInternals.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+                        // Visibility
+			column = GPTableInternals.getColumnModel().getColumn(2);
+			column.setCellEditor(new MyJComboBoxEditor(options));
+                        // Type
+			column = GPTableInternals.getColumnModel().getColumn(3);
+			column.setCellEditor(new MyJComboBoxEditor(outputOptions));
+                        // Color
+			column = GPTableInternals.getColumnModel().getColumn(5);
+			column.setCellEditor(new MyJColorEditor(colorChooser));
+			column.setCellRenderer(new MyJColorRenderer());
+			GPScrollInternals.setViewportView(GPTableInternals);
+			GPTabbedPane.addTab("Internals", GPScrollInternals);
 
 			GPTableState.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(3),globalLists, drawArea));
 			GPTableState.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
@@ -1847,6 +1976,7 @@ class GlobalProperties extends javax.swing.JDialog {
                         setcolumnwidths(GPTableMachine);
                         setcolumnwidths(GPTableInputs);
                         setcolumnwidths(GPTableOutputs);
+                        setcolumnwidths(GPTableInternals);
                         setcolumnwidths(GPTableState);
                         setcolumnwidths(GPTableTrans);
 
@@ -2048,7 +2178,7 @@ class GlobalProperties extends javax.swing.JDialog {
 		
 		private void setTable(int tab)
 		{
-			if(tab == 0)
+			if(tab == TAB_MACHINE)
 			{
 				currTable = GPTableMachine;
 				GPOption3.setVisible(true);
@@ -2061,7 +2191,7 @@ class GlobalProperties extends javax.swing.JDialog {
 				GPOption5.setVisible(false);
 				GPOption6.setVisible(false);
 			}
-			if(tab == 1)
+			if(tab == TAB_INPUTS)
 			{
 				currTable = GPTableInputs;
 				GPOption3.setVisible(true);
@@ -2072,7 +2202,7 @@ class GlobalProperties extends javax.swing.JDialog {
 				GPOption5.setVisible(false);
 				GPOption6.setVisible(false);
 			}
-			if(tab == 2)
+			if(tab == TAB_OUTPUTS)
 			{
 				currTable = GPTableOutputs;
 				GPOption3.setVisible(true);
@@ -2080,11 +2210,22 @@ class GlobalProperties extends javax.swing.JDialog {
 				GPOption3.setText("Output");
 				GPOption4.setVisible(true);
 				GPOption4.setText("Multibit Output");
+				GPOption5.setVisible(false);
+				GPOption6.setVisible(false);
+			}
+			if(tab == TAB_INTERNALS)
+			{
+				currTable = GPTableInternals;
+				GPOption3.setVisible(true);
+				GPOption3.setEnabled(true);
+				GPOption3.setText("Internal");
+				GPOption4.setVisible(true);
+				GPOption4.setText("Multibit Internal");
 				GPOption5.setVisible(true);
 				GPOption5.setText("Flag");
 				GPOption6.setVisible(false);
 			}
-			if(tab == 3)
+			if(tab == TAB_STATES)
 			{
 				currTable = GPTableState;
 				GPOption3.setVisible(false);
@@ -2092,7 +2233,7 @@ class GlobalProperties extends javax.swing.JDialog {
 				GPOption5.setVisible(false);
 				GPOption6.setVisible(false);
 			}
-			if(tab == 4)
+			if(tab == TAB_TRANSITIONS)
 			{
 				currTable = GPTableTrans;
 				GPOption3.setVisible(true);
@@ -2115,45 +2256,91 @@ class GlobalProperties extends javax.swing.JDialog {
 		}
 
 
+		private int tabToUiTab(int tab)
+		{
+			if(tab == 5)
+				return TAB_INTERNALS;
+			if(tab == 3)
+				return TAB_STATES;
+			if(tab == 4)
+				return TAB_TRANSITIONS;
+			return tab;
+		}
+
+		private int uiTabToGlobalTab(int tab)
+		{
+			if(tab == TAB_INTERNALS)
+				return 2;
+			if(tab == TAB_STATES)
+				return 3;
+			if(tab == TAB_TRANSITIONS)
+				return 4;
+			return tab;
+		}
+
+		private int tableRowToGlobalRow(JTable table, int row)
+		{
+			if(table.getModel() instanceof FilteredOutputTableModel)
+				return ((FilteredOutputTableModel)table.getModel()).actualRow(row);
+			return row;
+		}
+
+		private void refreshOutputViews()
+		{
+			if(outputTableModel != null)
+				outputTableModel.fireTableDataChanged();
+			if(internalTableModel != null)
+				internalTableModel.fireTableDataChanged();
+		}
+
+		private void removeOutputBackReferences(ObjAttribute obj)
+		{
+			if(obj.getType().equals("reg"))
+				removeAttribute(3,obj.getName());
+			if(obj.getType().equals("regdp"))
+			{
+				removeAttribute(3,obj.getName());
+				removeAttribute(4,obj.getName());
+			}
+			if(obj.getType().equals("comb"))
+				removeAttribute(3,obj.getName());
+			if(obj.getType().equals("flag"))
+				removeAttribute(3,obj.getName());
+		}
+
+		private boolean isOutputEditorTab(int tab)
+		{
+			return tab == TAB_OUTPUTS || tab == TAB_INTERNALS;
+		}
+
 		//GEN-FIRST:event_GPNewActionPerformed
 		private void GPOption1ActionPerformed(java.awt.event.ActionEvent evt) {
 			
 			
 			int[] rows = currTable.getSelectedRows();
 			int tab1 = GPTabbedPane.getSelectedIndex();
-			LinkedList<ObjAttribute> list = globalLists.get(tab1);
-			for(int i = rows.length - 1; i > -1; i--)
+			int globalTab = uiTabToGlobalTab(tab1);
+			LinkedList<ObjAttribute> list = globalLists.get(globalTab);
+			int[] globalRows = new int[rows.length];
+			for(int i = 0; i < rows.length; i++)
+				globalRows[i] = tableRowToGlobalRow(currTable, rows[i]);
+			Arrays.sort(globalRows);
+			for(int i = globalRows.length - 1; i > -1; i--)
 			{
-				ObjAttribute obj = list.get(rows[i]);
+				ObjAttribute obj = list.get(globalRows[i]);
 				if(obj.getEditable(0) != ObjAttribute.ABS)
 				{
-					if((obj.getName().equals("reset_signal") || obj.getName().equals("reset_state")) && currTab == 0)
+					if((obj.getName().equals("reset_signal") || obj.getName().equals("reset_state")) && currTab == TAB_MACHINE)
 						GPOption3.setEnabled(true);
-					if(obj.getName().equals("graycode") && currTab == 4)
+					if(obj.getName().equals("graycode") && currTab == TAB_TRANSITIONS)
 						GPOption3.setEnabled(true);
-					if(obj.getName().equals("priority") && currTab == 4)
+					if(obj.getName().equals("priority") && currTab == TAB_TRANSITIONS)
 						GPOption5.setEnabled(true);
 					
 					//if output being deleted, delete in states and trans
-					if(currTab == 2 && obj.getType().equals("reg"))
-					{
-						removeAttribute(3,obj.getName());
-					}
-					if(currTab == 2 && obj.getType().equals("regdp"))
-					{
-						removeAttribute(3,obj.getName());
-						removeAttribute(4,obj.getName());
-					}
-					if(currTab == 2 && obj.getType().equals("comb"))
-					{
-						removeAttribute(3,obj.getName());
-						//removeAttribute(2,obj.getName());
-					}
-					if(currTab == 2 && obj.getType().equals("flag"))
-					{
-						removeAttribute(3,obj.getName());
-					}
-					if(obj.getType().equals("output") && checkNames(GPTableOutputs,obj.getName()) && currTab != 2)
+					if(isOutputEditorTab(currTab))
+						removeOutputBackReferences(obj);
+					if(obj.getType().equals("output") && checkGlobalName(globalLists.get(2), obj.getName()) && !isOutputEditorTab(currTab))
 					{
 						JOptionPane.showMessageDialog(this,
 		                        "Must remove from outputs tab",
@@ -2161,7 +2348,7 @@ class GlobalProperties extends javax.swing.JDialog {
 		                        JOptionPane.ERROR_MESSAGE);
 					}
 					else
-						list.remove(rows[i]);
+						list.remove(globalRows[i]);
 				}
 				else
 				{
@@ -2172,6 +2359,7 @@ class GlobalProperties extends javax.swing.JDialog {
 				}
 				currTable.revalidate();	
 			}
+			refreshOutputViews();
 				
 
 		}//GEN-LAST:event_GPNewActionPerformed
@@ -2180,10 +2368,13 @@ class GlobalProperties extends javax.swing.JDialog {
 		private void GPOption2ActionPerformed(java.awt.event.ActionEvent evt) {
 			
 			ObjAttribute newObj = new ObjAttribute("","",ObjAttribute.NO,"","",Color.black,"","",editable);
-			int tab1 = GPTabbedPane.getSelectedIndex();
+			int tab1 = uiTabToGlobalTab(GPTabbedPane.getSelectedIndex());
+			if(currTab == TAB_INTERNALS)
+				OutputAttributeFilter.setInternal(newObj, true);
 			globalLists.get(tab1).addLast(newObj);
-			if(currTab == 2)
-				currTable.setValueAt("regdp", globalLists.get(2).size()-1, 3);
+			refreshOutputViews();
+			if(isOutputEditorTab(currTab))
+				currTable.setValueAt("regdp", currTable.getRowCount()-1, 3);
 			
 			currTable.revalidate();
 
@@ -2191,7 +2382,7 @@ class GlobalProperties extends javax.swing.JDialog {
 		}//GEN-LAST:event_GPDeleteActionPerformed
 		
 		private void GPOption3ActionPerformed(java.awt.event.ActionEvent evt) {
-			if(currTab == 0)
+			if(currTab == TAB_MACHINE)
 			{
 				
 				if(!checkNames(currTable,"reset_signal"))
@@ -2213,22 +2404,33 @@ class GlobalProperties extends javax.swing.JDialog {
 				GPOption3.setEnabled(false);
 				currTable.revalidate();
 			}
-			if(currTab == 1)
+			if(currTab == TAB_INPUTS)
 			{
 				globalLists.get(1).add(new ObjAttribute("in", "", 0, "","",Color.black,"","",
 					editable));
 
 				currTable.revalidate();
 			}
-			if(currTab == 2)
+			if(currTab == TAB_OUTPUTS)
 			{
 				globalLists.get(2).add(new ObjAttribute("out", "", 2, "","",Color.black,"","",
 					editable));
-				currTable.setValueAt("regdp", globalLists.get(2).size()-1, 3);
+				refreshOutputViews();
+				GPTableOutputs.setValueAt("regdp", GPTableOutputs.getRowCount()-1, 3);
 
 				currTable.revalidate();
 			}	
-			if(currTab == 4)
+			if(currTab == TAB_INTERNALS)
+			{
+				ObjAttribute newObj = new ObjAttribute("internal", "", 2, "","",Color.black,"suppress_portlist","",
+					editable);
+				globalLists.get(2).add(newObj);
+				refreshOutputViews();
+				GPTableInternals.setValueAt("regdp", GPTableInternals.getRowCount()-1, 3);
+
+				currTable.revalidate();
+			}	
+			if(currTab == TAB_TRANSITIONS)
 			{
 				if(!checkNames(currTable,"graycode"))
 				{
@@ -2267,22 +2469,32 @@ class GlobalProperties extends javax.swing.JDialog {
 		private void GPOption4ActionPerformed(java.awt.event.ActionEvent evt) {
 			
 
-			if(currTab == 1)
+			if(currTab == TAB_INPUTS)
 			{
 				globalLists.get(1).add(new ObjAttribute("in[1:0]", "", 0, "","",Color.black,"","",
 					editable));
 
 				currTable.revalidate();
 			}
-			if(currTab == 2)
+			if(currTab == TAB_OUTPUTS)
 			{
 				globalLists.get(2).add(new ObjAttribute("out[1:0]", "", 2, "","",Color.black,"","",
 					editable));
-				currTable.setValueAt("regdp", globalLists.get(2).size()-1, 3);
+				refreshOutputViews();
+				currTable.setValueAt("regdp", currTable.getRowCount()-1, 3);
 
 				currTable.revalidate();
 			}	
-			if(currTab == 4)
+			if(currTab == TAB_INTERNALS)
+			{
+				globalLists.get(2).add(new ObjAttribute("internal[1:0]", "", 2, "","",Color.black,"suppress_portlist","",
+					editable));
+				refreshOutputViews();
+				currTable.setValueAt("regdp", currTable.getRowCount()-1, 3);
+
+				currTable.revalidate();
+			}	
+			if(currTab == TAB_TRANSITIONS)
 			{
 				globalLists.get(4).add(new ObjAttribute("", "", 1,"output", "",Color.black,"","",
                                 editable));
@@ -2294,15 +2506,16 @@ class GlobalProperties extends javax.swing.JDialog {
 		
 		private void GPOption5ActionPerformed(java.awt.event.ActionEvent evt) {
 			
-			if(currTab == 2)
+			if(currTab == TAB_INTERNALS)
 			{
 				globalLists.get(2).add(new ObjAttribute("flag", "", 2, "","",Color.black,"suppress_portlist","",
 					editable));
-				currTable.setValueAt("flag", globalLists.get(2).size()-1, 3);
+				refreshOutputViews();
+				currTable.setValueAt("flag", currTable.getRowCount()-1, 3);
 
 				currTable.revalidate();
 			}	
-			if(currTab == 4)
+			if(currTab == TAB_TRANSITIONS)
 			{
 				if(!checkNames(currTable,"priority"))
 				{
@@ -2320,11 +2533,51 @@ class GlobalProperties extends javax.swing.JDialog {
 		}
 
 		private void GPUpActionPerformed(java.awt.event.ActionEvent evt) {
-			AttributeTableReorder.moveSelectedRows(currTable, globalLists.get(currTab), -1);
+			if(currTable.getModel() instanceof FilteredOutputTableModel)
+				moveSelectedFilteredOutputRows((FilteredOutputTableModel)currTable.getModel(), -1);
+			else
+				AttributeTableReorder.moveSelectedRows(currTable, globalLists.get(uiTabToGlobalTab(currTab)), -1);
 		}
 
 		private void GPDownActionPerformed(java.awt.event.ActionEvent evt) {
-			AttributeTableReorder.moveSelectedRows(currTable, globalLists.get(currTab), 1);
+			if(currTable.getModel() instanceof FilteredOutputTableModel)
+				moveSelectedFilteredOutputRows((FilteredOutputTableModel)currTable.getModel(), 1);
+			else
+				AttributeTableReorder.moveSelectedRows(currTable, globalLists.get(uiTabToGlobalTab(currTab)), 1);
+		}
+
+		private void moveSelectedFilteredOutputRows(FilteredOutputTableModel model, int direction) {
+			int[] rows = currTable.getSelectedRows();
+			if(rows.length == 0)
+				return;
+			Arrays.sort(rows);
+			int targetViewRow = direction < 0 ? rows[0] - 1 : rows[rows.length - 1] + 1;
+			if(targetViewRow < 0 || targetViewRow >= model.getRowCount())
+				return;
+
+			int[] actualRows = new int[rows.length];
+			for(int i = 0; i < rows.length; i++)
+				actualRows[i] = model.actualRow(rows[i]);
+			int targetActualRow = model.actualRow(targetViewRow);
+			LinkedList<ObjAttribute> outputList = globalLists.get(2);
+			LinkedList<ObjAttribute> moved = new LinkedList<ObjAttribute>();
+			for(int i = 0; i < actualRows.length; i++)
+				moved.add(outputList.get(actualRows[i]));
+			for(int i = actualRows.length - 1; i >= 0; i--)
+				outputList.remove(actualRows[i]);
+
+			int insertRow = targetActualRow;
+			if(direction > 0)
+				insertRow = targetActualRow - actualRows.length + 1;
+			for(int i = 0; i < moved.size(); i++)
+				outputList.add(insertRow + i, moved.get(i));
+
+			refreshOutputViews();
+			currTable.clearSelection();
+			for(int i = 0; i < rows.length; i++) {
+				int viewRow = rows[i] + direction;
+				currTable.addRowSelectionInterval(viewRow, viewRow);
+			}
 		}
 		
 		
@@ -2345,6 +2598,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			GPTableTrans.editCellAt(0,0);
 			GPTableInputs.editCellAt(0,0);
 			GPTableOutputs.editCellAt(0,0);
+			GPTableInternals.editCellAt(0,0);
 			if(!checkReservedGlobalNames())
 				return;
 			int error = 0;
@@ -2433,12 +2687,14 @@ class GlobalProperties extends javax.swing.JDialog {
 		private javax.swing.JScrollPane GPScrollTrans;
 		private javax.swing.JScrollPane GPScrollInputs;
 		private javax.swing.JScrollPane GPScrollOutputs;
+		private javax.swing.JScrollPane GPScrollInternals;
 		private javax.swing.JTabbedPane GPTabbedPane;
 		private javax.swing.JTable GPTableMachine;
 		private javax.swing.JTable GPTableState;
 		private javax.swing.JTable GPTableTrans;
 		private javax.swing.JTable GPTableInputs;
 		private javax.swing.JTable GPTableOutputs;
+		private javax.swing.JTable GPTableInternals;
 		// End of variables declaration//GEN-END:variables
 		
 	}

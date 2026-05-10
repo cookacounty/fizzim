@@ -32,6 +32,16 @@ sign off state-machine RTL.
   entered where only an expression should be used.
 - Checks registered outputs for missing reset values.
 
+## Example Diagram
+
+The public testcase area includes
+`testcases/generic_state_machine_lint_issues.fzm`. It is intentionally not a
+golden regression input. Instead, it is a compact GUI showcase for the lint
+interface. Open it in Fizzim and run `Tools > Lint Diagram` to see common
+findings such as undeclared transition-equation identifiers, bad priority
+values, fork branch coverage issues, duplicate source-local priorities, and
+missing registered-output reset values.
+
 ## RTL Rationale
 
 Hardware FSMs are safest when their intent is explicit. In generated Verilog,

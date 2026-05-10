@@ -23,6 +23,10 @@ part of the current codebase.
 - Added transition actions. Transitions can now assign `regdp` outputs directly,
   making one-cycle transition pulses easier to express without relying on
   `nextstate` expressions in destination states.
+- Added a user-facing `Internals` global-attribute pane for FSM variables that
+  should be generated internally but omitted from the module port list. These
+  remain stored as outputs with `suppress_portlist` for parser and backend
+  compatibility.
 - Added parent-qualified debug state names for grouped states, so simulation
   debug can display names like `GROUP.CHILD`.
 - Increased the generated debug `statename` width to 256 characters by default.
@@ -49,6 +53,9 @@ part of the current codebase.
   assignments entered where only RHS expressions should be used.
 - Added registered-output linting for missing reset values.
 - Added a validation/lint design note under `docs/VALIDATION_LINT.md`.
+- Added `testcases/generic_state_machine_lint_issues.fzm`, a deliberately
+  imperfect generic diagram for exercising and demonstrating common lint
+  findings in the GUI.
 
 ### Diagram Editing
 

@@ -252,6 +252,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		jSeparator3 = new javax.swing.JSeparator();
 		GlobalItemInputs = new javax.swing.JMenuItem();
 		GlobalItemOutputs = new javax.swing.JMenuItem();
+		GlobalItemInternals = new javax.swing.JMenuItem();
 		HelpMenu = new javax.swing.JMenu();
 		HelpItemHelp = new javax.swing.JMenuItem();
 		jSeparator4 = new javax.swing.JSeparator();
@@ -659,6 +660,17 @@ public class FizzimGui extends javax.swing.JFrame {
 				});
 
 		GlobalMenu.add(GlobalItemOutputs);
+
+		GlobalItemInternals.setMnemonic(java.awt.event.KeyEvent.VK_N);
+		GlobalItemInternals.setText("Internals");
+		GlobalItemInternals
+				.addActionListener(new java.awt.event.ActionListener() {
+					public void actionPerformed(java.awt.event.ActionEvent evt) {
+						GlobalItemInternalsActionPerformed(evt);
+					}
+				});
+
+		GlobalMenu.add(GlobalItemInternals);
 
 		GlobalMenu.add(jSeparator3);
 
@@ -1411,6 +1423,12 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	}//GEN-LAST:event_GlobalItemOutputsActionPerformed
 
+	private void GlobalItemInternalsActionPerformed(java.awt.event.ActionEvent evt) {
+		globalList = drawArea1.setUndoPoint();
+		new GlobalProperties(drawArea1, this, true, globalList, 5)
+				.setVisible(true);
+	}
+
 	private void GlobalItemStatesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_GlobalItemStatesActionPerformed
 		globalList = drawArea1.setUndoPoint();
 		new GlobalProperties(drawArea1, this, true, globalList, 3)
@@ -1869,6 +1887,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private MyJFileChooser FileSaveAction;
 	private MyJFileChooser ExportChooser;
 	private javax.swing.JMenuItem GlobalItemInputs;
+	private javax.swing.JMenuItem GlobalItemInternals;
 	private javax.swing.JMenuItem GlobalItemMachine;
 	private javax.swing.JMenuItem GlobalItemOutputs;
 	private javax.swing.JMenuItem GlobalItemStates;

@@ -67,6 +67,25 @@ To run the public backend regression:
 make test
 ```
 
+Global attributes
+-----------------
+
+Global outputs are split into two user-facing panes:
+
+- `Outputs` are generated as module output ports.
+- `Internals` are generated as internal FSM variables and are not emitted in the
+  module port list.
+
+Internals are intended for helper state, one-cycle pulses, and intermediate
+registered values that are useful inside the FSM but should not become public
+module ports. Behind the scenes, Internals are still stored in the existing
+outputs list with the `suppress_portlist` user attribute. This keeps older
+diagrams and the Perl backend compatible while making the GUI workflow clearer.
+
+The `suppress_portlist` attribute is therefore treated as an implementation
+detail. New diagrams should normally use the `Internals` pane instead of typing
+that user attribute by hand.
+
 Fizzim on the web: www.fizzim.com
 
 Verilog backend
@@ -98,6 +117,11 @@ The test flow starts from one feature-rich generic diagram, generates a Fizzim
 diagrams before compiling or simulating. See `testcases/README.md` for the
 layout and the `FIZZIM1_BACKEND` override if you want to compare against an
 actual old backend.
+
+The `testcases/generic_state_machine_lint_issues.fzm` diagram is a separate
+GUI/lint showcase. It intentionally contains common mistakes so `Tools > Lint
+Diagram` has visible examples to select and highlight. It is not part of the
+golden backend equivalence regression.
 
 Forked transitions
 ------------------
