@@ -816,10 +816,21 @@ public class FizzimGui extends javax.swing.JFrame {
 		javax.swing.JTabbedPane tabs = new javax.swing.JTabbedPane();
 		tabs.addTab("Issues", issueScroll);
 		tabs.addTab("Report", reportScroll);
-		JOptionPane.showMessageDialog(this,
-				tabs,
-				"Fizzim RTL/FSM Lint",
-				report.indexOf("[ERROR]") >= 0 ? JOptionPane.ERROR_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
+		final JDialog lintDialog = new JDialog(this, "Fizzim RTL/FSM Lint", false);
+		lintDialog.getContentPane().setLayout(new BorderLayout());
+		lintDialog.getContentPane().add(tabs, BorderLayout.CENTER);
+		JButton closeButton = new JButton("Close");
+		closeButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				lintDialog.dispose();
+			}
+		});
+		JPanel buttonPanel = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
+		buttonPanel.add(closeButton);
+		lintDialog.getContentPane().add(buttonPanel, BorderLayout.SOUTH);
+		lintDialog.pack();
+		lintDialog.setLocationRelativeTo(this);
+		lintDialog.setVisible(true);
 	}
 
 	private void ToolsResetTransitionLabelsActionPerformed(ActionEvent evt) {

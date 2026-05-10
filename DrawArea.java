@@ -3359,6 +3359,7 @@ public void updateTransitions()
 	{
 		if(issue == null || issue.targetName == null)
 			return;
+		clearLintHighlights();
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj obj = (GeneralObj)objList.get(i);
@@ -3367,6 +3368,7 @@ public void updateTransitions()
 				unselectObjs();
 				if(frame instanceof FizzimGui)
 					((FizzimGui)frame).showPage(obj.getPage());
+				obj.setLintHighlighted(true);
 				obj.setSelectStatus(true);
 				selectedIndices.clear();
 				if(isSelectableDiagramObject(obj))
@@ -3382,6 +3384,12 @@ public void updateTransitions()
 				return;
 			}
 		}
+	}
+
+	private void clearLintHighlights()
+	{
+		for(int i = 1; i < objList.size(); i++)
+			((GeneralObj)objList.get(i)).setLintHighlighted(false);
 	}
 
 	private void appendStructuralLint(StringBuffer report)

@@ -269,12 +269,16 @@ private static final double BEND_ENDPOINT_PULL = 0.25;
 
 			Graphics2D g2D = (Graphics2D) g;
 			Stroke oldStroke = g2D.getStroke();
-			if(isHighestPriority())
+			if(isLintHighlighted())
+			{
+				g2D.setStroke(new BasicStroke(6.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+			}
+			else if(isHighestPriority())
 			{
 				float width = oldStroke instanceof BasicStroke ? ((BasicStroke)oldStroke).getLineWidth() : 1.0f;
 				g2D.setStroke(new BasicStroke(Math.max(2.5f, width + 1.5f)));
 			}
-			g2D.setColor(color);
+			g2D.setColor(isLintHighlighted() ? new Color(255, 140, 0) : color);
 			g2D.draw(loop);
 			
 			

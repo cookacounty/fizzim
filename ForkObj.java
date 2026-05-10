@@ -50,6 +50,14 @@ public class ForkObj extends StateObj {
 		if (myPage == currPage) {
 			g.setColor(getColor());
 			g.fillOval(x0, y0, x1 - x0, y1 - y0);
+			if(isLintHighlighted()) {
+				Graphics2D g2D = (Graphics2D)g;
+				Stroke oldStroke = g2D.getStroke();
+				g2D.setColor(new Color(255, 140, 0));
+				g2D.setStroke(new BasicStroke(4.0f));
+				g2D.drawOval(x0 - 6, y0 - 6, x1 - x0 + 12, y1 - y0 + 12);
+				g2D.setStroke(oldStroke);
+			}
 			if (getSelectStatus() != NONE) {
 				g.setColor(Color.red);
 				g.drawRect(x0 - 3, y0 - 3, x1 - x0 + 6, y1 - y0 + 6);

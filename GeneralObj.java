@@ -70,10 +70,21 @@ public abstract class GeneralObj implements Cloneable {
 	}
 
 	public boolean modifiedParent = false;
-	
+	private boolean lintHighlighted = false;
+
 	public void setParentModified(boolean b)
 	{
 		modifiedParent = b;
+	}
+
+	public void setLintHighlighted(boolean b)
+	{
+		lintHighlighted = b;
+	}
+
+	public boolean isLintHighlighted()
+	{
+		return lintHighlighted;
 	}
 
 
