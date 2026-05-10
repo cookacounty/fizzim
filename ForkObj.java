@@ -58,6 +58,14 @@ public class ForkObj extends StateObj {
 				g2D.drawOval(x0 - 6, y0 - 6, x1 - x0 + 12, y1 - y0 + 12);
 				g2D.setStroke(oldStroke);
 			}
+			if(isHoverHighlighted()) {
+				Graphics2D g2D = (Graphics2D)g;
+				Stroke oldStroke = g2D.getStroke();
+				g2D.setColor(new Color(65, 145, 220));
+				g2D.setStroke(new BasicStroke(2.0f));
+				g2D.drawOval(x0 - 5, y0 - 5, x1 - x0 + 10, y1 - y0 + 10);
+				g2D.setStroke(oldStroke);
+			}
 			if (getSelectStatus() != NONE) {
 				g.setColor(Color.red);
 				g.drawRect(x0 - 3, y0 - 3, x1 - x0 + 6, y1 - y0 + 6);

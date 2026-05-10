@@ -45,6 +45,12 @@ public class StateGroupObj extends StateObj {
 			float width = oldStroke instanceof BasicStroke ? ((BasicStroke)oldStroke).getLineWidth() : 1.0f;
 			g2D.setStroke(new BasicStroke(width, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 10.0f, new float[] {8.0f, 5.0f}, 0.0f));
 			g2D.drawRoundRect(x0, y0, x1 - x0, y1 - y0, ARC, ARC);
+			if(isHoverHighlighted())
+			{
+				g2D.setColor(new Color(65, 145, 220));
+				g2D.setStroke(new BasicStroke(2.0f));
+				g2D.drawRoundRect(x0 - 3, y0 - 3, x1 - x0 + 6, y1 - y0 + 6, ARC, ARC);
+			}
 			g2D.setStroke(oldStroke);
 			if(isLintHighlighted()) {
 				g2D.setColor(new Color(255, 140, 0));

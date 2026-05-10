@@ -280,6 +280,11 @@ private static final double BEND_ENDPOINT_PULL = 0.25;
 			}
 			Color drawColor = getDrawColor();
 			g2D.setColor(isLintHighlighted() ? new Color(255, 140, 0) : drawColor);
+			if(isHoverHighlighted())
+			{
+				g2D.setColor(new Color(65, 145, 220));
+				g2D.setStroke(new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+			}
 			g2D.draw(loop);
 			
 			

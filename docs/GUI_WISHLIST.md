@@ -15,17 +15,18 @@ backlog, not as committed design promises.
 - Add a left-side tool palette for common modes: Select, State, State Group,
   Fork, Transition, Loopback, and Text. This would make object creation more
   discoverable than relying mainly on right-click menus.
-- Add a property inspector panel for the selected object. Keep modal dialogs as
-  a fallback, but allow common edits without opening a separate window.
-- Convert the lint interface into a docked issues panel at the bottom of the
-  main window. Selecting an issue should continue to highlight/select the
-  related diagram object.
-- Add consistent hover and selection styling for states, state groups, forks,
-  transitions, and labels. The current behavior works, but a modern editor
-  should make clickable/editable targets obvious before the user clicks.
-- Add automatic layout helpers for selected objects and transitions: align,
-  distribute, tidy routes, reset labels, and possibly auto-space crowded fork
-  branches.
+- Continue refining the property inspector panel for the selected object. The
+  first version supports quick attribute edits and keeps modal dialogs as a
+  fallback for full editors.
+- Continue refining the docked lint issues panel at the bottom of the main
+  window. The first version keeps canvas access live, highlights all issues when
+  opened, and selects/highlights a specific object when an issue is selected.
+- Continue polishing hover and selection styling for states, state groups,
+  forks, transitions, and labels. The first version adds blue hover affordances
+  for common canvas objects.
+- Continue expanding automatic layout helpers for selected objects and
+  transitions. The first version adds selected-route cleanup plus selected
+  align/distribute commands.
 
 ## Nice-To-Have Refinements
 

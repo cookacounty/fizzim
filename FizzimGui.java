@@ -47,6 +47,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.StringTokenizer;
+import java.util.Vector;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -220,6 +221,15 @@ public class FizzimGui extends javax.swing.JFrame {
 		zoomFitButton = new javax.swing.JButton();
 		zoomPercentLabel = new javax.swing.JLabel();
 		selectionStatusLabel = new javax.swing.JLabel();
+		propertyInspectorPanel = new javax.swing.JPanel();
+		propertyInspectorTitle = new javax.swing.JLabel();
+		propertyInspectorTable = new javax.swing.JTable();
+		propertyInspectorScroll = new javax.swing.JScrollPane();
+		propertyInspectorEditButton = new javax.swing.JButton();
+		lintPanel = new javax.swing.JPanel();
+		lintIssueModel = new javax.swing.DefaultListModel();
+		lintIssueList = new javax.swing.JList(lintIssueModel);
+		lintReportText = new javax.swing.JTextArea();
 		jTabbedPane1 = new MyJTabbedPane();
 		jScrollPane1 = new javax.swing.JScrollPane();
 		jPanel1 = new javax.swing.JPanel();
@@ -348,9 +358,15 @@ public class FizzimGui extends javax.swing.JFrame {
 		gridBagConstraints = new java.awt.GridBagConstraints();
 		gridBagConstraints.gridx = 0;
 		gridBagConstraints.gridy = 0;
+		gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
+		gridBagConstraints.weightx = 1.0;
+		gridBagConstraints.weighty = 1.0;
 		jPanel3.add(jTabbedPane1, gridBagConstraints);
 
 		getContentPane().add(jPanel3, java.awt.BorderLayout.CENTER);
+
+		buildPropertyInspectorPanel();
+		getContentPane().add(propertyInspectorPanel, java.awt.BorderLayout.EAST);
 
 		zoomPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 4, 3));
 		selectionStatusLabel.setText("No selection");
@@ -386,12 +402,12 @@ public class FizzimGui extends javax.swing.JFrame {
 		});
 		zoomPanel.add(zoomFitButton);
 		getContentPane().add(zoomPanel, java.awt.BorderLayout.NORTH);
-		
-		
-		Dimension coord = getScrollPaneSize();
 
-		jTabbedPane1.setMinimumSize(coord);
-		jTabbedPane1.setSize(coord);
+		buildLintPanel();
+		getContentPane().add(lintPanel, java.awt.BorderLayout.SOUTH);
+		
+		
+		jTabbedPane1.setMinimumSize(new Dimension(100, 100));
 		jPanel3.doLayout();
 		jPanel3.repaint();
 
@@ -601,6 +617,42 @@ public class FizzimGui extends javax.swing.JFrame {
 			}
 		});
 		cleanupMenu.add(cleanRoutesItem);
+		JMenuItem cleanSelectedRoutesItem = new JMenuItem("Clean Selected Routes");
+		cleanSelectedRoutesItem.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ToolsCleanSelectedRoutesActionPerformed(evt);
+			}
+		});
+		cleanupMenu.add(cleanSelectedRoutesItem);
+		cleanupMenu.addSeparator();
+		JMenuItem alignHorizontalItem = new JMenuItem("Align Selected Horizontally");
+		alignHorizontalItem.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ToolsAlignSelectedHorizontalActionPerformed(evt);
+			}
+		});
+		cleanupMenu.add(alignHorizontalItem);
+		JMenuItem alignVerticalItem = new JMenuItem("Align Selected Vertically");
+		alignVerticalItem.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ToolsAlignSelectedVerticalActionPerformed(evt);
+			}
+		});
+		cleanupMenu.add(alignVerticalItem);
+		JMenuItem distributeHorizontalItem = new JMenuItem("Distribute Selected Horizontally");
+		distributeHorizontalItem.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ToolsDistributeSelectedHorizontalActionPerformed(evt);
+			}
+		});
+		cleanupMenu.add(distributeHorizontalItem);
+		JMenuItem distributeVerticalItem = new JMenuItem("Distribute Selected Vertically");
+		distributeVerticalItem.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ToolsDistributeSelectedVerticalActionPerformed(evt);
+			}
+		});
+		cleanupMenu.add(distributeVerticalItem);
 		toolsMenu.add(cleanupMenu);
 
 		MenuBar.add(toolsMenu);
@@ -716,6 +768,68 @@ public class FizzimGui extends javax.swing.JFrame {
 		pack();
 	}// </editor-fold>//GEN-END:initComponents
 
+	private void buildPropertyInspectorPanel() {
+		propertyInspectorPanel.setLayout(new BorderLayout(4, 4));
+		propertyInspectorPanel.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+		propertyInspectorPanel.setPreferredSize(new Dimension(280, 360));
+		propertyInspectorTitle.setText("Properties");
+		propertyInspectorTitle.setFont(propertyInspectorTitle.getFont().deriveFont(Font.BOLD));
+		propertyInspectorPanel.add(propertyInspectorTitle, BorderLayout.NORTH);
+		propertyInspectorTable.setFont(FizzimFonts.tableFont());
+		propertyInspectorTable.setRowHeight(propertyInspectorTable.getRowHeight() + 3);
+		propertyInspectorScroll.setViewportView(propertyInspectorTable);
+		propertyInspectorPanel.add(propertyInspectorScroll, BorderLayout.CENTER);
+		propertyInspectorEditButton.setText("Open Full Editor");
+		propertyInspectorEditButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				openInspectorFullEditor();
+			}
+		});
+		propertyInspectorPanel.add(propertyInspectorEditButton, BorderLayout.SOUTH);
+		updatePropertyInspector(new LinkedList<GeneralObj>());
+	}
+
+	private void buildLintPanel() {
+		lintPanel.setLayout(new BorderLayout(4, 4));
+		lintPanel.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+		lintPanel.setPreferredSize(new Dimension(800, 220));
+		lintPanel.setVisible(false);
+		lintIssueList.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+		lintIssueList.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
+			public void valueChanged(javax.swing.event.ListSelectionEvent e) {
+				if(e.getValueIsAdjusting())
+					return;
+				DrawArea.LintIssue issue = (DrawArea.LintIssue)lintIssueList.getSelectedValue();
+				drawArea1.selectLintIssue(issue);
+			}
+		});
+		lintReportText.setEditable(false);
+		lintReportText.setLineWrap(true);
+		lintReportText.setWrapStyleWord(true);
+		javax.swing.JTabbedPane lintTabs = new javax.swing.JTabbedPane();
+		lintTabs.addTab("Issues", new JScrollPane(lintIssueList));
+		lintTabs.addTab("Report", new JScrollPane(lintReportText));
+		lintPanel.add(lintTabs, BorderLayout.CENTER);
+		JPanel lintButtons = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
+		JButton rerunButton = new JButton("Rerun");
+		rerunButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				showLintPanel();
+			}
+		});
+		JButton closeButton = new JButton("Close");
+		closeButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				lintPanel.setVisible(false);
+				drawArea1.clearLintHighlights();
+				revalidateForPaneChange();
+			}
+		});
+		lintButtons.add(rerunButton);
+		lintButtons.add(closeButton);
+		lintPanel.add(lintButtons, BorderLayout.SOUTH);
+	}
+
 
 	protected void HelpItemAboutActionPerformed(ActionEvent evt) {
 		new SplashWindow("splash.png",this,60000);
@@ -764,55 +878,20 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	private void ToolsLintActionPerformed(ActionEvent evt) {
+		showLintPanel();
+	}
+
+	private void showLintPanel() {
 		String report = drawArea1.lintDiagram();
 		final java.util.LinkedList<DrawArea.LintIssue> issues = drawArea1.getLastLintIssues();
-		javax.swing.DefaultListModel issueModel = new javax.swing.DefaultListModel();
+		lintIssueModel.clear();
 		for(int i = 0; i < issues.size(); i++)
-			issueModel.addElement(issues.get(i));
-		final javax.swing.JList issueList = new javax.swing.JList(issueModel);
-		issueList.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
-		issueList.addListSelectionListener(new javax.swing.event.ListSelectionListener() {
-			public void valueChanged(javax.swing.event.ListSelectionEvent e) {
-				if(e.getValueIsAdjusting())
-					return;
-				DrawArea.LintIssue issue = (DrawArea.LintIssue)issueList.getSelectedValue();
-				drawArea1.selectLintIssue(issue);
-			}
-		});
-		JTextArea text = new JTextArea(report, 28, 90);
-		text.setEditable(false);
-		text.setLineWrap(true);
-		text.setWrapStyleWord(true);
-		JScrollPane reportScroll = new JScrollPane(text);
-		JScrollPane issueScroll = new JScrollPane(issueList);
-		issueScroll.setPreferredSize(new java.awt.Dimension(900, 180));
-		javax.swing.JTabbedPane tabs = new javax.swing.JTabbedPane();
-		tabs.addTab("Issues", issueScroll);
-		tabs.addTab("Report", reportScroll);
+			lintIssueModel.addElement(issues.get(i));
+		lintReportText.setText(report);
+		lintReportText.setCaretPosition(0);
 		drawArea1.highlightAllLintIssues();
-		final JDialog lintDialog = new JDialog(this, "Fizzim RTL/FSM Lint", false);
-		lintDialog.addWindowListener(new java.awt.event.WindowAdapter() {
-			public void windowClosed(java.awt.event.WindowEvent e) {
-				drawArea1.clearLintHighlights();
-			}
-			public void windowClosing(java.awt.event.WindowEvent e) {
-				drawArea1.clearLintHighlights();
-			}
-		});
-		lintDialog.getContentPane().setLayout(new BorderLayout());
-		lintDialog.getContentPane().add(tabs, BorderLayout.CENTER);
-		JButton closeButton = new JButton("Close");
-		closeButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				lintDialog.dispose();
-			}
-		});
-		JPanel buttonPanel = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
-		buttonPanel.add(closeButton);
-		lintDialog.getContentPane().add(buttonPanel, BorderLayout.SOUTH);
-		lintDialog.pack();
-		lintDialog.setLocationRelativeTo(this);
-		lintDialog.setVisible(true);
+		lintPanel.setVisible(true);
+		revalidateForPaneChange();
 	}
 
 	private void ToolsResetTransitionLabelsActionPerformed(ActionEvent evt) {
@@ -821,6 +900,26 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	private void ToolsCleanTransitionRoutesActionPerformed(ActionEvent evt) {
 		drawArea1.cleanTransitionRoutes();
+	}
+
+	private void ToolsCleanSelectedRoutesActionPerformed(ActionEvent evt) {
+		drawArea1.cleanSelectedTransitionRoutes();
+	}
+
+	private void ToolsAlignSelectedHorizontalActionPerformed(ActionEvent evt) {
+		drawArea1.alignSelectedCenters(true);
+	}
+
+	private void ToolsAlignSelectedVerticalActionPerformed(ActionEvent evt) {
+		drawArea1.alignSelectedCenters(false);
+	}
+
+	private void ToolsDistributeSelectedHorizontalActionPerformed(ActionEvent evt) {
+		drawArea1.distributeSelectedCenters(true);
+	}
+
+	private void ToolsDistributeSelectedVerticalActionPerformed(ActionEvent evt) {
+		drawArea1.distributeSelectedCenters(false);
 	}
 
 	private void ToolsNewFsmDefaultsActionPerformed(ActionEvent evt) {
@@ -865,12 +964,35 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	private void ZoomFitActionPerformed(ActionEvent evt) {
 		enterZoomFitMode();
-		fitDiagramToViewport();
+		scheduleFitDiagramToViewport();
 	}
 
 	private void fitDiagramToViewport() {
+		getContentPane().doLayout();
+		jPanel3.doLayout();
+		jTabbedPane1.doLayout();
+		jScrollPane1.doLayout();
 		Dimension viewport = jScrollPane1.getViewport().getExtentSize();
 		drawArea1.fitDiagramToViewport(viewport);
+	}
+
+	private void scheduleFitDiagramToViewport() {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				fitDiagramToViewport();
+			}
+		});
+	}
+
+	private void revalidateForPaneChange() {
+		getContentPane().invalidate();
+		getContentPane().validate();
+		jPanel3.revalidate();
+		jTabbedPane1.revalidate();
+		jScrollPane1.revalidate();
+		repaint();
+		if(zoomFitMode)
+			scheduleFitDiagramToViewport();
 	}
 
 	private void enterZoomFitMode() {
@@ -893,6 +1015,93 @@ public class FizzimGui extends javax.swing.JFrame {
 	public void updateSelectionStatus(String text) {
 		if(selectionStatusLabel != null)
 			selectionStatusLabel.setText(text);
+	}
+
+	public void updatePropertyInspector(LinkedList<GeneralObj> selected) {
+		if(propertyInspectorPanel == null || propertyInspectorTable == null)
+			return;
+		inspectorSelectedObjects = selected;
+		if(selected == null || selected.size() == 0)
+		{
+			propertyInspectorTitle.setText("Properties");
+			propertyInspectorTable.setModel(new ReadOnlyInspectorTableModel(
+					new Object[][] {{"No selection", ""}},
+					new Object[] {"Field", "Value"}));
+			propertyInspectorEditButton.setEnabled(false);
+			return;
+		}
+		if(selected.size() > 1)
+		{
+			propertyInspectorTitle.setText("Properties - " + selected.size() + " objects");
+			propertyInspectorTable.setModel(new ReadOnlyInspectorTableModel(
+					new Object[][] {{"Selection", selected.size() + " objects"}},
+					new Object[] {"Field", "Value"}));
+			propertyInspectorEditButton.setEnabled(false);
+			return;
+		}
+
+		GeneralObj obj = selected.getFirst();
+		propertyInspectorTitle.setText("Properties - " + objectTypeName(obj));
+		propertyInspectorEditButton.setEnabled(true);
+		if(obj.getType() == 3)
+		{
+			propertyInspectorTable.setModel(new ReadOnlyInspectorTableModel(
+					new Object[][] {{"Text", ((TextObj)obj).getText()}},
+					new Object[] {"Field", "Value"}));
+			return;
+		}
+		if(obj.getAttributeList() == null || obj.getAttributeList().size() == 0)
+		{
+			propertyInspectorTable.setModel(new ReadOnlyInspectorTableModel(
+					new Object[][] {{"Name", obj.getName()}},
+					new Object[] {"Field", "Value"}));
+			return;
+		}
+		propertyInspectorTable.setModel(new InspectorTableModel(drawArea1, obj, globalList));
+	}
+
+	private String objectTypeName(GeneralObj obj) {
+		if(obj.getType() == 0)
+			return "State " + obj.getName();
+		if(obj.getType() == 1)
+			return "Transition " + obj.getName();
+		if(obj.getType() == 2)
+			return "Loopback " + obj.getName();
+		if(obj.getType() == 3)
+			return "Text";
+		if(obj.getType() == 4)
+			return "Fork " + obj.getName();
+		if(obj.getType() == 5)
+			return "State Group " + obj.getName();
+		return obj.getName();
+	}
+
+	private void openInspectorFullEditor() {
+		if(inspectorSelectedObjects == null || inspectorSelectedObjects.size() != 1)
+			return;
+		GeneralObj obj = inspectorSelectedObjects.getFirst();
+		if(obj.getType() == 0 || obj.getType() == 4 || obj.getType() == 5)
+		{
+			new StateProperties(drawArea1, this, true, (StateObj)obj).setVisible(true);
+		}
+		else if(obj.getType() == 1 || obj.getType() == 2)
+		{
+			Vector<StateObj> stateObjs = drawArea1.getTransitionEndpointObjects();
+			if(obj.getType() == 2)
+			{
+				for(int i = stateObjs.size() - 1; i >= 0; i--)
+				{
+					if(stateObjs.get(i).getType() != 0)
+						stateObjs.remove(i);
+				}
+			}
+			new TransProperties(drawArea1, this, true, (TransitionObj)obj, stateObjs, obj.getType() == 2, null).setVisible(true);
+		}
+		else if(obj.getType() == 3)
+		{
+			drawArea1.editText((TextObj)obj);
+		}
+		updatePropertyInspector(drawArea1.getSelectedObjectsForInspector());
 	}
 
 	protected void FileExportPNGActionPerformed(ActionEvent evt) {
@@ -1094,20 +1303,12 @@ public class FizzimGui extends javax.swing.JFrame {
 		//this method makes sure that the draw area size is mostly restricted
 		// to dimensions set in page setup
 		
-		Dimension coord = getScrollPaneSize();
-		jTabbedPane1.setMinimumSize(coord);
-		jTabbedPane1.setSize(coord);
+		jTabbedPane1.setMinimumSize(new Dimension(100, 100));
 		drawArea1.updateCanvasExtents();
 		jPanel3.doLayout();
 		jPanel3.repaint();
 		if(zoomFitMode)
-		{
-			SwingUtilities.invokeLater(new Runnable() {
-				public void run() {
-					fitDiagramToViewport();
-				}
-			});
-		}
+			scheduleFitDiagramToViewport();
 
 	}//GEN-LAST:event_formComponentResized
 
@@ -1592,16 +1793,8 @@ public class FizzimGui extends javax.swing.JFrame {
 		rememberRecentFile(currFile);
 		loading = false;
 		enterZoomFitMode();
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				fitDiagramToViewport();
-			}
-		});
+		scheduleFitDiagramToViewport();
 
-	}
-
-	private Dimension getScrollPaneSize() {
-		return new Dimension(jPanel3.getWidth() - 10, jPanel3.getHeight() - 10);
 	}
 	
 	//set indentation (also exists in ObjAttribute.java and GeneralObj.java
@@ -1853,6 +2046,16 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JButton zoomFitButton;
 	private javax.swing.JLabel zoomPercentLabel;
 	private javax.swing.JLabel selectionStatusLabel;
+	private javax.swing.JPanel propertyInspectorPanel;
+	private javax.swing.JLabel propertyInspectorTitle;
+	private javax.swing.JTable propertyInspectorTable;
+	private javax.swing.JScrollPane propertyInspectorScroll;
+	private javax.swing.JButton propertyInspectorEditButton;
+	private LinkedList<GeneralObj> inspectorSelectedObjects = new LinkedList<GeneralObj>();
+	private javax.swing.JPanel lintPanel;
+	private javax.swing.DefaultListModel lintIssueModel;
+	private javax.swing.JList lintIssueList;
+	private javax.swing.JTextArea lintReportText;
 	private javax.swing.JScrollPane jScrollPane1;
 	private javax.swing.JSeparator jSeparator1;
 	private javax.swing.JSeparator jSeparator2;
@@ -1889,6 +2092,136 @@ public class FizzimGui extends javax.swing.JFrame {
 	public static boolean getDefaultImpliedLoopback() {
 		return USER_PREFS.getBoolean(PREF_DEFAULT_IMPLIED_LOOPBACK, true);
 	}
+
+	class InspectorTableModel extends MyTableModel {
+		private DrawArea drawArea;
+		private GeneralObj currentObj;
+		private boolean editing = false;
+		private int[] rowToAttribute;
+		private int[] rowToColumn;
+		private String[] inspectorColumns = {"Field", "Value"};
+
+		InspectorTableModel(DrawArea da, GeneralObj obj, LinkedList<LinkedList<ObjAttribute>> globals) {
+			super(obj, null, globals, (obj.getType() == 1 || obj.getType() == 2) ? 4 : 3);
+			drawArea = da;
+			currentObj = obj;
+			buildRows();
+		}
+
+		private void buildRows() {
+			LinkedList<Integer> attrs = new LinkedList<Integer>();
+			LinkedList<Integer> cols = new LinkedList<Integer>();
+			addInspectorRow(attrs, cols, "name", 1);
+			if(currentObj.getType() == 1 || currentObj.getType() == 2)
+			{
+				addInspectorRow(attrs, cols, "equation", 1);
+				addInspectorRow(attrs, cols, "priority", 1);
+				addLocalOutputRows(attrs, cols);
+			}
+			else if(currentObj.getType() == 0 || currentObj.getType() == 5)
+			{
+				addVisibleAttributeRows(attrs, cols);
+				addLocalOutputRows(attrs, cols);
+			}
+			rowToAttribute = new int[attrs.size()];
+			rowToColumn = new int[cols.size()];
+			for(int i = 0; i < attrs.size(); i++)
+			{
+				rowToAttribute[i] = attrs.get(i).intValue();
+				rowToColumn[i] = cols.get(i).intValue();
+			}
+		}
+
+		private void addInspectorRow(LinkedList<Integer> attrs, LinkedList<Integer> cols, String attrName, int col) {
+			for(int i = 0; i < attrib.size(); i++)
+			{
+				if(attrib.get(i).getName().equals(attrName))
+				{
+					attrs.add(new Integer(i));
+					cols.add(new Integer(col));
+					return;
+				}
+			}
+		}
+
+		private void addVisibleAttributeRows(LinkedList<Integer> attrs, LinkedList<Integer> cols) {
+			for(int i = 0; i < attrib.size(); i++)
+			{
+				ObjAttribute attr = attrib.get(i);
+				if(attr.getVisible() && !attr.getName().equals("name") && !attr.getType().equals("output"))
+				{
+					attrs.add(new Integer(i));
+					cols.add(new Integer(1));
+				}
+			}
+		}
+
+		private void addLocalOutputRows(LinkedList<Integer> attrs, LinkedList<Integer> cols) {
+			for(int i = 0; i < attrib.size(); i++)
+			{
+				ObjAttribute attr = attrib.get(i);
+				if(attr.getType().equals("output") && attr.getEditable(1) == ObjAttribute.LOCAL)
+				{
+					attrs.add(new Integer(i));
+					cols.add(new Integer(1));
+				}
+			}
+		}
+
+		public int getColumnCount() {
+			return inspectorColumns.length;
+		}
+
+		public int getRowCount() {
+			return rowToAttribute.length;
+		}
+
+		public String getColumnName(int col) {
+			return inspectorColumns[col];
+		}
+
+		public Object getValueAt(int row, int col) {
+			if(col == 0)
+				return attrib.get(rowToAttribute[row]).getName();
+			return super.getValueAt(rowToAttribute[row], rowToColumn[row]);
+		}
+
+		public boolean isCellEditable(int row, int col) {
+			return col == 1 && super.isCellEditable(rowToAttribute[row], rowToColumn[row]);
+		}
+
+		public void setValueAt(Object value, int row, int col) {
+			if(col != 1)
+				return;
+			if(editing)
+			{
+				super.setValueAt(value, rowToAttribute[row], rowToColumn[row]);
+				return;
+			}
+			editing = true;
+			GeneralObj replacement = drawArea.prepareInspectorEdit(currentObj);
+			if(replacement != null)
+			{
+				currentObj = replacement;
+				obj = replacement;
+				attrib = replacement.getAttributeList();
+				buildRows();
+			}
+			super.setValueAt(value, rowToAttribute[row], rowToColumn[row]);
+			drawArea.finishInspectorEdit();
+			editing = false;
+		}
+	}
+
+	class ReadOnlyInspectorTableModel extends javax.swing.table.DefaultTableModel {
+		ReadOnlyInspectorTableModel(Object[][] data, Object[] columns) {
+			super(data, columns);
+		}
+
+		public boolean isCellEditable(int row, int col) {
+			return false;
+		}
+	}
 	
 	public String getPageName(int i)
 	{
@@ -1924,9 +2257,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		drawArea1.updatePageConn();
 		drawArea1.updateCanvasExtents();
 
-		Dimension coord = getScrollPaneSize();
-		jTabbedPane1.setMinimumSize(coord);
-		jTabbedPane1.setSize(coord);
+		jTabbedPane1.setMinimumSize(new Dimension(100, 100));
 		jTabbedPane1.doLayout();
 		jPanel3.doLayout();
 		repaint();

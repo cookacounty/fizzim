@@ -108,6 +108,13 @@ public class StateObj extends GeneralObj implements Cloneable {
 				g2D.fillRoundRect(x0 + 2, y0 + 2, x1 - x0 - 4, y1 - y0 - 4, ARC, ARC);
 			}
 			g2D.setColor(color);
+			if(isHoverHighlighted())
+			{
+				g2D.setColor(new Color(65, 145, 220));
+				g2D.setStroke(new BasicStroke(2.0f));
+				g2D.drawRoundRect(x0 - 3, y0 - 3, x1 - x0 + 6, y1 - y0 + 6, ARC, ARC);
+				g2D.setColor(color);
+			}
 			if(defaultGroupEntry)
 				g2D.setStroke(new BasicStroke(3.0f));
 			g.drawRoundRect(x0, y0, x1 - x0, y1 - y0, ARC, ARC);
