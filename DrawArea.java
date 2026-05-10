@@ -3508,12 +3508,6 @@ public void updateTransitions()
 				wroteHeader = appendLintHeader(report, wroteHeader, "Fork Coverage");
 				appendLint(report, "ERROR", "Fork " + fork.getName() + " has no incoming transition.", fork);
 			}
-			if(incomingCount > 1)
-			{
-				wroteHeader = appendLintHeader(report, wroteHeader, "Fork Coverage");
-				appendLint(report, "WARN", "Fork " + fork.getName() + " has " + incomingCount
-						+ " incoming transitions. Safety-oriented statechart guidelines avoid junction backtracking and ambiguous merge/split paths; prefer one fork per shared source condition.", fork);
-			}
 			if(outgoingCount < 2)
 			{
 				wroteHeader = appendLintHeader(report, wroteHeader, "Fork Coverage");

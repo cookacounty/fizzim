@@ -35,8 +35,7 @@ part of the current codebase.
   priorities, unreachable lower-priority branches behind default transitions,
   and missing default branches on prioritized transition sets.
 - Added fork linting for missing incoming transitions, too few outgoing
-  branches, fork branch sets without a default branch, and forks used as
-  many-in/many-out junctions.
+  branches, and fork branch sets without a default branch.
 - Added interactive lint results: selecting an issue selects/highlights the
   associated state, fork, state group, or transition in the diagram.
 - Added transition-equation linting for references to unknown signals or FSM

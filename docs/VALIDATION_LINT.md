@@ -18,8 +18,6 @@ sign off state-machine RTL.
   - multiple prioritized transitions without a default branch are warnings.
 - Checks fork structure:
   - no incoming transition is an error,
-  - multiple incoming transitions are warned because they can behave like a
-    merge/split junction with harder-to-review priority and backtracking intent,
   - fewer than two outgoing transitions is an error,
   - multiple fork branches without a default branch is a warning.
 - Checks transition equations for references to names that are not known inputs,
@@ -46,6 +44,12 @@ that means:
 - forked control flow resolves to concrete destination states,
 - transition actions are RHS expressions that the backend can place safely into
   generated assignment statements.
+
+Multiple incoming transitions to the same fork are valid in the Fizzim backend:
+each incoming transition is crossed with each outgoing branch and the generated
+transition condition becomes `(incoming_condition) && (branch_condition)`. This
+is expected HDL behavior, so lint should not warn merely because a fork has
+fan-in.
 
 These checks line up with common RTL lint themes from Verilator and Verible:
 incomplete decision coverage, unreachable branches, accidental priority logic,
