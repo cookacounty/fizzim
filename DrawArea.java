@@ -187,8 +187,14 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 
 		setBackground(Color.blue);
 		addMouseListener(this);
-	    addMouseMotionListener(this);
-	    addMouseWheelListener(this);
+		addMouseMotionListener(this);
+		addMouseWheelListener(this);
+		getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK), "selectAllDiagramObjects");
+		getActionMap().put("selectAllDiagramObjects", new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				selectAllDiagramObjects();
+			}
+		});
 
 	}
 	    
@@ -397,6 +403,54 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		newY = Math.max(0, Math.min(newY, Math.max(0, getHeight() - viewport.getHeight())));
 		viewport.setViewPosition(new Point(newX, newY));
 		return true;
+	}
+
+	private void selectAllDiagramObjects()
+	{
+		selectedIndices.clear();
+		int count = 0;
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(isTransitionEndpoint(obj) || isMovableTextObject(obj))
+			{
+				obj.setSelectStatus(true);
+				selectedIndices.add(new Integer(i));
+				count++;
+			}
+			else
+			{
+				obj.unselect();
+			}
+		}
+		normalizeStateGroupSelection();
+		count = selectedIndices.size();
+		objsSelected = count > 1;
+		multipleSelect = false;
+		repaint();
+	}
+
+	private boolean isMovableTextObject(GeneralObj obj)
+	{
+		return obj.getType() == 3 && !((TextObj)obj).getGlobalTable();
+	}
+
+	private void normalizeStateGroupSelection()
+	{
+		LinkedList<StateGroupObj> selectedGroups = getSelectedStateGroups();
+		if(selectedGroups.size() == 0)
+			return;
+		for(int i = selectedIndices.size() - 1; i >= 0; i--)
+		{
+			int index = selectedIndices.get(i).intValue();
+			GeneralObj obj = (GeneralObj)objList.get(index);
+			if((obj.getType() == 0 || obj.getType() == 4)
+					&& isContainedInSelectedStateGroup((StateObj)obj, selectedGroups))
+			{
+				obj.unselect();
+				selectedIndices.remove(i);
+			}
+		}
 	}
 
 	private void addHitCandidate(LinkedList<HitCandidate> hits, int index, GeneralObj obj)
@@ -824,50 +878,74 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	{
 		tempList = null;
 		tempList = (Vector<Object>) objList.clone();
-		
-		//go through all selected objects and clone
-		for(int i = 0; i < selectedIndices.size(); i++)		
+
+		LinkedHashMap<GeneralObj, GeneralObj> endpointClones = new LinkedHashMap<GeneralObj, GeneralObj>();
+
+		for(int i = 0; i < selectedIndices.size(); i++)
 		{
 			GeneralObj oldObj = (GeneralObj) tempList.get(selectedIndices.get(i).intValue());
-			GeneralObj clonedObj = null;
-			try {
-				clonedObj = (GeneralObj) oldObj.clone();
-			} catch (CloneNotSupportedException e) {
-				e.printStackTrace();
-			}
-				
-			//if a transition endpoint, create clone of children transitions
+			GeneralObj clonedObj = cloneObj(oldObj);
+			objList.set(selectedIndices.get(i).intValue(), clonedObj);
 			if(isTransitionEndpoint(oldObj))
+				endpointClones.put(oldObj, clonedObj);
+			if(oldObj.getType() == 5)
+				cloneContainedEndpointsForBatchUndo((StateGroupObj)oldObj, endpointClones);
+		}
+
+		cloneAffectedTransitionsForBatchUndo(endpointClones);
+	}
+
+	private GeneralObj cloneObj(GeneralObj oldObj)
+	{
+		try {
+			return (GeneralObj) oldObj.clone();
+		} catch (CloneNotSupportedException e) {
+			e.printStackTrace();
+			return oldObj;
+		}
+	}
+
+	private void cloneContainedEndpointsForBatchUndo(StateGroupObj oldGroup, LinkedHashMap<GeneralObj, GeneralObj> endpointClones)
+	{
+		for(int i = 1; i < tempList.size(); i++)
+		{
+			GeneralObj oldChild = (GeneralObj) tempList.get(i);
+			if((oldChild.getType() == 0 || oldChild.getType() == 4)
+					&& oldGroup.containsState((StateObj)oldChild)
+					&& !endpointClones.containsKey(oldChild))
 			{
-				for(int j = 1; j < objList.size(); j++)
+				GeneralObj clonedChild = cloneObj(oldChild);
+				objList.set(i, clonedChild);
+				endpointClones.put(oldChild, clonedChild);
+			}
+		}
+	}
+
+	private void cloneAffectedTransitionsForBatchUndo(LinkedHashMap<GeneralObj, GeneralObj> endpointClones)
+	{
+		for(int i = 1; i < tempList.size(); i++)
+		{
+			GeneralObj oldTrans = (GeneralObj) tempList.get(i);
+			if(isTransitionEndpoint(oldTrans))
+				continue;
+
+			boolean affected = false;
+			for(GeneralObj oldEndpoint : endpointClones.keySet())
+			{
+				if(oldTrans.containsParent(oldEndpoint))
 				{
-					GeneralObj s = (GeneralObj) objList.elementAt(j);
-					//check all objects that have to be modified state as a parent
-					if(!isTransitionEndpoint(s) && s.containsParent(oldObj))
-					{
-						GeneralObj clonedObj2 = null;
-						try {
-							clonedObj2 = (GeneralObj) s.clone();
-						} catch (CloneNotSupportedException e) {
-							e.printStackTrace();
-						}
-								
-						//replace old obj link in trans obj with new cloned one
-						clonedObj2.notifyChange(oldObj, clonedObj);				
-						clonedObj2.setParentModified(true);
-												
-								
-						//add cloned child to object list
-						int objListIndex = objList.indexOf(s);
-						objList.set(objListIndex,clonedObj2);
-					}
+					affected = true;
+					break;
 				}
 			}
-			if(oldObj.getType() == 5)
-			{
-				cloneContainedEndpointsForUndo((StateGroupObj)oldObj, (StateGroupObj)clonedObj);
-			}
-			objList.set(selectedIndices.get(i).intValue(),clonedObj);	
+			if(!affected)
+				continue;
+
+			GeneralObj clonedTrans = cloneObj(oldTrans);
+			for(Map.Entry<GeneralObj, GeneralObj> entry : endpointClones.entrySet())
+				clonedTrans.notifyChange(entry.getKey(), entry.getValue());
+			clonedTrans.setParentModified(true);
+			objList.set(i, clonedTrans);
 		}
 	}
 	
@@ -1146,7 +1224,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			for(int i = 1; i < objList.size(); i++)
 			{
 				GeneralObj obj = (GeneralObj) objList.get(i);
-				if(isTransitionEndpoint(obj) || obj.getType() == 3)
+				if(isTransitionEndpoint(obj) || isMovableTextObject(obj))
 				{
 					if(obj.getSelectStatus() != 0)
 					{
@@ -1172,11 +1250,10 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 					obj.unselect();
 			}
 			//if multiple items selected so far, update global selection list.
-			if(numbSel > 1)
-			{
-				selectedIndices = tempIndices;
-				objsSelected = true;
-			}
+			selectedIndices = tempIndices;
+			normalizeStateGroupSelection();
+			numbSel = selectedIndices.size();
+			objsSelected = numbSel > 1;
 		}
 		//if multiple object selected
 		else if(objsSelected)
@@ -1488,6 +1565,8 @@ public void updateTransitions()
 		if(!multipleSelect && !arg0.isControlDown() && leftButtonDrag)
 		{
 			HashSet<GeneralObj> movedBySelectedGroup = new HashSet<GeneralObj>();
+			LinkedList<StateGroupObj> selectedGroups = objsSelected ? getSelectedStateGroups() : new LinkedList<StateGroupObj>();
+			LinkedList<GeneralObj> movedEndpointsBatch = new LinkedList<GeneralObj>();
 			boolean snapDisabled = arg0.isAltDown();
 			for (int i = 1; i < objList.size(); i++)
 			{
@@ -1496,6 +1575,9 @@ public void updateTransitions()
 					continue;
 				if(s.getSelectStatus() != 0)
 				{
+					if(objsSelected && (s.getType() == 0 || s.getType() == 4)
+							&& isContainedInSelectedStateGroup((StateObj)s, selectedGroups))
+						continue;
 					int[] oldCoords = null;
 					LinkedList<StateObj> childEndpoints = new LinkedList<StateObj>();
 					if(s.getType() == 5 && s.getSelectStatus() == StateObj.CENTER)
@@ -1503,12 +1585,14 @@ public void updateTransitions()
 						oldCoords = ((StateObj)s).getCoords();
 						childEndpoints = getContainedTransitionEndpoints((StateGroupObj)s);
 					}
-					if(snapDisabled && isTransitionEndpoint(s) && s.getSelectStatus() == StateObj.CENTER)
+					boolean batchMove = objsSelected;
+					boolean disableEndpointSnap = (snapDisabled || batchMove) && isTransitionEndpoint(s) && s.getSelectStatus() == StateObj.CENTER;
+					if(disableEndpointSnap)
 						((StateObj)s).setGrid(false, gridS);
 					s.adjustShapeOrPosition(x,y);
-					if(snapDisabled && isTransitionEndpoint(s))
+					if(disableEndpointSnap)
 						((StateObj)s).setGrid(grid, gridS);
-					if(isTransitionEndpoint(s) && s.getSelectStatus() == StateObj.CENTER)
+					if(!batchMove && isTransitionEndpoint(s) && s.getSelectStatus() == StateObj.CENTER)
 						applySmartAlignment((StateObj)s, movedBySelectedGroup, snapDisabled);
 					if(oldCoords != null)
 					{
@@ -1525,25 +1609,23 @@ public void updateTransitions()
 								movedBySelectedGroup.add(childEndpoints.get(k));
 								movedEndpoints.add(childEndpoints.get(k));
 							}
-							updateTransitionsForMovedEndpoints(movedEndpoints);
+							movedEndpointsBatch.addAll(movedEndpoints);
 						}
 					}
 					else if(endpointGeometrySelectedForUndo(s))
 					{
-						LinkedList<GeneralObj> movedEndpoints = new LinkedList<GeneralObj>();
-						movedEndpoints.add(s);
-						updateTransitionsForMovedEndpoints(movedEndpoints);
-					}
-					for(int j = 1; j < objList.size(); j++)
-					{
-						GeneralObj obj = (GeneralObj) objList.elementAt(j);
-						if(!isTransitionEndpoint(obj) && obj.isParentModified())
-							obj.updateObj();
-						
+						movedEndpointsBatch.add(s);
 					}
 					//break;
-					
-				}			
+
+				}
+			}
+			updateTransitionsForMovedEndpoints(movedEndpointsBatch);
+			for(int j = 1; j < objList.size(); j++)
+			{
+				GeneralObj obj = (GeneralObj) objList.elementAt(j);
+				if(!isTransitionEndpoint(obj) && obj.isParentModified())
+					obj.updateObj();
 			}
 			repaint();
 		}
@@ -1577,14 +1659,16 @@ public void updateTransitions()
 			objsSelected = false;
 			selectedIndices.clear();
 			for (int i = 1; i < objList.size(); i++)
-			{			
+			{
 				GeneralObj s = (GeneralObj) objList.elementAt(i);
-				if((isTransitionEndpoint(s) || s.getType() == 3) && s.setBoxSelectStatus(mX0,mY0,mX1,mY1))
+				if((isTransitionEndpoint(s) || isMovableTextObject(s)) && s.setBoxSelectStatus(mX0,mY0,mX1,mY1))
 				{
 					tempNumb++;
 					selectedIndices.add(new Integer(i));
 				}
 			}
+			normalizeStateGroupSelection();
+			tempNumb = selectedIndices.size();
 			if(tempNumb > 1)
 				objsSelected = true;
 			else
@@ -2130,6 +2214,28 @@ public void updateTransitions()
 				states.add((StateObj)obj);
 		}
 		return states;
+	}
+
+	private LinkedList<StateGroupObj> getSelectedStateGroups()
+	{
+		LinkedList<StateGroupObj> groups = new LinkedList<StateGroupObj>();
+		for(int i = 0; i < selectedIndices.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(selectedIndices.get(i).intValue());
+			if(obj.getType() == 5 && obj.getSelectStatus() == StateObj.CENTER)
+				groups.add((StateGroupObj)obj);
+		}
+		return groups;
+	}
+
+	private boolean isContainedInSelectedStateGroup(StateObj endpoint, LinkedList<StateGroupObj> selectedGroups)
+	{
+		for(int i = 0; i < selectedGroups.size(); i++)
+		{
+			if(selectedGroups.get(i).containsState(endpoint))
+				return true;
+		}
+		return false;
 	}
 
 	private LinkedList<StateObj> getContainedStates(StateGroupObj stateGroup)
