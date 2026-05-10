@@ -1327,6 +1327,7 @@ foreach $state (@allstates) {
   # Sort by priority, followed by equation.  The equation part ensures
   # that "1" will be last.
   @transitions_from_this_state = sort sort_by_priority_then_equation_equal_1 @transitions_from_this_state;
+  @transitions_from_this_state = &prune_transitions_after_unconditional(@transitions_from_this_state);
   #print("After sort, transitions_from_this_state for state $state is @transitions_from_this_state\n");
   &debug("After sort, transitions_from_this_state for state $state is @transitions_from_this_state",0,$section);
 
@@ -2247,6 +2248,7 @@ sub print_regdp_transition_actions {
       }
     }
     @transitions_from_this_state = sort sort_by_priority_then_equation_equal_1 @transitions_from_this_state;
+    @transitions_from_this_state = &prune_transitions_after_unconditional(@transitions_from_this_state);
 
     @ifs = ();
     foreach $trans (@transitions_from_this_state) {
@@ -2669,6 +2671,21 @@ sub sort_by_priority_then_equation_equal_1 {
     # finally, sort by trans name just so order will be predictable
     ||
    $a cmp $b
+}
+
+sub prune_transitions_after_unconditional {
+  my (@sorted_transitions) = @_;
+  my (@reachable_transitions, $trans, $equation);
+
+  foreach $trans (@sorted_transitions) {
+    push(@reachable_transitions, $trans);
+    $equation = $transitions{$trans}{attributes}{equation}{value};
+    $equation =~ s/\n//g if defined $equation;
+    $equation = 1 if (!defined $equation || $equation eq "");
+    last if ($equation eq "1");
+  }
+
+  return @reachable_transitions;
 }
 
 

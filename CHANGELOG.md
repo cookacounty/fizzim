@@ -59,6 +59,8 @@ part of the current codebase.
 - Expanded the lint showcase diagram with unreachable-state and malformed-fork
   examples, including a fork with an incoming transition but no exits and a fork
   branch with no incoming transition.
+- Rebased the lint showcase diagram from the generic source diagram after
+  example-layout edits, preserving the intentional lint issues.
 
 ### Diagram Editing
 
@@ -168,6 +170,8 @@ part of the current codebase.
   Verilog is reproducible from the checked-in source tree.
 - Updated the backend for forked transitions, state groups, state group default
   entry behavior, transition actions, and widened debug `statename` output.
+- Pruned lower-priority transitions that become unreachable behind an
+  unconditional transition after state-group and fork expansion.
 - Kept generated debug-only state-name logic guarded from synthesis.
 - Preserved compatibility with existing diagrams by avoiding file-format changes
   for route editing and by preserving legacy connection-point indices.
@@ -179,6 +183,8 @@ part of the current codebase.
 - Added generation of a Fizzim 1.0-compatible diagram from the generic feature
   diagram, allowing the legacy-compatible output to be compared against the new
   feature-driven output.
+- Updated the Fizzim 1.0 compatibility generator to prune unreachable expanded
+  transitions and emit explicit nonzero priorities for legacy-backend checks.
 - Added a checked-in legacy testbench area under `testcases/tb/legacy/` with the
   old backend and GUI source used for comparison.
 - Added Linux/Git Bash-oriented `make` targets for build, clean, jar generation,

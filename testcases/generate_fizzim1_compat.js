@@ -290,13 +290,23 @@ function normalizePriorities(transitions) {
     bySource.get(source).push(t);
   }
 
+  const kept = new Set();
   for (const list of bySource.values()) {
     list.sort((a, b) => compareInfo(tinfo(a), tinfo(b)));
+    const reachable = [];
+    for (const t of list) {
+      reachable.push(t);
+      if ((tinfo(t).equation || "").trim() === "1") break;
+    }
+    for (const t of reachable) kept.add(t);
+    list.length = 0;
+    list.push(...reachable);
     for (let i = 0; i < list.length; i++) {
-      const priority = list.length <= 1 ? 0 : Math.round((i * 1000) / (list.length - 1));
+      const priority = list.length <= 1 ? 1000 : Math.round(1 + (i * 999) / (list.length - 1));
       setTransition(list[i], "priority", String(priority));
     }
   }
+  return transitions.filter((t) => kept.has(t));
 }
 
 function inheritGroupAttrs(states, groups, groupObjs) {
@@ -401,7 +411,7 @@ function main() {
   transitions = expandForks(transitions, forks, states);
   const { defaults, types } = outputDefaults(pre);
   convertActions(transitions, states, defaults, types);
-  normalizePriorities(transitions);
+  transitions = normalizePriorities(transitions);
 
   const finalObjects = objects.filter((o) => !["fork", "stategroup", "transition"].includes(o.kind));
   transitions.sort((a, b) => objName(a).localeCompare(objName(b))).forEach((t) => finalObjects.push(t));

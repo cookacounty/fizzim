@@ -37,6 +37,8 @@ plain old Fizzim constructs:
 - forks are expanded into direct transitions with combined equations
 - transition actions are converted into equivalent source-state regdp
   assignments
+- lower-priority expanded transitions that are unreachable behind an
+  unconditional transition are pruned before writing the compatibility diagram
 
 The compatible diagram removes `<fork>`, `<stategroup>`, and `<entryState>` so
 it can be used as the old-style golden reference.
