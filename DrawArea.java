@@ -148,6 +148,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	private int originX = 0;
 	private int originY = 0;
 	private static final int DIAGRAM_PADDING = 140;
+	private static final int FIT_PADDING = 40;
+	private static final int PAN_MARGIN_PIXELS = 800;
 	private static final int SMART_ALIGN_THRESHOLD = 3;
 	private static final int SMART_SPACING_ROW_THRESHOLD = 16;
 	private Integer smartGuideX = null;
@@ -356,11 +358,16 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 
 	public void updateCanvasExtents()
 	{
+		updateCanvasExtents(DIAGRAM_PADDING);
+	}
+
+	private void updateCanvasExtents(int padding)
+	{
 		Rectangle bounds = getDiagramBounds(currPage);
-		originX = bounds.x - DIAGRAM_PADDING;
-		originY = bounds.y - DIAGRAM_PADDING;
-		logicalWidth = Math.max(1, bounds.width + DIAGRAM_PADDING * 2);
-		logicalHeight = Math.max(1, bounds.height + DIAGRAM_PADDING * 2);
+		originX = bounds.x - padding;
+		originY = bounds.y - padding;
+		logicalWidth = Math.max(1, bounds.width + padding * 2);
+		logicalHeight = Math.max(1, bounds.height + padding * 2);
 		updateZoomedSize();
 	}
 
@@ -420,7 +427,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		{
 			TextObj textObj = (TextObj)obj;
 			if(textObj.getGlobalTable())
-				return null;
+				textObj.prepareGlobalBounds(getFontMetrics(tableFont), globalList, tableFont, tableVis, space, tableColor);
 			bounds = textObj.getBounds();
 		}
 		else if(obj instanceof StateTransitionObj)
@@ -525,10 +532,10 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	{
 		if(viewport == null || viewport.width <= 0 || viewport.height <= 0)
 			return;
-		updateCanvasExtents();
+		updateCanvasExtents(FIT_PADDING);
 		double xZoom = viewport.getWidth() / logicalWidth;
 		double yZoom = viewport.getHeight() / logicalHeight;
-		setZoom(Math.min(xZoom, yZoom));
+		setZoom(Math.min(1.0, Math.min(xZoom, yZoom)));
 		JViewport scrollViewport = (JViewport)SwingUtilities.getAncestorOfClass(JViewport.class, this);
 		if(scrollViewport != null)
 			scrollViewport.setViewPosition(new Point(0, 0));
@@ -609,12 +616,55 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		if(viewport == null)
 			return true;
 
+		ensurePanCanvasMargin(viewport);
 		int newX = panViewStart.x - dx;
 		int newY = panViewStart.y - dy;
 		newX = Math.max(0, Math.min(newX, Math.max(0, getWidth() - viewport.getWidth())));
 		newY = Math.max(0, Math.min(newY, Math.max(0, getHeight() - viewport.getHeight())));
 		viewport.setViewPosition(new Point(newX, newY));
 		return true;
+	}
+
+	private void ensurePanCanvasMargin(JViewport viewport)
+	{
+		int margin = PAN_MARGIN_PIXELS;
+		Point view = viewport.getViewPosition();
+		int shiftX = 0;
+		int shiftY = 0;
+		int growLeft = Math.max(0, margin - view.x);
+		int growTop = Math.max(0, margin - view.y);
+		int growRight = Math.max(0, view.x + viewport.getWidth() + margin - getWidth());
+		int growBottom = Math.max(0, view.y + viewport.getHeight() + margin - getHeight());
+
+		if(growLeft > 0)
+		{
+			int modelGrow = (int)Math.ceil(growLeft / zoom);
+			originX -= modelGrow;
+			logicalWidth += modelGrow;
+			shiftX = (int)Math.round(modelGrow * zoom);
+		}
+		if(growTop > 0)
+		{
+			int modelGrow = (int)Math.ceil(growTop / zoom);
+			originY -= modelGrow;
+			logicalHeight += modelGrow;
+			shiftY = (int)Math.round(modelGrow * zoom);
+		}
+		if(growRight > 0)
+			logicalWidth += (int)Math.ceil(growRight / zoom);
+		if(growBottom > 0)
+			logicalHeight += (int)Math.ceil(growBottom / zoom);
+
+		if(growLeft > 0 || growTop > 0 || growRight > 0 || growBottom > 0)
+		{
+			updateZoomedSize();
+			if(shiftX != 0 || shiftY != 0)
+			{
+				Point shiftedView = new Point(view.x + shiftX, view.y + shiftY);
+				viewport.setViewPosition(shiftedView);
+				panViewStart = new Point(panViewStart.x + shiftX, panViewStart.y + shiftY);
+			}
+		}
 	}
 
 	private void selectAllDiagramObjects()
@@ -639,6 +689,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		count = selectedIndices.size();
 		objsSelected = count > 1;
 		multipleSelect = false;
+		notifySelectionChanged();
 		repaint();
 	}
 
@@ -1358,9 +1409,26 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				objList.set(i, cloneObj(oldObj));
 		}
 	}
-	
+
+	private void setUndoPointAllObjects()
+	{
+		tempList = null;
+		tempList = (Vector<Object>) objList.clone();
+		for(int i = 1; i < tempList.size(); i++)
+		{
+			GeneralObj oldObj = (GeneralObj) tempList.get(i);
+			objList.set(i, cloneObj(oldObj));
+		}
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 1 || obj.getType() == 2)
+				((TransitionObj)obj).makeConnections(objList);
+		}
+	}
+
 	@SuppressWarnings("unchecked")
-	private void setUndoPoint(int index, int type) 
+	private void setUndoPoint(int index, int type)
 	{
 		tempList = null;
 		tempList = (Vector<Object>) objList.clone();
@@ -1821,6 +1889,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			if(bestMatch == null && e.getButton() == MouseEvent.BUTTON1 && e.getModifiers() != 20)
 			{
 				resetClickCycle();
+				unselectObjs();
 				mXTemp = x;
 				mYTemp = y;
 				mX0 = 0;
@@ -1832,6 +1901,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				boxBaseSelectedIndices.clear();
 				objsSelected = false;
 				selectedIndices.clear();
+				notifySelectionChanged();
 			}
 			else if(plainLeftClick)
 			{
@@ -1850,6 +1920,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		if(!objsSelected)
 		{
 			selectedIndices.clear();
+			notifySelectionChanged();
 		}
 		
 		//done modifying all objects, so notify state objects that they are done changing
@@ -3691,11 +3762,64 @@ public void updateTransitions()
 				if(obj1.getEPage() > tab)
 					obj1.decrementEPage();
 			}
-			
 		}
-		
 	}
-	
+
+	public void reorderPages(int fromPage, int toPage)
+	{
+		if(fromPage == toPage || fromPage < 1 || toPage < 1)
+			return;
+
+		setUndoPointAllObjects();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 1)
+			{
+				StateTransitionObj trans = (StateTransitionObj)obj;
+				trans.sPage = remapPageIndex(trans.sPage, fromPage, toPage);
+				trans.ePage = remapPageIndex(trans.ePage, fromPage, toPage);
+				trans.myPage = trans.sPage;
+				remapAttributePages(trans, fromPage, toPage);
+			}
+			else if(obj.getType() == 2)
+			{
+				obj.myPage = remapPageIndex(obj.myPage, fromPage, toPage);
+				remapAttributePages(obj, fromPage, toPage);
+			}
+			else
+			{
+				obj.setPage(remapPageIndex(obj.getPage(), fromPage, toPage));
+			}
+		}
+		currPage = remapPageIndex(currPage, fromPage, toPage);
+		updateCanvasExtents();
+		commitUndo();
+	}
+
+	private void remapAttributePages(GeneralObj obj, int fromPage, int toPage)
+	{
+		LinkedList<ObjAttribute> attrs = obj.getAttributeList();
+		if(attrs == null)
+			return;
+		for(int i = 0; i < attrs.size(); i++)
+		{
+			ObjAttribute attr = attrs.get(i);
+			attr.setPage(remapPageIndex(attr.getPage(), fromPage, toPage));
+		}
+	}
+
+	private int remapPageIndex(int page, int fromPage, int toPage)
+	{
+		if(page == fromPage)
+			return toPage;
+		if(fromPage < toPage && page > fromPage && page <= toPage)
+			return page - 1;
+		if(toPage < fromPage && page >= toPage && page < fromPage)
+			return page + 1;
+		return page;
+	}
+
 	public void unselectObjs()
 	{
 		for (int i = 1; i < objList.size(); i++)

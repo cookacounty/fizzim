@@ -178,17 +178,20 @@ public class TextObj extends GeneralObj {
 					col4W = fm.stringWidth(comm);
 				col4.add(comm);
 			}
-			
 		}
-		
+
 		col1W += space;
 		col2W += space;
 		col3W += space;
 		col4W += space;
-		
 	}
 
-	
+	public void prepareGlobalBounds(FontMetrics metrics, LinkedList<LinkedList<ObjAttribute>> global, Font font, boolean b, int s, Color c) {
+		fm = metrics;
+		updateGlobalText(global, font, b, s, c);
+		tH = col1.size() * fm.getHeight();
+		tW = col1W + col2W + col3W + col4W;
+	}
 	public boolean getGlobalTable()
 	{
 		return globalTable;
@@ -391,6 +394,11 @@ public class TextObj extends GeneralObj {
 
 	public Rectangle getBounds()
 	{
+		if(globalTable && col1.size() > 0)
+		{
+			int lineHeight = Math.max(1, tH / col1.size());
+			return new Rectangle(tX - 8, tY - lineHeight, Math.max(16, tW + 16), Math.max(24, tH + 12));
+		}
 		return new Rectangle(tX - 8, tY - Math.max(20, tH), Math.max(16, tW + 16), Math.max(24, tH + 12));
 	}
 

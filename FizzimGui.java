@@ -2,6 +2,7 @@ import java.awt.AWTException;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -24,6 +25,7 @@ import java.awt.event.FocusListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowStateListener;
 import java.awt.image.BufferedImage;
@@ -1011,13 +1013,47 @@ public class FizzimGui extends javax.swing.JFrame {
 	        drawArea1.unselectObjs();
 		}
 	}
-	
-	
-	
-	    
+
+	private void movePageTab(int fromIndex, int toIndex) {
+		if(fromIndex == toIndex || fromIndex < 1 || toIndex < 1 || fromIndex >= jTabbedPane1.getTabCount()
+				|| toIndex >= jTabbedPane1.getTabCount())
+			return;
+
+		loading = true;
+		int selected = jTabbedPane1.getSelectedIndex();
+		int newSelected = selected;
+		if(selected == fromIndex)
+			newSelected = toIndex;
+		else if(fromIndex < selected && selected <= toIndex)
+			newSelected = selected - 1;
+		else if(toIndex <= selected && selected < fromIndex)
+			newSelected = selected + 1;
+
+		String title = jTabbedPane1.getTitleAt(fromIndex);
+		Icon icon = jTabbedPane1.getIconAt(fromIndex);
+		Component component = jTabbedPane1.getComponentAt(fromIndex);
+		String tooltip = jTabbedPane1.getToolTipTextAt(fromIndex);
+		boolean enabled = jTabbedPane1.isEnabledAt(fromIndex);
+		jTabbedPane1.removeTabAt(fromIndex);
+		jTabbedPane1.insertTab(title, icon, component, tooltip, toIndex);
+		jTabbedPane1.setEnabledAt(toIndex, enabled);
+		drawArea1.reorderPages(fromIndex, toIndex);
+		jTabbedPane1.setSelectedIndex(newSelected);
+		for(int i = 1; i < jTabbedPane1.getTabCount(); i++)
+		{
+			if(i != newSelected)
+				jTabbedPane1.setComponentAt(i, new JPanel());
+		}
+		jTabbedPane1.setComponentAt(newSelected, jScrollPane1);
+		drawArea1.setCurrPage(newSelected);
+		drawArea1.setFileModifed(true);
+		drawArea1.unselectObjs();
+		loading = false;
+		jTabbedPane1.revalidate();
+		jTabbedPane1.repaint();
+	}
 
 	protected void FileOpenActionActionPerformed(ActionEvent evt) {
-		
 	}
 
 	//GEN-FIRST:event_formComponentResized
@@ -1891,53 +1927,86 @@ public class FizzimGui extends javax.swing.JFrame {
 	// following 3 classes use code from: http://forum.java.sun.com/thread.jspa?threadID=337070&messageID=1429062
 
 	
-	class MyJTabbedPane extends JTabbedPane implements MouseListener {
+	class MyJTabbedPane extends JTabbedPane implements MouseListener, MouseMotionListener {
+
+		private int dragPageTab = -1;
+		private boolean dragStartedOnCloseIcon = false;
 
 		public MyJTabbedPane() {
 			super();
 			this.setUI(new MyBasicTabbedPaneUI());
 			addMouseListener(this);
-			
+			addMouseMotionListener(this);
 		}
-		
+
 		public void addTab(String title, Component component) {
-		    this.addTab(title, null, component);
-		 }
-		
+			this.addTab(title, null, component);
+		}
+
 		public void addBlankTab(String title, Component component) {
 			super.addTab(title, null, component);
 		}
-		
+
 		public void addTab(String title, Icon extraIcon, Component component) {
-		    super.addTab(title, new CloseTabIcon(extraIcon), component);
+			super.addTab(title, new CloseTabIcon(extraIcon), component);
 		}
 
 		public void mouseClicked(MouseEvent arg0) {
 			int tab = getUI().tabForCoordinate(this, arg0.getX(), arg0.getY());
-		    if (tab < 2) 
-		    	return;
-		    Rectangle rect=((CloseTabIcon)getIconAt(tab)).getBounds();
-		    if (rect.contains(arg0.getX(), arg0.getY())) {
-		    	if (JOptionPane.showConfirmDialog(this,
-		    			"Everything on this page will be permanently deleted. The undo/redo list will be reset. Delete Tab?", "Close Tab Option",
-		    			JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION)
-		    	{
-		    		this.setSelectedIndex(tab-1);
-		    		this.removeTabAt(tab);
-		    		drawArea1.removePage(tab);
-		    		drawArea1.resetUndo();
-		    	}
-		    }
-			
+			if(tab < 2)
+				return;
+			Rectangle rect = ((CloseTabIcon)getIconAt(tab)).getBounds();
+			if(rect.contains(arg0.getX(), arg0.getY())) {
+				if(JOptionPane.showConfirmDialog(this,
+						"Everything on this page will be permanently deleted. The undo/redo list will be reset. Delete Tab?", "Close Tab Option",
+						JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION)
+				{
+					this.setSelectedIndex(tab - 1);
+					this.removeTabAt(tab);
+					drawArea1.removePage(tab);
+					drawArea1.resetUndo();
+				}
+			}
 		}
-		
+
 		public void mouseEntered(MouseEvent arg0) {}
 		public void mouseExited(MouseEvent arg0) {}
-		public void mousePressed(MouseEvent arg0) {}
-		public void mouseReleased(MouseEvent arg0) {}
-		
+		public void mousePressed(MouseEvent arg0) {
+			dragPageTab = -1;
+			dragStartedOnCloseIcon = false;
+			if(arg0.getButton() != MouseEvent.BUTTON1)
+				return;
+			int tab = getUI().tabForCoordinate(this, arg0.getX(), arg0.getY());
+			if(tab < 1)
+				return;
+			if(tab >= 2 && getIconAt(tab) instanceof CloseTabIcon)
+			{
+				Rectangle rect = ((CloseTabIcon)getIconAt(tab)).getBounds();
+				dragStartedOnCloseIcon = rect.contains(arg0.getX(), arg0.getY());
+			}
+			if(!dragStartedOnCloseIcon)
+				dragPageTab = tab;
+		}
+		public void mouseReleased(MouseEvent arg0) {
+			if(dragPageTab >= 1 && !dragStartedOnCloseIcon)
+			{
+				int targetTab = getUI().tabForCoordinate(this, arg0.getX(), arg0.getY());
+				if(targetTab >= 1 && targetTab != dragPageTab)
+					movePageTab(dragPageTab, targetTab);
+			}
+			dragPageTab = -1;
+			dragStartedOnCloseIcon = false;
+		}
+		public void mouseDragged(MouseEvent arg0) {
+			if(dragPageTab >= 1 && !dragStartedOnCloseIcon)
+				setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
+		}
+		public void mouseMoved(MouseEvent arg0) {
+			setCursor(Cursor.getDefaultCursor());
+		}
+
 	}
-	
+
 	public class MyBasicTabbedPaneUI extends BasicTabbedPaneUI {
 
 
