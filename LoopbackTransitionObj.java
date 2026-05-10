@@ -266,8 +266,14 @@ private static final double BEND_ENDPOINT_PULL = 0.25;
 		
 		if(ready && currPage == myPage)
 		{
-			
+
 			Graphics2D g2D = (Graphics2D) g;
+			Stroke oldStroke = g2D.getStroke();
+			if(isHighestPriority())
+			{
+				float width = oldStroke instanceof BasicStroke ? ((BasicStroke)oldStroke).getLineWidth() : 1.0f;
+				g2D.setStroke(new BasicStroke(Math.max(2.5f, width + 1.5f)));
+			}
 			g2D.setColor(color);
 			g2D.draw(loop);
 			
@@ -324,9 +330,10 @@ private static final double BEND_ENDPOINT_PULL = 0.25;
 	            g2D.fillRect((int)endCtrlPt.getX()-3,(int)endCtrlPt.getY()-3,7,7);
 	            g2D.drawLine((int)startPt.getX(),(int)startPt.getY(),(int)startCtrlPt.getX(),(int)startCtrlPt.getY());
 	            g2D.drawLine((int)endPt.getX(),(int)endPt.getY(),(int)endCtrlPt.getX(),(int)endCtrlPt.getY());
-	            
-	            
+
+
 	        }
+			g2D.setStroke(oldStroke);
 
 
 		}

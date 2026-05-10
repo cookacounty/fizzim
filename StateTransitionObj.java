@@ -672,8 +672,12 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		if(ready && (sPage == currPage || ePage == currPage))
 		{
 			Graphics2D g2D = (Graphics2D) g;
-				
-				
+			Stroke oldStroke = g2D.getStroke();
+			if(isHighestPriority())
+			{
+				float width = oldStroke instanceof BasicStroke ? ((BasicStroke)oldStroke).getLineWidth() : 1.0f;
+				g2D.setStroke(new BasicStroke(Math.max(2.5f, width + 1.5f)));
+			}
 
 		    g2D.setColor(color);
 			
@@ -822,9 +826,10 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			            g2D.drawLine((int)pageE.getX(),(int)pageE.getY(),(int)pageEC.getX(),(int)pageEC.getY());	
 			        }	
 					g2D.setColor(color);
-					g2D.draw(curve);	
-				}							
+					g2D.draw(curve);
+				}
 			}
+			g2D.setStroke(oldStroke);
 		}
 	}
 	

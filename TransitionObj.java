@@ -78,15 +78,25 @@ public double getAngle(Point outer, Point inner)
 }
 
 public Color color = Color.BLACK;
+private boolean highestPriority = false;
 
 public void setColor(Color c)
 {
 	color = c;
 }
-
 public Color getColor()
 {
 	return color;
+}
+
+public void setHighestPriority(boolean b)
+{
+	highestPriority = b;
+}
+
+public boolean isHighestPriority()
+{
+	return highestPriority;
 }
 
 public abstract void updateObjPages(int page);

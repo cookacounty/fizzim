@@ -258,6 +258,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		//paint all objects
 		if(objList != null)
 		{
+			refreshTransitionPriorityHighlights();
 			updateStateGroupDefaultEntryMarkers();
 			updateStateGroupHighlights();
 			for (int i = 1; i < objList.size(); i++)
@@ -1496,6 +1497,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	// the temp list is stored to the undo list array
 	public void commitUndo()
 	{
+		autoAssignTransitionPriorities();
+		refreshTransitionPriorityHighlights();
 		int size = undoList.size();
 		// clears redo points ahead of current position
 		if (currUndoIndex < size - 1)
@@ -2760,6 +2763,133 @@ public void updateTransitions()
 			if(transOutput != null)
 				transOutput.setValue(output.getValue());
 		}
+	}
+
+	private void autoAssignTransitionPriorities()
+	{
+		LinkedHashMap<StateObj, LinkedList<TransitionObj>> transitionsBySource = getTransitionsBySource();
+		for(Iterator<StateObj> it = transitionsBySource.keySet().iterator(); it.hasNext(); )
+		{
+			StateObj source = it.next();
+			LinkedList<TransitionObj> transitions = transitionsBySource.get(source);
+			if(transitions.size() <= 1)
+			{
+				setTransitionPriorityImplied(transitions.get(0));
+				continue;
+			}
+			sortTransitionsByPriority(transitions);
+			for(int i = 0; i < transitions.size(); i++)
+				setTransitionPriority(transitions.get(i), Math.min(i, 1000));
+		}
+	}
+
+	private void refreshTransitionPriorityHighlights()
+	{
+		if(objList == null)
+			return;
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 1 || obj.getType() == 2)
+				((TransitionObj)obj).setHighestPriority(false);
+		}
+
+		LinkedHashMap<StateObj, LinkedList<TransitionObj>> transitionsBySource = getTransitionsBySource();
+		for(Iterator<StateObj> it = transitionsBySource.keySet().iterator(); it.hasNext(); )
+		{
+			StateObj source = it.next();
+			LinkedList<TransitionObj> transitions = transitionsBySource.get(source);
+			if(transitions.size() <= 1)
+				continue;
+			sortTransitionsByPriority(transitions);
+			transitions.get(0).setHighestPriority(true);
+		}
+	}
+
+	private LinkedHashMap<StateObj, LinkedList<TransitionObj>> getTransitionsBySource()
+	{
+		LinkedHashMap<StateObj, LinkedList<TransitionObj>> transitionsBySource = new LinkedHashMap<StateObj, LinkedList<TransitionObj>>();
+		if(objList == null)
+			return transitionsBySource;
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() != 1 && obj.getType() != 2)
+				continue;
+			TransitionObj trans = (TransitionObj)obj;
+			StateObj source = trans.getStartState();
+			if(source == null)
+				continue;
+			LinkedList<TransitionObj> transitions = transitionsBySource.get(source);
+			if(transitions == null)
+			{
+				transitions = new LinkedList<TransitionObj>();
+				transitionsBySource.put(source, transitions);
+			}
+			transitions.add(trans);
+		}
+		return transitionsBySource;
+	}
+
+	private void sortTransitionsByPriority(LinkedList<TransitionObj> transitions)
+	{
+		Collections.sort(transitions, new Comparator<TransitionObj>() {
+			public int compare(TransitionObj a, TransitionObj b)
+			{
+				int priorityCompare = Double.compare(getTransitionPriority(a), getTransitionPriority(b));
+				if(priorityCompare != 0)
+					return priorityCompare;
+				return objList.indexOf(a) - objList.indexOf(b);
+			}
+		});
+	}
+
+	private double getTransitionPriority(TransitionObj trans)
+	{
+		ObjAttribute priority = getTransitionPriorityAttribute(trans);
+		if(priority == null || priority.getValue() == null)
+			return Double.MAX_VALUE;
+		try {
+			return Double.parseDouble(priority.getValue().trim());
+		} catch(NumberFormatException e) {
+			return Double.MAX_VALUE;
+		}
+	}
+
+	private void setTransitionPriority(TransitionObj trans, int priorityValue)
+	{
+		ObjAttribute priority = getTransitionPriorityAttribute(trans);
+		if(priority == null)
+			return;
+		String value = Integer.toString(priorityValue);
+		if(!value.equals(priority.getValue()))
+		{
+			priority.setValue(value);
+			priority.setEditable(1, ObjAttribute.LOCAL);
+		}
+	}
+
+	private void setTransitionPriorityImplied(TransitionObj trans)
+	{
+		ObjAttribute priority = getTransitionPriorityAttribute(trans);
+		if(priority == null)
+			return;
+		priority.setValue("1000");
+		priority.setEditable(1, ObjAttribute.GLOBAL_VAR);
+	}
+
+	private ObjAttribute getTransitionPriorityAttribute(TransitionObj trans)
+	{
+		LinkedList<ObjAttribute> attrs = trans.getAttributeList();
+		if(attrs == null)
+			return null;
+		for(int i = 0; i < attrs.size(); i++)
+		{
+			ObjAttribute attr = attrs.get(i);
+			if(attr.getName().equals("priority"))
+				return attr;
+		}
+		return null;
 	}
 
 	private ObjAttribute findOutputAttribute(LinkedList<ObjAttribute> list, String name)
