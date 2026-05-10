@@ -9,3 +9,6 @@ setup_java.ps1
 
 # Local GitHub wiki checkout used when editing wiki pages
 .wiki/
+
+# Local portable tools
+local_tools/
