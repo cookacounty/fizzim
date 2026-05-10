@@ -187,6 +187,13 @@ private Point bendStartCtrlPt, bendEndCtrlPt;
 		for(int i = 0; i < attrib.size(); i++)
 			attrib.get(i).moveTextOffset(dx, dy);
 	}
+
+	private boolean endpointGeometrySelected()
+	{
+		int status = state.getSelectStatus();
+		return status == StateObj.CENTER || status == StateObj.TL || status == StateObj.TR
+				|| status == StateObj.BL || status == StateObj.BR;
+	}
 	
 	@SuppressWarnings("unchecked")
 	public Object clone () 
@@ -500,7 +507,7 @@ private Point bendStartCtrlPt, bendEndCtrlPt;
 		}
 			
 		
-		if(isParentModified() || state.getSelectStatus() != StateObj.TXT)
+		if(isParentModified() || endpointGeometrySelected())
 		{
 
 			double angleS = getAngle(startCtrlPt,startPt);

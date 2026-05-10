@@ -390,6 +390,13 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		for(int i = 0; i < attrib.size(); i++)
 			attrib.get(i).moveTextOffset(dx, dy);
 	}
+
+	private boolean endpointGeometrySelected(StateObj state)
+	{
+		int status = state.getSelectStatus();
+		return status == StateObj.CENTER || status == StateObj.TL || status == StateObj.TR
+				|| status == StateObj.BL || status == StateObj.BR;
+	}
 	
 	@SuppressWarnings("unchecked")
 	public Object clone () 
@@ -1043,8 +1050,7 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		}
 
 
-		if(isParentModified() || (startState.getSelectStatus() != StateObj.TXT && startState.getSelectStatus() != StateObj.NONE)
-				|| (endState.getSelectStatus() != StateObj.TXT && endState.getSelectStatus() != StateObj.NONE))
+		if(isParentModified() || endpointGeometrySelected(startState) || endpointGeometrySelected(endState))
 		{
 			if(oldS != oldE && sPage == ePage)
 				setEndPts();

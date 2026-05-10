@@ -78,6 +78,12 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	private long lastCycleTime = 0;
 	private int lastCycleIndex = -1;
 	private LinkedList<GeneralObj> lastCycleObjects = new LinkedList<GeneralObj>();
+	private static final long QUICK_CLICK_CYCLE_MS = 250;
+	private boolean pendingClickCycle = false;
+	private LinkedList<HitCandidate> pendingClickCycleHits = null;
+	private int pressModelX = 0;
+	private int pressModelY = 0;
+	private long pressTime = 0;
 
 	//font
 	private Font currFont = new Font("Arial",Font.PLAIN,11);
@@ -134,8 +140,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	private double zoom = 1.0;
 	private int logicalWidth = 936;
 	private int logicalHeight = 1296;
-	private static final int SMART_ALIGN_THRESHOLD = 5;
-	private static final int SMART_SPACING_ROW_THRESHOLD = 24;
+	private static final int SMART_ALIGN_THRESHOLD = 3;
+	private static final int SMART_SPACING_ROW_THRESHOLD = 16;
 	private Integer smartGuideX = null;
 	private Integer smartGuideY = null;
 	private Integer smartSpacingGuideX = null;
@@ -406,8 +412,18 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		addObjectHits(hits, x, y, 3);
 		addObjectHits(hits, x, y, 1);
 		addObjectHits(hits, x, y, 2);
-		unselectObjs();
 		return hits;
+	}
+
+	private boolean hitTestObject(GeneralObj obj, int x, int y)
+	{
+		try {
+			GeneralObj clone = (GeneralObj)obj.clone();
+			return clone.setSelectStatus(x, y);
+		} catch (CloneNotSupportedException e) {
+			e.printStackTrace();
+			return false;
+		}
 	}
 
 	private void addEndpointHits(LinkedList<HitCandidate> hits, int x, int y, int type)
@@ -415,7 +431,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		for(int i = objList.size() - 1; i >= 1; i--)
 		{
 			GeneralObj obj = (GeneralObj)objList.elementAt(i);
-			if(obj.getType() == type && isTransitionEndpoint(obj) && obj.setSelectStatus(x, y))
+			if(obj.getType() == type && isTransitionEndpoint(obj) && hitTestObject(obj, x, y))
 				addHitCandidate(hits, i, obj);
 		}
 	}
@@ -425,7 +441,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		for(int i = objList.size() - 1; i >= 1; i--)
 		{
 			GeneralObj obj = (GeneralObj)objList.elementAt(i);
-			if(obj.getType() == type && obj.setSelectStatus(x, y))
+			if(obj.getType() == type && hitTestObject(obj, x, y))
 				addHitCandidate(hits, i, obj);
 		}
 	}
@@ -456,12 +472,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		if(hits == null || hits.size() < 2)
 			return null;
 
-		boolean continueCycle = hits.size() > 1
-				&& Math.abs(x - lastCycleX) <= CLICK_CYCLE_DISTANCE
-				&& Math.abs(y - lastCycleY) <= CLICK_CYCLE_DISTANCE
-				&& e.getWhen() - lastCycleTime <= CLICK_CYCLE_TIME_MS
-				&& sameCycleObjects(hits);
-		if(!continueCycle)
+		if(!canContinueClickCycle(e, x, y, hits))
 			return null;
 
 		lastCycleIndex = (lastCycleIndex + 1) % hits.size();
@@ -469,6 +480,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		HitCandidate hit = hits.get(lastCycleIndex);
 		setUndoPoint(hit.index, hit.type);
 		GeneralObj selectedObj = (GeneralObj)objList.get(hit.index);
+		unselectObjs();
 		selectedObj.setSelectStatus(x, y);
 		lastCycleX = x;
 		lastCycleY = y;
@@ -476,6 +488,15 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		rememberCycleObjects(hits);
 
 		return selectedObj;
+	}
+
+	private boolean canContinueClickCycle(MouseEvent e, int x, int y, LinkedList<HitCandidate> hits)
+	{
+		return hits != null && hits.size() > 1
+				&& Math.abs(x - lastCycleX) <= CLICK_CYCLE_DISTANCE
+				&& Math.abs(y - lastCycleY) <= CLICK_CYCLE_DISTANCE
+				&& e.getWhen() - lastCycleTime <= CLICK_CYCLE_TIME_MS
+				&& sameCycleObjects(hits);
 	}
 
 	private void rememberClickCycle(MouseEvent e, int x, int y, LinkedList<HitCandidate> hits, GeneralObj selectedObj)
@@ -506,6 +527,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	{
 		lastCycleIndex = -1;
 		lastCycleObjects.clear();
+		pendingClickCycle = false;
+		pendingClickCycleHits = null;
 	}
 
 	private void editSelectedObject(GeneralObj obj)
@@ -539,6 +562,15 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		else if(obj.getType() == 3)
 		{
 			editText((TextObj) obj);
+		}
+	}
+
+	private void unselectObjsExcept(int keepIndex)
+	{
+		for(int i = 1; i < objList.size(); i++)
+		{
+			if(i != keepIndex)
+				((GeneralObj)objList.get(i)).unselect();
 		}
 	}
 
@@ -859,6 +891,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			{
 				FizzimGui fgui = (FizzimGui) frame;
 				fgui.updateGlobal(setUndoPoint());
+				boolean parentGeometrySelected = endpointGeometrySelectedForUndo(oldObj);
 				for(int i = 1; i < objList.size(); i++)
 				{
 					GeneralObj s = (GeneralObj) objList.elementAt(i);
@@ -871,13 +904,13 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 						} catch (CloneNotSupportedException e) {
 							e.printStackTrace();
 						}
-								
+
 						//replace old obj link in trans obj with new cloned one
-						clonedObj2.notifyChange(oldObj, clonedObj);				
-						clonedObj2.setParentModified(true);
-								
-								
-								
+						clonedObj2.notifyChange(oldObj, clonedObj);
+						clonedObj2.setParentModified(parentGeometrySelected);
+
+
+
 						//add cloned child to object list
 						int objListIndex = objList.indexOf(s);
 						objList.set(objListIndex,clonedObj2);
@@ -950,6 +983,15 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		}
 	}
 
+	private boolean endpointGeometrySelectedForUndo(GeneralObj obj)
+	{
+		if(!isTransitionEndpoint(obj))
+			return false;
+		int status = obj.getSelectStatus();
+		return status == StateObj.CENTER || status == StateObj.TL || status == StateObj.TR
+				|| status == StateObj.BL || status == StateObj.BR;
+	}
+
 	//used when properties is cancelled
 	public void cancel()
 	{
@@ -998,10 +1040,14 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				if(popupMouse)
 				{
 					setUndoPoint(i,s.getType());
+					unselectObjsExcept(i);
 					queuePopup(s,e,1);
 				}
 				else
+				{
 					setUndoPoint(i,s.getType());
+					unselectObjsExcept(i);
+				}
 				return s;
 			}
 		}
@@ -1029,6 +1075,11 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			startPanCandidate(e);
 		int x = modelX(e);
 		int y = modelY(e);
+		pressModelX = x;
+		pressModelY = y;
+		pressTime = e.getWhen();
+		pendingClickCycle = false;
+		pendingClickCycleHits = null;
 		GeneralObj bestMatch = null;
 		boolean doubleClick = false;
 		//check for double click
@@ -1039,17 +1090,12 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		boolean plainLeftClick = !popupMouse && !e.isControlDown() && !objsSelected
 				&& e.getButton() == MouseEvent.BUTTON1 && e.getModifiers() != 20;
 		LinkedList<HitCandidate> clickHits = plainLeftClick ? getHitCandidates(x, y) : null;
-
-		if(plainLeftClick)
+		if(plainLeftClick && canContinueClickCycle(e, x, y, clickHits))
 		{
-			GeneralObj cycledMatch = selectFromClickCycle(e, x, y, clickHits);
-			if(cycledMatch != null)
-			{
-				repaint();
-				return;
-			}
+			pendingClickCycle = true;
+			pendingClickCycleHits = clickHits;
 		}
-		else if(popupMouse || e.isControlDown())
+		if(popupMouse || e.isControlDown())
 		{
 			resetClickCycle();
 		}
@@ -1139,10 +1185,14 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 						if(popupMouse)
 						{
 							setUndoPoint(i,s.getType());
+							unselectObjsExcept(i);
 							queuePopup(s,e,1);
 						}
 						else
+						{
 							setUndoPoint(i,s.getType());
+							unselectObjsExcept(i);
+						}
 						break;
 					}
 					else
@@ -1198,12 +1248,16 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 						if(popupMouse)
 						{
 							setUndoPoint(i,3);
+							unselectObjsExcept(i);
 							queuePopup(s,e,1);
 						}
 						else
+						{
 							setUndoPoint(i,3);
+							unselectObjsExcept(i);
+						}
 						break;
-					} 
+					}
 				}
 			}
 			
@@ -1221,12 +1275,16 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 						if(popupMouse)
 						{
 							setUndoPoint(i,type);
+							unselectObjsExcept(i);
 							queuePopup(s,e,1);
 						}
 						else
+						{
 							setUndoPoint(i,type);
+							unselectObjsExcept(i);
+						}
 						break;
-					} 
+					}
 				}
 			}
 	
@@ -1327,6 +1385,16 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			validateStateGroupMembership(true);
 		}
 
+		if(pendingClickCycle && !toCommit && e.getButton() == MouseEvent.BUTTON1
+				&& e.getWhen() - pressTime <= QUICK_CLICK_CYCLE_MS
+				&& Math.abs(modelX(e) - pressModelX) <= PAN_DRAG_THRESHOLD
+				&& Math.abs(modelY(e) - pressModelY) <= PAN_DRAG_THRESHOLD)
+		{
+			selectFromClickCycle(e, modelX(e), modelY(e), pendingClickCycleHits);
+		}
+		pendingClickCycle = false;
+		pendingClickCycleHits = null;
+
 		if(showPendingPopup)
 		{
 			if(pendingPopupType == 1)
@@ -1359,6 +1427,8 @@ public void updateTransitions()
 	public void mouseDragged(MouseEvent arg0) {
 		if(panCanvas(arg0))
 			return;
+		pendingClickCycle = false;
+		pendingClickCycleHits = null;
 		resetClickCycle();
 
 		//keep movement within page
@@ -1419,8 +1489,14 @@ public void updateTransitions()
 							updateTransitionsForMovedEndpoints(movedEndpoints);
 						}
 					}
+					else if(endpointGeometrySelectedForUndo(s))
+					{
+						LinkedList<GeneralObj> movedEndpoints = new LinkedList<GeneralObj>();
+						movedEndpoints.add(s);
+						updateTransitionsForMovedEndpoints(movedEndpoints);
+					}
 					for(int j = 1; j < objList.size(); j++)
-					{				
+					{
 						GeneralObj obj = (GeneralObj) objList.elementAt(j);
 						if(!isTransitionEndpoint(obj) && obj.isParentModified())
 							obj.updateObj();
