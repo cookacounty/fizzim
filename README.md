@@ -3,7 +3,7 @@
 Finite State Machine design tool for building readable FSM diagrams and
 generating Verilog/SystemVerilog.
 
-![Fizzim 2.0 splash](splash.png)
+![Fizzim 2.0 splash](docs/images/fizzim-2-splash.png)
 
 ![Fizzim 2.0 overview](docs/images/fizzim-2-overview.svg)
 
