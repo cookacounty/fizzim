@@ -32,6 +32,8 @@ part of the current codebase.
 - Grouped transition conditions and actions into one left-aligned transition
   label block so users do not have to manage several independent floating text
   labels on one transition.
+- New and reset loopback transitions now start as a conventional side loop
+  instead of snapping through odd border points on the state.
 - Added a Verilog Parameters pane to the FSM Interface/global property editor
   and a matching `FSM Interface > Parameters` menu item. Parameters remain
   stored as backend-compatible machine attributes with `type == "parameter"`.
