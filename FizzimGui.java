@@ -69,6 +69,9 @@ import javax.swing.event.HyperlinkListener;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.plaf.basic.BasicTabbedPaneUI;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreePath;
 import java.util.prefs.Preferences;
 
 
@@ -231,6 +234,9 @@ public class FizzimGui extends javax.swing.JFrame {
 
 		FileOpenAction = new MyJFileChooser("fzm");
 		FileOpenAction.setMultiSelectionEnabled(true);
+		ProjectOpenAction = new MyJFileChooser("fzp");
+		ProjectOpenAction.setMultiSelectionEnabled(false);
+		ProjectSaveAction = new MyJFileChooser("fzp");
 		FileSaveAction = new MyJFileChooser("fzm");
 		ExportChooser = new MyJFileChooser("png");
 		jPanel3 = new javax.swing.JPanel();
@@ -247,6 +253,16 @@ public class FizzimGui extends javax.swing.JFrame {
 		propertyInspectorTable = new javax.swing.JTable();
 		propertyInspectorScroll = new javax.swing.JScrollPane();
 		propertyInspectorEditButton = new javax.swing.JButton();
+		sideTabbedPane = new javax.swing.JTabbedPane();
+		projectPanel = new javax.swing.JPanel();
+		projectTitleLabel = new javax.swing.JLabel();
+		projectTreeRoot = new DefaultMutableTreeNode("Project");
+		projectTree = new javax.swing.JTree(projectTreeRoot);
+		projectScroll = new javax.swing.JScrollPane();
+		projectButtonPanel = new javax.swing.JPanel();
+		projectOpenButton = new javax.swing.JButton();
+		projectAddButton = new javax.swing.JButton();
+		projectBuildButton = new javax.swing.JButton();
 		lintPanel = new javax.swing.JPanel();
 		lintIssueModel = new javax.swing.DefaultListModel();
 		lintIssueList = new javax.swing.JList(lintIssueModel);
@@ -259,6 +275,14 @@ public class FizzimGui extends javax.swing.JFrame {
 		FileItemNew = new javax.swing.JMenuItem();
 		FileItemOpen = new javax.swing.JMenuItem();
 		FileOpenRecent = new javax.swing.JMenu();
+		FileProjectMenu = new javax.swing.JMenu();
+		FileProjectNew = new javax.swing.JMenuItem();
+		FileProjectOpen = new javax.swing.JMenuItem();
+		FileProjectSave = new javax.swing.JMenuItem();
+		FileProjectSaveAs = new javax.swing.JMenuItem();
+		FileProjectAddCurrent = new javax.swing.JMenuItem();
+		FileProjectAddDiagrams = new javax.swing.JMenuItem();
+		FileProjectBuildAll = new javax.swing.JMenuItem();
 		FileItemSave = new javax.swing.JMenuItem();
 		FileItemSaveAs = new javax.swing.JMenuItem();
 		FileExport = new javax.swing.JMenu("Export to...");
@@ -386,8 +410,8 @@ public class FizzimGui extends javax.swing.JFrame {
 
 		getContentPane().add(jPanel3, java.awt.BorderLayout.CENTER);
 
-		buildPropertyInspectorPanel();
-		getContentPane().add(propertyInspectorPanel, java.awt.BorderLayout.EAST);
+		buildSidePanel();
+		getContentPane().add(sideTabbedPane, java.awt.BorderLayout.WEST);
 
 		zoomPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 4, 3));
 		selectionStatusLabel.setText("No selection");
@@ -484,6 +508,59 @@ public class FizzimGui extends javax.swing.JFrame {
 		});
 		rebuildRecentFilesMenu();
 		FileMenu.add(FileOpenRecent);
+		FileProjectMenu.setText("Project");
+		FileProjectNew.setText("New Project");
+		FileProjectNew.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ProjectNewActionPerformed(evt);
+			}
+		});
+		FileProjectMenu.add(FileProjectNew);
+		FileProjectOpen.setText("Open Project...");
+		FileProjectOpen.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ProjectOpenActionPerformed(evt);
+			}
+		});
+		FileProjectMenu.add(FileProjectOpen);
+		FileProjectSave.setText("Save Project");
+		FileProjectSave.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ProjectSaveActionPerformed(evt);
+			}
+		});
+		FileProjectMenu.add(FileProjectSave);
+		FileProjectSaveAs.setText("Save Project As...");
+		FileProjectSaveAs.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ProjectSaveAsActionPerformed(evt);
+			}
+		});
+		FileProjectMenu.add(FileProjectSaveAs);
+		FileProjectMenu.addSeparator();
+		FileProjectAddCurrent.setText("Add Current Diagram");
+		FileProjectAddCurrent.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ProjectAddCurrentActionPerformed(evt);
+			}
+		});
+		FileProjectMenu.add(FileProjectAddCurrent);
+		FileProjectAddDiagrams.setText("Add Diagrams...");
+		FileProjectAddDiagrams.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ProjectAddDiagramsActionPerformed(evt);
+			}
+		});
+		FileProjectMenu.add(FileProjectAddDiagrams);
+		FileProjectMenu.addSeparator();
+		FileProjectBuildAll.setText("Build All");
+		FileProjectBuildAll.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ProjectBuildAllActionPerformed(evt);
+			}
+		});
+		FileProjectMenu.add(FileProjectBuildAll);
+		FileMenu.add(FileProjectMenu);
 
 		FileItemSave.setAccelerator(javax.swing.KeyStroke.getKeyStroke(
 				java.awt.event.KeyEvent.VK_S,
@@ -818,10 +895,17 @@ public class FizzimGui extends javax.swing.JFrame {
 		pack();
 	}// </editor-fold>//GEN-END:initComponents
 
+	private void buildSidePanel() {
+		sideTabbedPane.setPreferredSize(new Dimension(300, 420));
+		buildPropertyInspectorPanel();
+		buildProjectPanel();
+		sideTabbedPane.addTab("Properties", propertyInspectorPanel);
+		sideTabbedPane.addTab("Project", projectPanel);
+	}
+
 	private void buildPropertyInspectorPanel() {
 		propertyInspectorPanel.setLayout(new BorderLayout(4, 4));
 		propertyInspectorPanel.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
-		propertyInspectorPanel.setPreferredSize(new Dimension(280, 360));
 		propertyInspectorTitle.setText("Properties");
 		propertyInspectorTitle.setFont(propertyInspectorTitle.getFont().deriveFont(Font.BOLD));
 		propertyInspectorPanel.add(propertyInspectorTitle, BorderLayout.NORTH);
@@ -837,6 +921,62 @@ public class FizzimGui extends javax.swing.JFrame {
 		});
 		propertyInspectorPanel.add(propertyInspectorEditButton, BorderLayout.SOUTH);
 		updatePropertyInspector(new LinkedList<GeneralObj>());
+	}
+
+	private void buildProjectPanel() {
+		projectPanel.setLayout(new BorderLayout(4, 4));
+		projectPanel.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+		projectTitleLabel.setFont(projectTitleLabel.getFont().deriveFont(Font.BOLD));
+		projectPanel.add(projectTitleLabel, BorderLayout.NORTH);
+		projectTree.setFont(FizzimFonts.tableFont());
+		projectTree.setRootVisible(true);
+		projectTree.setShowsRootHandles(true);
+		projectTree.getSelectionModel().setSelectionMode(javax.swing.tree.TreeSelectionModel.SINGLE_TREE_SELECTION);
+		projectTree.addMouseListener(new MouseAdapter() {
+			public void mouseClicked(MouseEvent evt) {
+				if(evt.isPopupTrigger())
+				{
+					showProjectContextMenu(evt);
+					return;
+				}
+				if(evt.getClickCount() == 2)
+					openSelectedProjectDiagram();
+			}
+			public void mousePressed(MouseEvent evt) {
+				if(evt.isPopupTrigger())
+					showProjectContextMenu(evt);
+			}
+			public void mouseReleased(MouseEvent evt) {
+				if(evt.isPopupTrigger())
+					showProjectContextMenu(evt);
+			}
+		});
+		projectScroll.setViewportView(projectTree);
+		projectPanel.add(projectScroll, BorderLayout.CENTER);
+		projectButtonPanel.setLayout(new java.awt.GridLayout(0, 1, 4, 4));
+		projectOpenButton.setText("Open");
+		projectOpenButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				openSelectedProjectDiagram();
+			}
+		});
+		projectButtonPanel.add(projectOpenButton);
+		projectAddButton.setText("Add Diagrams");
+		projectAddButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				ProjectAddDiagramsActionPerformed(evt);
+			}
+		});
+		projectButtonPanel.add(projectAddButton);
+		projectBuildButton.setText("Build All");
+		projectBuildButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				ProjectBuildAllActionPerformed(evt);
+			}
+		});
+		projectButtonPanel.add(projectBuildButton);
+		projectPanel.add(projectButtonPanel, BorderLayout.SOUTH);
+		updateProjectPanel();
 	}
 
 	private void buildLintPanel() {
@@ -1101,7 +1241,7 @@ public class FizzimGui extends javax.swing.JFrame {
 				return;
 		}
 		try {
-			File output = resolveHdlOutputFile();
+			File output = resolveHdlOutputFile(currFile, getMachineName());
 			File parent = output.getParentFile();
 			if(parent != null && !parent.exists() && !parent.mkdirs())
 			{
@@ -1109,12 +1249,12 @@ public class FizzimGui extends javax.swing.JFrame {
 						"Generate HDL", JOptionPane.ERROR_MESSAGE);
 				return;
 			}
-			HdlGenerationResult result = runHdlBackend(output);
+			HdlGenerationResult result = runHdlBackend(currFile, output);
 			if(result.exitCode == 0)
 			{
 				boolean generatedOk = true;
 				if(getHdlCompareEnabled())
-					generatedOk = runHdlComparison(output);
+					generatedOk = runHdlComparison(currFile, output);
 				else
 					JOptionPane.showMessageDialog(this,
 							"Generated HDL:\n" + output.getAbsolutePath(),
@@ -1159,6 +1299,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(drawArea1 != null && drawArea1.getFileModifed())
 			title = "*" + title;
 		setTitle(title);
+		updateProjectPanel();
 	}
 
 	private void updateHdlStatusIndicator() {
@@ -1182,10 +1323,10 @@ public class FizzimGui extends javax.swing.JFrame {
 		}
 	}
 
-	private boolean runHdlComparison(File primaryOutput) throws IOException, InterruptedException {
+	private boolean runHdlComparison(File fzmFile, File primaryOutput) throws IOException, InterruptedException {
 		File compareOutput = comparisonOutputFile(primaryOutput);
 		HdlGenerationResult compare = runConfiguredHdlBackend(compareOutput, getHdlCompareCommand(),
-				getHdlCompareBackendPath(), getHdlCompareArgs());
+				getHdlCompareBackendPath(), getHdlCompareArgs(), fzmFile);
 		if(compare.exitCode != 0)
 		{
 			JOptionPane.showMessageDialog(this,
@@ -1218,12 +1359,12 @@ public class FizzimGui extends javax.swing.JFrame {
 		}
 	}
 
-	private HdlGenerationResult runHdlBackend(File output) throws IOException, InterruptedException {
-		return runConfiguredHdlBackend(output, getHdlPerlCommand(), getHdlBackendPath(), getHdlExtraArgs());
+	private HdlGenerationResult runHdlBackend(File fzmFile, File output) throws IOException, InterruptedException {
+		return runConfiguredHdlBackend(output, getHdlPerlCommand(), getHdlBackendPath(), getHdlExtraArgs(), fzmFile);
 	}
 
-	private HdlGenerationResult runConfiguredHdlBackend(File output, String commandName, String backendPath, String backendArgs) throws IOException, InterruptedException {
-		File fzmDir = currFile.getAbsoluteFile().getParentFile();
+	private HdlGenerationResult runConfiguredHdlBackend(File output, String commandName, String backendPath, String backendArgs, File fzmFile) throws IOException, InterruptedException {
+		File fzmDir = fzmFile.getAbsoluteFile().getParentFile();
 		File errorFile = File.createTempFile("fizzim-hdl-generation", ".log");
 		ArrayList<String> command = new ArrayList<String>();
 		if(isJavaBackendClass(commandName, backendPath))
@@ -1233,7 +1374,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			command.add(applicationClassPath());
 			command.add(backendPath.trim());
 			command.addAll(splitCommandArgs(backendArgs));
-			command.add(currFile.getName());
+			command.add(fzmFile.getName());
 		}
 		else
 		{
@@ -1243,7 +1384,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			command.add(commandName);
 			command.add(backend.getAbsolutePath());
 			command.addAll(splitCommandArgs(backendArgs));
-			command.add(currFile.getName());
+			command.add(fzmFile.getName());
 		}
 		ProcessBuilder builder = new ProcessBuilder(command);
 		builder.directory(fzmDir);
@@ -1290,16 +1431,16 @@ public class FizzimGui extends javax.swing.JFrame {
 		return diff.toString();
 	}
 
-	private File resolveHdlOutputFile() {
-		File fzmDir = currFile.getAbsoluteFile().getParentFile();
-		File outputDir = resolveRelativeToFzm(getHdlOutputDir());
+	private File resolveHdlOutputFile(File fzmFile, String machineName) {
+		File fzmDir = fzmFile.getAbsoluteFile().getParentFile();
+		File outputDir = resolveRelativeToFzm(fzmFile, getHdlOutputDir());
 		String filename;
 		if(getHdlUseModuleFilename())
-			filename = sanitizeHdlFilename(getMachineName()) + ".v";
+			filename = sanitizeHdlFilename(machineName) + ".v";
 		else
 			filename = getHdlOutputFilename();
 		if(filename == null || filename.trim().equals(""))
-			filename = sanitizeHdlFilename(getMachineName()) + ".v";
+			filename = sanitizeHdlFilename(machineName) + ".v";
 		if(!filename.toLowerCase().endsWith(".v"))
 			filename += ".v";
 		File output = new File(filename);
@@ -1309,10 +1450,14 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	private File resolveRelativeToFzm(String path) {
+		return resolveRelativeToFzm(currFile, path);
+	}
+
+	private File resolveRelativeToFzm(File fzmFile, String path) {
 		File candidate = new File(path);
 		if(candidate.isAbsolute())
 			return candidate;
-		File fzmDir = currFile == null ? new File(System.getProperty("user.dir")) : currFile.getAbsoluteFile().getParentFile();
+		File fzmDir = fzmFile == null ? new File(System.getProperty("user.dir")) : fzmFile.getAbsoluteFile().getParentFile();
 		return new File(fzmDir, path);
 	}
 
@@ -2312,6 +2457,521 @@ public class FizzimGui extends javax.swing.JFrame {
 		rebuildRecentFilesMenu();
 	}
 
+	private void ProjectNewActionPerformed(java.awt.event.ActionEvent evt) {
+		projectDiagramFiles.clear();
+		currProjectFile = null;
+		updateProjectPanel();
+		JOptionPane.showMessageDialog(this, "Created an empty project.\nUse File > Project > Add Diagrams to add FSMs.",
+				"Project", JOptionPane.INFORMATION_MESSAGE);
+	}
+
+	private void ProjectOpenActionPerformed(java.awt.event.ActionEvent evt) {
+		try {
+			if(currProjectFile == null)
+				ProjectOpenAction.setCurrentDirectory(new java.io.File(System.getProperty("user.dir")).getAbsoluteFile());
+			else
+				ProjectOpenAction.setSelectedFile(currProjectFile);
+			ProjectOpenAction.showOpenDialog(this);
+		} catch (java.awt.HeadlessException e1) {
+			e1.printStackTrace();
+		}
+		if(ProjectOpenAction.getSelected())
+			openProject(ProjectOpenAction.getSelectedFile());
+	}
+
+	private void ProjectSaveActionPerformed(java.awt.event.ActionEvent evt) {
+		if(currProjectFile == null)
+			ProjectSaveAsActionPerformed(evt);
+		else
+			saveProject(currProjectFile);
+	}
+
+	private void ProjectSaveAsActionPerformed(java.awt.event.ActionEvent evt) {
+		try {
+			if(currProjectFile == null)
+				ProjectSaveAction.setCurrentDirectory(new java.io.File(System.getProperty("user.dir")).getAbsoluteFile());
+			else
+				ProjectSaveAction.setSelectedFile(currProjectFile);
+			ProjectSaveAction.showSaveDialog(this);
+		} catch (java.awt.HeadlessException e1) {
+			e1.printStackTrace();
+		}
+		if(ProjectSaveAction.getSelected())
+			saveProject(ensureProjectExtension(ProjectSaveAction.getSelectedFile()));
+	}
+
+	private void ProjectAddCurrentActionPerformed(java.awt.event.ActionEvent evt) {
+		if(currFile == null)
+		{
+			JOptionPane.showMessageDialog(this, "Save or open a diagram before adding it to the project.",
+					"Project", JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		addProjectDiagram(currFile);
+	}
+
+	private void ProjectAddDiagramsActionPerformed(java.awt.event.ActionEvent evt) {
+		try {
+			if(currProjectFile != null)
+				FileOpenAction.setCurrentDirectory(currProjectFile.getAbsoluteFile().getParentFile());
+			else if(currFile != null)
+				FileOpenAction.setCurrentDirectory(currFile.getAbsoluteFile().getParentFile());
+			else
+				FileOpenAction.setCurrentDirectory(new java.io.File(System.getProperty("user.dir")).getAbsoluteFile());
+			FileOpenAction.showOpenDialog(this);
+		} catch (java.awt.HeadlessException e1) {
+			e1.printStackTrace();
+		}
+		if(FileOpenAction.getSelected())
+		{
+			File[] selectedFiles = FileOpenAction.getSelectedFiles();
+			if(selectedFiles == null || selectedFiles.length == 0)
+				selectedFiles = new File[] { FileOpenAction.getSelectedFile() };
+			for(int i = 0; i < selectedFiles.length; i++)
+				if(isFizzimFile(selectedFiles[i]))
+					addProjectDiagram(selectedFiles[i]);
+		}
+	}
+
+	private void ProjectBuildAllActionPerformed(java.awt.event.ActionEvent evt) {
+		buildProject();
+	}
+
+	private void openProject(File projectFile) {
+		try {
+			File file = ensureProjectExtension(projectFile).getAbsoluteFile();
+			LinkedList<File> diagrams = new LinkedList<File>();
+			File projectDir = file.getParentFile();
+			java.util.List<String> lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
+			for(int i = 0; i < lines.size(); i++)
+			{
+				String line = lines.get(i).trim();
+				if(line.equals("") || line.startsWith("#"))
+					continue;
+				File diagram = new File(line);
+				if(!diagram.isAbsolute())
+					diagram = new File(projectDir, line);
+				diagrams.add(diagram.getAbsoluteFile());
+			}
+			projectDiagramFiles = diagrams;
+			currProjectFile = file;
+			updateProjectPanel();
+			JOptionPane.showMessageDialog(this, "Opened project:\n" + file.getAbsolutePath()
+					+ "\n\nDiagrams: " + projectDiagramFiles.size(), "Project", JOptionPane.INFORMATION_MESSAGE);
+		} catch (IOException ex) {
+			JOptionPane.showMessageDialog(this, "Could not open project:\n" + ex.getMessage(),
+					"Project", JOptionPane.ERROR_MESSAGE);
+		}
+	}
+
+	private boolean saveProject(File projectFile) {
+		try {
+			File file = ensureProjectExtension(projectFile).getAbsoluteFile();
+			File parent = file.getParentFile();
+			if(parent != null && !parent.exists() && !parent.mkdirs())
+			{
+				JOptionPane.showMessageDialog(this, "Could not create project directory:\n" + parent.getAbsolutePath(),
+						"Project", JOptionPane.ERROR_MESSAGE);
+				return false;
+			}
+			StringBuffer text = new StringBuffer();
+			text.append("# Fizzim 2.0 project\n");
+			text.append("# One .fzm diagram path per line. Relative paths are resolved from this project file.\n");
+			for(int i = 0; i < projectDiagramFiles.size(); i++)
+				text.append(pathRelativeToProject(file, projectDiagramFiles.get(i))).append("\n");
+			Files.write(file.toPath(), text.toString().getBytes(StandardCharsets.UTF_8));
+			currProjectFile = file;
+			updateProjectPanel();
+			JOptionPane.showMessageDialog(this, "Saved project:\n" + file.getAbsolutePath()
+					+ "\n\nDiagrams: " + projectDiagramFiles.size(), "Project", JOptionPane.INFORMATION_MESSAGE);
+			return true;
+		} catch (IOException ex) {
+			JOptionPane.showMessageDialog(this, "Could not save project:\n" + ex.getMessage(),
+					"Project", JOptionPane.ERROR_MESSAGE);
+			return false;
+		}
+	}
+
+	private void addProjectDiagram(File diagram) {
+		File absolute = diagram.getAbsoluteFile();
+		for(int i = 0; i < projectDiagramFiles.size(); i++)
+			if(projectDiagramFiles.get(i).getAbsolutePath().equals(absolute.getAbsolutePath()))
+				return;
+		projectDiagramFiles.add(absolute);
+		updateProjectPanel();
+		JOptionPane.showMessageDialog(this, "Added diagram to project:\n" + absolute.getAbsolutePath()
+				+ "\n\nProject diagrams: " + projectDiagramFiles.size(), "Project", JOptionPane.INFORMATION_MESSAGE);
+	}
+
+	private void updateProjectPanel() {
+		if(projectTree == null || projectOpenButton == null)
+			return;
+		String rootName = currProjectFile == null ? "Project" : currProjectFile.getName();
+		projectTreeRoot = new DefaultMutableTreeNode(rootName);
+		for(int i = 0; i < projectDiagramFiles.size(); i++)
+			addProjectTreePath(projectDiagramFiles.get(i));
+		if(projectDiagramFiles.size() == 0 && currProjectFile == null)
+		{
+			projectTreeRoot.add(new DefaultMutableTreeNode("No project open"));
+			projectTreeRoot.add(new DefaultMutableTreeNode("Use Add Diagrams to start one"));
+		}
+		else if(projectDiagramFiles.size() == 0)
+			projectTreeRoot.add(new DefaultMutableTreeNode("(No diagrams in project)"));
+		projectTree.setModel(new DefaultTreeModel(projectTreeRoot));
+		for(int i = 0; i < projectTree.getRowCount(); i++)
+			projectTree.expandRow(i);
+		String title = currProjectFile == null ? "No project" : currProjectFile.getName();
+		projectTitleLabel.setText(title + " - " + projectDiagramFiles.size() + " diagram" + (projectDiagramFiles.size() == 1 ? "" : "s"));
+		boolean hasProjectItem = projectDiagramFiles.size() > 0;
+		projectOpenButton.setEnabled(hasProjectItem);
+		projectBuildButton.setEnabled(hasProjectItem);
+		FileProjectSave.setEnabled(currProjectFile != null);
+		FileProjectBuildAll.setEnabled(hasProjectItem);
+		selectCurrentProjectFileInTree();
+	}
+
+	private void addProjectTreePath(File diagram) {
+		String displayPath = projectDisplayPath(diagram).replace('\\', '/');
+		String[] parts = displayPath.split("/");
+		DefaultMutableTreeNode parent = projectTreeRoot;
+		for(int i = 0; i < parts.length; i++)
+		{
+			if(parts[i].equals(""))
+				continue;
+			boolean filePart = i == parts.length - 1;
+			DefaultMutableTreeNode child = findProjectTreeChild(parent, parts[i], filePart);
+			if(child == null)
+			{
+				String label = parts[i];
+				if(filePart && isCurrentDirtyProjectDiagram(diagram))
+					label = "*" + label;
+				child = new DefaultMutableTreeNode(filePart ? new ProjectTreeFile(label, diagram) : label);
+				parent.add(child);
+			}
+			parent = child;
+		}
+	}
+
+	private DefaultMutableTreeNode findProjectTreeChild(DefaultMutableTreeNode parent, String label, boolean filePart) {
+		for(int i = 0; i < parent.getChildCount(); i++)
+		{
+			DefaultMutableTreeNode child = (DefaultMutableTreeNode)parent.getChildAt(i);
+			Object user = child.getUserObject();
+			if(filePart)
+			{
+				if(user instanceof ProjectTreeFile && ((ProjectTreeFile)user).label.equals(label))
+					return child;
+			}
+			else if(user instanceof String && user.equals(label))
+				return child;
+		}
+		return null;
+	}
+
+	private String projectDisplayPath(File diagram) {
+		if(currProjectFile != null)
+			return pathRelativeToProject(currProjectFile, diagram);
+		return diagram.getPath();
+	}
+
+	private void openSelectedProjectDiagram() {
+		File file = selectedProjectFile();
+		if(file == null)
+			return;
+		if(!isFizzimFile(file) || !file.exists())
+		{
+			JOptionPane.showMessageDialog(this, "Project diagram could not be opened:\n" + file.getAbsolutePath(),
+					"Project", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		if(confirmSaveCurrentDiagramBeforeSwitch())
+			openFile(file);
+	}
+
+	private void openSelectedProjectDiagramInNewWindow() {
+		File file = selectedProjectFile();
+		if(file == null)
+			return;
+		if(!isFizzimFile(file) || !file.exists())
+		{
+			JOptionPane.showMessageDialog(this, "Project diagram could not be opened:\n" + file.getAbsolutePath(),
+					"Project", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		openFileInNewWindow(file);
+	}
+
+	private File selectedProjectFile() {
+		TreePath path = projectTree.getSelectionPath();
+		if(path == null)
+			return null;
+		DefaultMutableTreeNode node = (DefaultMutableTreeNode)path.getLastPathComponent();
+		Object user = node.getUserObject();
+		if(user instanceof ProjectTreeFile)
+			return ((ProjectTreeFile)user).file;
+		return null;
+	}
+
+	private void removeSelectedProjectDiagram() {
+		File file = selectedProjectFile();
+		if(file == null)
+			return;
+		for(int i = projectDiagramFiles.size() - 1; i >= 0; i--)
+			if(sameFile(projectDiagramFiles.get(i), file))
+				projectDiagramFiles.remove(i);
+		updateProjectPanel();
+	}
+
+	private void showProjectContextMenu(MouseEvent evt) {
+		int row = projectTree.getRowForLocation(evt.getX(), evt.getY());
+		if(row < 0)
+			return;
+		projectTree.setSelectionRow(row);
+		if(selectedProjectFile() == null)
+			return;
+		JPopupMenu menu = new JPopupMenu();
+		JMenuItem openItem = new JMenuItem("Open");
+		openItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent event) {
+				openSelectedProjectDiagram();
+			}
+		});
+		menu.add(openItem);
+		JMenuItem openNewItem = new JMenuItem("Open in New Window");
+		openNewItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent event) {
+				openSelectedProjectDiagramInNewWindow();
+			}
+		});
+		menu.add(openNewItem);
+		menu.addSeparator();
+		JMenuItem removeItem = new JMenuItem("Remove from Project");
+		removeItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent event) {
+				removeSelectedProjectDiagram();
+			}
+		});
+		menu.add(removeItem);
+		menu.show(projectTree, evt.getX(), evt.getY());
+	}
+
+	private boolean confirmSaveCurrentDiagramBeforeSwitch() {
+		if(drawArea1 == null || !drawArea1.getFileModifed())
+			return true;
+
+		Object[] options = { "Save", "Discard", "Cancel" };
+		String message = currFile == null ? "Save file before opening another diagram?"
+				: "Save changes to " + currFile.getName() + " before opening another diagram?";
+		int choice = JOptionPane.showOptionDialog(this, message, APP_TITLE,
+				JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
+				null, options, options[0]);
+		if(choice == JOptionPane.YES_OPTION)
+		{
+			if(currFile != null)
+				return saveFile(currFile);
+			try {
+				FileSaveAction.setCurrentDirectory(new java.io.File(System.getProperty("user.dir")).getAbsoluteFile());
+				FileSaveAction.showSaveDialog(this);
+			} catch (java.awt.HeadlessException e1) {
+				e1.printStackTrace();
+			}
+			return FileSaveAction.getSelected() && tryToSave(FileSaveAction.getSelectedFile(), "fzm", true);
+		}
+		return choice == JOptionPane.NO_OPTION;
+	}
+
+	private boolean confirmSaveCurrentProjectDiagramBeforeBuild() {
+		if(currFile == null || !drawArea1.getFileModifed() || !projectContainsFile(currFile))
+			return true;
+		Object[] options = { "Save", "Cancel" };
+		int choice = JOptionPane.showOptionDialog(this,
+				"Save changes to " + currFile.getName() + " before Build All?\nBuild All uses diagram files from disk.",
+				"Build All", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE,
+				null, options, options[0]);
+		return choice == JOptionPane.YES_OPTION && saveFile(currFile);
+	}
+
+	private boolean projectContainsFile(File file) {
+		for(int i = 0; i < projectDiagramFiles.size(); i++)
+			if(sameFile(projectDiagramFiles.get(i), file))
+				return true;
+		return false;
+	}
+
+	private boolean isCurrentDirtyProjectDiagram(File diagram) {
+		return currFile != null && drawArea1 != null && drawArea1.getFileModifed() && sameFile(diagram, currFile);
+	}
+
+	private boolean sameFile(File a, File b) {
+		return a != null && b != null && a.getAbsoluteFile().equals(b.getAbsoluteFile());
+	}
+
+	private void selectCurrentProjectFileInTree() {
+		if(currFile == null || projectTree == null || projectTreeRoot == null)
+			return;
+		TreePath path = findProjectTreePath(projectTreeRoot, currFile);
+		if(path != null)
+		{
+			projectTree.setSelectionPath(path);
+			projectTree.scrollPathToVisible(path);
+		}
+	}
+
+	private TreePath findProjectTreePath(DefaultMutableTreeNode node, File target) {
+		Object user = node.getUserObject();
+		if(user instanceof ProjectTreeFile && sameFile(((ProjectTreeFile)user).file, target))
+			return new TreePath(node.getPath());
+		for(int i = 0; i < node.getChildCount(); i++)
+		{
+			TreePath path = findProjectTreePath((DefaultMutableTreeNode)node.getChildAt(i), target);
+			if(path != null)
+				return path;
+		}
+		return null;
+	}
+
+	private void buildProject() {
+		if(projectDiagramFiles.size() == 0)
+		{
+			JOptionPane.showMessageDialog(this, "The current project has no diagrams.",
+					"Build All", JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		if(!confirmSaveCurrentProjectDiagramBeforeBuild())
+			return;
+		StringBuffer report = new StringBuffer();
+		int pass = 0;
+		int fail = 0;
+		for(int i = 0; i < projectDiagramFiles.size(); i++)
+		{
+			File fzm = projectDiagramFiles.get(i);
+			if(!fzm.exists())
+			{
+				fail++;
+				report.append("FAIL ").append(fzm.getAbsolutePath()).append("\n  Missing diagram file\n");
+				continue;
+			}
+			try {
+				String machineName = getMachineNameFromFile(fzm);
+				File output = resolveHdlOutputFile(fzm, machineName);
+				File parent = output.getParentFile();
+				if(parent != null && !parent.exists() && !parent.mkdirs())
+					throw new IOException("Could not create output directory: " + parent.getAbsolutePath());
+				HdlGenerationResult result = runHdlBackend(fzm, output);
+				if(result.exitCode != 0)
+				{
+					fail++;
+					report.append("FAIL ").append(fzm.getName()).append("\n  ").append(result.stderr).append("\n");
+					continue;
+				}
+				boolean comparisonOk = true;
+				if(getHdlCompareEnabled())
+					comparisonOk = runProjectHdlComparison(fzm, output, report);
+				if(comparisonOk)
+				{
+					pass++;
+					report.append("PASS ").append(fzm.getName()).append(" -> ")
+							.append(pathRelativeToFile(fzm, output)).append("\n");
+					if(currFile != null && currFile.getAbsoluteFile().equals(fzm.getAbsoluteFile()))
+						markHdlGeneratedInSync(output);
+				}
+				else
+					fail++;
+			} catch (Exception ex) {
+				fail++;
+				report.append("FAIL ").append(fzm.getName()).append("\n  ").append(ex.getMessage()).append("\n");
+			}
+		}
+		JTextArea text = new JTextArea(report.toString(), 22, 90);
+		text.setEditable(false);
+		text.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+		JOptionPane.showMessageDialog(this, new JScrollPane(text),
+				"Build All: " + pass + " passed, " + fail + " failed",
+				fail == 0 ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE);
+	}
+
+	private boolean runProjectHdlComparison(File fzmFile, File primaryOutput, StringBuffer report) throws IOException, InterruptedException {
+		File compareOutput = comparisonOutputFile(primaryOutput);
+		HdlGenerationResult compare = runConfiguredHdlBackend(compareOutput, getHdlCompareCommand(),
+				getHdlCompareBackendPath(), getHdlCompareArgs(), fzmFile);
+		if(compare.exitCode != 0)
+		{
+			report.append("FAIL ").append(fzmFile.getName()).append("\n  Comparison generation failed: ")
+					.append(compare.stderr).append("\n");
+			return false;
+		}
+		String diff = diffFiles(primaryOutput, compareOutput);
+		File diffFile = new File(primaryOutput.getParentFile(), stripExtension(primaryOutput.getName()) + ".diff.txt");
+		if(diff.equals(""))
+		{
+			if(diffFile.exists())
+				diffFile.delete();
+			return true;
+		}
+		Files.write(diffFile.toPath(), diff.getBytes(StandardCharsets.UTF_8));
+		report.append("FAIL ").append(fzmFile.getName()).append("\n  Comparison mismatch: ")
+				.append(diffFile.getAbsolutePath()).append("\n");
+		return false;
+	}
+
+	private File ensureProjectExtension(File file) {
+		if(file.getName().toLowerCase().endsWith(".fzp"))
+			return file;
+		return new File(file.getAbsolutePath() + ".fzp");
+	}
+
+	private String pathRelativeToProject(File projectFile, File file) {
+		return pathRelativeToDirectory(projectFile.getParentFile(), file);
+	}
+
+	private String pathRelativeToFile(File baseFile, File file) {
+		return pathRelativeToDirectory(baseFile.getAbsoluteFile().getParentFile(), file);
+	}
+
+	private String pathRelativeToDirectory(File directory, File file) {
+		try {
+			return directory.toPath().toAbsolutePath().normalize().relativize(file.toPath().toAbsolutePath().normalize()).toString();
+		} catch (Exception ex) {
+			return file.getAbsolutePath();
+		}
+	}
+
+	private String getMachineNameFromFile(File fzmFile) throws IOException {
+		java.util.List<String> lines = Files.readAllLines(fzmFile.toPath(), StandardCharsets.UTF_8);
+		boolean inGlobals = false;
+		boolean inMachine = false;
+		boolean inName = false;
+		for(int i = 0; i < lines.size(); i++)
+		{
+			String line = lines.get(i).trim();
+			if(line.equals("<globals>"))
+				inGlobals = true;
+			else if(line.equals("</globals>"))
+				inGlobals = false;
+			else if(inGlobals && line.equals("<machine>"))
+				inMachine = true;
+			else if(inMachine && line.equals("</machine>"))
+				inMachine = false;
+			else if(inMachine && line.equals("<name>"))
+				inName = true;
+			else if(inName && line.equals("</name>"))
+				inName = false;
+			else if(inName && line.equals("<value>"))
+			{
+				for(int j = i + 1; j < lines.size(); j++)
+				{
+					String value = lines.get(j).trim();
+					if(value.equals("") || value.startsWith("<status>") || value.startsWith("</status>"))
+						continue;
+					if(value.startsWith("<"))
+						break;
+					return value;
+				}
+			}
+		}
+		return stripExtension(fzmFile.getName());
+	}
+
 	private void storeRecentFiles(LinkedList<File> recentFiles) {
 		for(int i = 0; i < RECENT_FILE_LIMIT; i++)
 		{
@@ -2583,6 +3243,14 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JMenuItem FileItemNew;
 	private javax.swing.JMenuItem FileItemOpen;
 	private javax.swing.JMenu FileOpenRecent;
+	private javax.swing.JMenu FileProjectMenu;
+	private javax.swing.JMenuItem FileProjectNew;
+	private javax.swing.JMenuItem FileProjectOpen;
+	private javax.swing.JMenuItem FileProjectSave;
+	private javax.swing.JMenuItem FileProjectSaveAs;
+	private javax.swing.JMenuItem FileProjectAddCurrent;
+	private javax.swing.JMenuItem FileProjectAddDiagrams;
+	private javax.swing.JMenuItem FileProjectBuildAll;
 	private javax.swing.JMenuItem FilePref;
 	private javax.swing.JMenuItem FileItemSave;
 	private javax.swing.JMenuItem FileItemSaveAs;
@@ -2592,8 +3260,11 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JMenuItem FileExportJPEG;
 	private javax.swing.JMenu FileMenu;
 	private MyJFileChooser FileOpenAction;
+	private MyJFileChooser ProjectOpenAction;
+	private MyJFileChooser ProjectSaveAction;
 	private MyJFileChooser FileSaveAction;
 	private MyJFileChooser ExportChooser;
+	private javax.swing.JTabbedPane sideTabbedPane;
 	private javax.swing.JMenuItem GlobalItemInputs;
 	private javax.swing.JMenuItem GlobalItemInternals;
 	private javax.swing.JMenuItem GlobalItemMachine;
@@ -2620,6 +3291,15 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JTable propertyInspectorTable;
 	private javax.swing.JScrollPane propertyInspectorScroll;
 	private javax.swing.JButton propertyInspectorEditButton;
+	private javax.swing.JPanel projectPanel;
+	private javax.swing.JLabel projectTitleLabel;
+	private DefaultMutableTreeNode projectTreeRoot;
+	private javax.swing.JTree projectTree;
+	private javax.swing.JScrollPane projectScroll;
+	private javax.swing.JPanel projectButtonPanel;
+	private javax.swing.JButton projectOpenButton;
+	private javax.swing.JButton projectAddButton;
+	private javax.swing.JButton projectBuildButton;
 	private LinkedList<GeneralObj> inspectorSelectedObjects = new LinkedList<GeneralObj>();
 	private javax.swing.JPanel lintPanel;
 	private javax.swing.DefaultListModel lintIssueModel;
@@ -2634,6 +3314,22 @@ public class FizzimGui extends javax.swing.JFrame {
 	// End of variables declaration//GEN-END:variables
 
 	File currFile = null;
+	File currProjectFile = null;
+	LinkedList<File> projectDiagramFiles = new LinkedList<File>();
+
+	private static class ProjectTreeFile {
+		String label;
+		File file;
+
+		ProjectTreeFile(String labelText, File diagramFile) {
+			label = labelText;
+			file = diagramFile;
+		}
+
+		public String toString() {
+			return label;
+		}
+	}
 	private DrawArea drawArea1;
 	private boolean closed = false;
 

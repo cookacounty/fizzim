@@ -12,6 +12,7 @@ https://github.com/cookacounty/fizzim/wiki/Backend-and-Regression-Testing
 | File | Purpose |
 | --- | --- |
 | `generic_state_machine.fzm` | Fizzim 2.0 source diagram using forks, state groups, state-group default entry, and transition actions. |
+| `generic_project.fzp` | Minimal project file listing the generic diagram for testing `File > Project > Build All`. |
 | `generic_state_machine_lint_issues.fzm` | Copy of the generic diagram with intentional lint issues for GUI validation demos. |
 | `generate_fizzim1_compat.js` | Generates a Fizzim 1.0-compatible golden diagram from the source diagram. |
 | `tools/fuzz_backend_compare.js` | Creates randomized non-human-readable variants of the generic diagram and compares direct Perl generation against Java-launched generation. |
@@ -41,3 +42,19 @@ bash testcases/run_backend_flow.sh
 For the lint showcase, see:
 
 https://github.com/cookacounty/fizzim/wiki/Validation-and-Lint
+
+## Project Files
+
+Fizzim project files use the `.fzp` extension and are intentionally simple text
+files. Each nonblank, non-comment line names one `.fzm` diagram. Relative paths
+are resolved from the project file location.
+
+Example:
+
+```text
+# Fizzim 2.0 project
+generic_state_machine.fzm
+```
+
+Use `File > Project > Build All` to generate HDL for every diagram in the
+current project using the configured HDL generation settings.

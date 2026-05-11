@@ -1,0 +1,3 @@
+# Fizzim 2.0 project
+# One .fzm diagram path per line. Relative paths are resolved from this project file.
+generic_state_machine.fzm

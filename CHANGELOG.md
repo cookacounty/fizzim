@@ -244,6 +244,14 @@ part of the current codebase.
   The fuzz flow mutates the generic feature diagram, exercises forks, state
   groups, transition actions, priorities, internals, and equations, then checks
   direct Perl generation against Java-launched generation line-for-line.
+- Added a lightweight project manager. `.fzp` project files are simple text
+  lists of `.fzm` diagrams, support relative paths, and can be opened/saved from
+  `File > Project`. `Build All` generates HDL for every diagram in the project
+  using the configured backend settings.
+- Improved project navigation. Opening a project diagram now reuses the current
+  window by default, prompts before unsaved edits are discarded, marks the active
+  dirty project file in the tree, and offers right-click Open in New Window and
+  Remove from Project actions.
 
 ### Build And Packaging
 
