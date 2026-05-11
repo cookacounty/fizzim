@@ -2049,6 +2049,8 @@ class GlobalProperties extends javax.swing.JDialog {
 	
                 private void setcolumnwidths(JTable table) {
 			FizzimFonts.applyCodeFont(table);
+			table.setRowSelectionAllowed(true);
+			table.setColumnSelectionAllowed(false);
 			TableColumn column;
 
                         // Name
@@ -2555,6 +2557,10 @@ class GlobalProperties extends javax.swing.JDialog {
 		{
 			if(tab == TAB_PARAMETERS)
 				return 0;
+			if(tab == TAB_INPUTS)
+				return 1;
+			if(tab == TAB_OUTPUTS)
+				return 2;
 			if(tab == TAB_INTERNALS)
 				return 2;
 			if(tab == TAB_STATES)
@@ -2562,6 +2568,21 @@ class GlobalProperties extends javax.swing.JDialog {
 			if(tab == TAB_TRANSITIONS)
 				return 4;
 			return tab;
+		}
+
+		private int[] selectedRowsForDelete(JTable table)
+		{
+			int[] rows = table.getSelectedRows();
+			if(rows.length > 0)
+				return rows;
+			if(table.getSelectedRow() >= 0)
+				return new int[] { table.getSelectedRow() };
+			if(table.getEditingRow() >= 0)
+				return new int[] { table.getEditingRow() };
+			int leadRow = table.getSelectionModel().getLeadSelectionIndex();
+			if(leadRow >= 0 && leadRow < table.getRowCount())
+				return new int[] { leadRow };
+			return rows;
 		}
 
 		private int tableRowToGlobalRow(JTable table, int row)
@@ -2664,7 +2685,7 @@ class GlobalProperties extends javax.swing.JDialog {
 				currTable.getCellEditor().stopCellEditing();
 			
 			int tabAtDelete = currTab;
-			int[] rows = currTable.getSelectedRows();
+			int[] rows = selectedRowsForDelete(currTable);
 			int globalTab = uiTabToGlobalTab(tabAtDelete);
 			LinkedList<ObjAttribute> list = globalLists.get(globalTab);
 			LinkedList<ObjAttribute> selectedAttributes = new LinkedList<ObjAttribute>();

@@ -80,6 +80,9 @@ part of the current codebase.
 - Global property deletion now keeps the active tab fixed for the entire delete
   operation and falls back to name/type matching if the selected table row is
   not the same object instance as the global list row.
+- Fixed global property tab-to-list mapping for Inputs and Outputs, so Delete
+  and Add operate on the intended backend list after the Parameters and
+  Internals panes are inserted into the editor.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in
