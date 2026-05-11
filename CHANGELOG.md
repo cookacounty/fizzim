@@ -39,6 +39,10 @@ part of the current codebase.
   stored as backend-compatible machine attributes with `type == "parameter"`.
 - Added Verilog parameters to the main FSM summary text under a separate
   `PARAMETERS` section.
+- Parameter rows may now include HDL type/declaration text such as `integer`,
+  `real`, packed ranges, or array ranges before/after the parameter identifier.
+  Lint and instantiation helpers extract the actual parameter name from the
+  declaration so typed parameters still work in expressions.
 - Added a user-facing `Internals` global-attribute pane for FSM variables that
   should be generated internally but omitted from the module port list. These
   remain stored as outputs with `suppress_portlist` for parser and backend
@@ -267,6 +271,9 @@ part of the current codebase.
   generation, the `.fzm` records that the HDL is in sync and remembers the
   generated HDL path, so reopening the diagram restores the green status when
   the generated file is still present.
+- Project Build All now honors each diagram's stored HDL output path when one
+  is present, allowing diagrams in the same project to generate to different
+  destinations while still using the global HDL settings as defaults.
 - HDL generation metadata now marks the diagram as unsaved instead of silently
   saving the `.fzm`, so the title-bar `*` reflects that the XML changed.
 - Added a Java HDL backend entry point, `FizzimJavaBackend`, plus Windows and
@@ -314,6 +321,9 @@ part of the current codebase.
 - Project diagrams are now sorted by project-relative path, so adding a new
   diagram groups it with files in the same folder and keeps the Project tree
   ordered A-Z.
+- Root-level project diagrams are normalized into the same `.` tree group even
+  when paths were saved with a mix of `foo.fzm` and `./foo.fzm`, avoiding split
+  groups and out-of-order entries.
 - Normal diagram edits now preserve the current zoom/pan. In fit mode, moving
   objects can zoom out only when needed to keep the expanded diagram visible;
   reducing the diagram extents no longer zooms in automatically.
@@ -344,6 +354,8 @@ part of the current codebase.
   while safely ignoring missing files.
 - Opening a diagram from the Project pane no longer replaces the startup restore
   target; Fizzim will restore the project on the next launch.
+- Closing Fizzim with a project open refreshes the startup restore target to the
+  project, making restore more robust after mixed project and diagram activity.
 
 ### Build And Packaging
 

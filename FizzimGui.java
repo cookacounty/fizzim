@@ -1448,7 +1448,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			for(int i = 0; i < parameters.size(); i++)
 			{
 				ObjAttribute param = parameters.get(i);
-				snippet.append("localparam ").append(param.getName()).append(" = ")
+				snippet.append("localparam ").append(parameterDeclarationForLocalparam(param.getName())).append(" = ")
 						.append(blankDefault(param.getValue(), "0")).append(";\n");
 			}
 			snippet.append("\n");
@@ -1461,7 +1461,8 @@ public class FizzimGui extends javax.swing.JFrame {
 			for(int i = 0; i < parameters.size(); i++)
 			{
 				ObjAttribute param = parameters.get(i);
-				snippet.append("  .").append(param.getName()).append("(").append(param.getName()).append(")");
+				String paramName = VerilogNameValidator.parameterIdentifier(param.getName());
+				snippet.append("  .").append(paramName).append("(").append(paramName).append(")");
 				snippet.append(i == parameters.size() - 1 ? "\n" : ",\n");
 			}
 			snippet.append(") ");
@@ -1549,6 +1550,17 @@ public class FizzimGui extends javax.swing.JFrame {
 		return "";
 	}
 
+	private String parameterDeclarationForLocalparam(String declaration) {
+		if(declaration == null)
+			return "";
+		String text = declaration.trim();
+		if(text.toLowerCase().startsWith("parameter "))
+			text = text.substring("parameter ".length()).trim();
+		else if(text.toLowerCase().startsWith("localparam "))
+			text = text.substring("localparam ".length()).trim();
+		return text;
+	}
+
 	private boolean hasUserAttribute(ObjAttribute attr, String userAttribute) {
 		String userAtts = attr.getUserAtts();
 		if(userAtts == null || userAtts.trim().equals(""))
@@ -1629,17 +1641,31 @@ public class FizzimGui extends javax.swing.JFrame {
 				JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 		if(result != JOptionPane.OK_OPTION)
 			return false;
+		String outputDirSetting = blankDefault(outputDirField.getText(), ".");
+		boolean useModuleFilename = useModuleName.isSelected();
+		String outputFilenameSetting = blankDefault(outputFileField.getText(), "");
 		USER_PREFS.put(PREF_HDL_PERL, blankDefault(perlField.getText(), "perl"));
 		USER_PREFS.put(PREF_HDL_BACKEND, blankDefault(backendField.getText(), "fizzim.pl"));
-		USER_PREFS.put(PREF_HDL_OUTPUT_DIR, blankDefault(outputDirField.getText(), "."));
-		USER_PREFS.putBoolean(PREF_HDL_USE_MODULE_FILENAME, useModuleName.isSelected());
-		USER_PREFS.put(PREF_HDL_OUTPUT_FILENAME, blankDefault(outputFileField.getText(), ""));
+		USER_PREFS.put(PREF_HDL_OUTPUT_DIR, outputDirSetting);
+		USER_PREFS.putBoolean(PREF_HDL_USE_MODULE_FILENAME, useModuleFilename);
+		USER_PREFS.put(PREF_HDL_OUTPUT_FILENAME, outputFilenameSetting);
 		USER_PREFS.put(PREF_HDL_EXTRA_ARGS, extraArgsField.getText().trim());
 		USER_PREFS.putBoolean(PREF_HDL_COMPARE_ENABLED, compareEnabled.isSelected());
 		USER_PREFS.put(PREF_HDL_COMPARE_COMMAND, blankDefault(compareCommandField.getText(), "java"));
 		USER_PREFS.put(PREF_HDL_COMPARE_BACKEND, blankDefault(compareBackendField.getText(), "FizzimJavaBackend"));
 		USER_PREFS.put(PREF_HDL_COMPARE_ARGS, blankDefault(compareArgsField.getText(), getHdlExtraArgs()));
 		USER_PREFS.put(PREF_HDL_COMPARE_SUFFIX, blankDefault(compareSuffixField.getText(), ".java"));
+		if(currFile != null)
+		{
+			File output = resolveHdlOutputFileFromSettings(currFile, getMachineName(), outputDirSetting,
+					useModuleFilename, outputFilenameSetting);
+			String relativeOutput = pathRelativeToFzm(currFile, output);
+			if(!relativeOutput.equals(getMachineAttributeValue(HDL_OUTPUT_ATTR)))
+			{
+				setMachineAttributeValue(HDL_OUTPUT_ATTR, relativeOutput);
+				drawArea1.setFileModifed(true);
+			}
+		}
 		return true;
 	}
 
@@ -1932,13 +1958,22 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	private File resolveHdlOutputFile(File fzmFile, String machineName) {
+		String persistedOutput = getPersistedHdlOutputPath(fzmFile);
+		if(!persistedOutput.equals(""))
+			return resolveRelativeToFzm(fzmFile, persistedOutput);
+		return resolveHdlOutputFileFromSettings(fzmFile, machineName, getHdlOutputDir(),
+				getHdlUseModuleFilename(), getHdlOutputFilename());
+	}
+
+	private File resolveHdlOutputFileFromSettings(File fzmFile, String machineName, String outputDirSetting,
+			boolean useModuleFilename, String outputFilenameSetting) {
 		File fzmDir = fzmFile.getAbsoluteFile().getParentFile();
-		File outputDir = resolveRelativeToFzm(fzmFile, getHdlOutputDir());
+		File outputDir = resolveRelativeToFzm(fzmFile, outputDirSetting);
 		String filename;
-		if(getHdlUseModuleFilename())
+		if(useModuleFilename)
 			filename = sanitizeHdlFilename(machineName) + ".v";
 		else
-			filename = getHdlOutputFilename();
+			filename = outputFilenameSetting;
 		if(filename == null || filename.trim().equals(""))
 			filename = sanitizeHdlFilename(machineName) + ".v";
 		if(!filename.toLowerCase().endsWith(".v"))
@@ -1947,6 +1982,18 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(output.isAbsolute())
 			return output;
 		return new File(outputDir == null ? fzmDir : outputDir, filename);
+	}
+
+	private String getPersistedHdlOutputPath(File fzmFile) {
+		if(fzmFile == null)
+			return "";
+		if(currFile != null && sameFile(currFile, fzmFile))
+			return getMachineAttributeValue(HDL_OUTPUT_ATTR);
+		try {
+			return getMachineAttributeValueFromFile(fzmFile, HDL_OUTPUT_ATTR);
+		} catch (IOException ex) {
+			return "";
+		}
 	}
 
 	private File resolveRelativeToFzm(String path) {
@@ -1962,10 +2009,14 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	private String pathRelativeToFzm(File file) {
+		return pathRelativeToFzm(currFile, file);
+	}
+
+	private String pathRelativeToFzm(File fzmFile, File file) {
 		if(file == null)
 			return "";
 		try {
-			File fzmDir = currFile == null ? new File(System.getProperty("user.dir")) : currFile.getAbsoluteFile().getParentFile();
+			File fzmDir = fzmFile == null ? new File(System.getProperty("user.dir")) : fzmFile.getAbsoluteFile().getParentFile();
 			return fzmDir.toPath().toAbsolutePath().normalize().relativize(file.toPath().toAbsolutePath().normalize()).toString();
 		} catch (Exception ex) {
 			return file.getAbsolutePath();
@@ -2687,6 +2738,8 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(closed)
 			return;
 		closed = true;
+		if(currProjectFile != null)
+			rememberLastOpened("project", currProjectFile);
 		saveWindowBounds();
 		if(spaceFitDispatcher != null)
 		{
@@ -3387,6 +3440,7 @@ public class FizzimGui extends javax.swing.JFrame {
 				diagrams.add(diagram.getAbsoluteFile());
 			}
 			projectDiagramFiles = diagrams;
+			sortProjectDiagramFiles();
 			currProjectFile = file;
 			updateProjectPanel();
 			showProjectPane();
@@ -3459,9 +3513,16 @@ public class FizzimGui extends javax.swing.JFrame {
 	private void sortProjectDiagramFiles() {
 		Collections.sort(projectDiagramFiles, new Comparator<File>() {
 			public int compare(File a, File b) {
-				return projectDisplayPath(a).replace('\\', '/').compareToIgnoreCase(projectDisplayPath(b).replace('\\', '/'));
+				return normalizedProjectSortPath(a).compareToIgnoreCase(normalizedProjectSortPath(b));
 			}
 		});
+	}
+
+	private String normalizedProjectSortPath(File diagram) {
+		String displayPath = projectDisplayPath(diagram).replace('\\', '/');
+		while(displayPath.startsWith("./"))
+			displayPath = displayPath.substring(2);
+		return displayPath;
 	}
 
 	private void updateProjectPanel() {
@@ -3471,6 +3532,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		projectTreeRoot = new DefaultMutableTreeNode(rootName);
 		for(int i = 0; i < projectDiagramFiles.size(); i++)
 			addProjectTreePath(projectDiagramFiles.get(i));
+		sortProjectTreeNode(projectTreeRoot);
 		if(projectDiagramFiles.size() == 0 && currProjectFile == null)
 		{
 			projectTreeRoot.add(new DefaultMutableTreeNode("No project open"));
@@ -3494,7 +3556,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	private void addProjectTreePath(File diagram) {
-		String displayPath = projectDisplayPath(diagram).replace('\\', '/');
+		String displayPath = normalizedProjectDisplayPath(diagram);
 		String[] parts = displayPath.split("/");
 		DefaultMutableTreeNode parent = projectTreeRoot;
 		for(int i = 0; i < parts.length; i++)
@@ -3513,6 +3575,44 @@ public class FizzimGui extends javax.swing.JFrame {
 			}
 			parent = child;
 		}
+	}
+
+	private String normalizedProjectDisplayPath(File diagram) {
+		String displayPath = projectDisplayPath(diagram).replace('\\', '/');
+		while(displayPath.startsWith("./"))
+			displayPath = displayPath.substring(2);
+		if(currProjectFile != null && !displayPath.startsWith("../") && !(new File(displayPath)).isAbsolute())
+			displayPath = "./" + displayPath;
+		return displayPath;
+	}
+
+	private void sortProjectTreeNode(DefaultMutableTreeNode node) {
+		ArrayList<DefaultMutableTreeNode> children = new ArrayList<DefaultMutableTreeNode>();
+		for(int i = 0; i < node.getChildCount(); i++)
+			children.add((DefaultMutableTreeNode)node.getChildAt(i));
+		Collections.sort(children, new Comparator<DefaultMutableTreeNode>() {
+			public int compare(DefaultMutableTreeNode a, DefaultMutableTreeNode b) {
+				boolean aFile = a.getUserObject() instanceof ProjectTreeFile;
+				boolean bFile = b.getUserObject() instanceof ProjectTreeFile;
+				if(aFile != bFile)
+					return aFile ? 1 : -1;
+				return projectTreeLabel(a).compareToIgnoreCase(projectTreeLabel(b));
+			}
+		});
+		node.removeAllChildren();
+		for(int i = 0; i < children.size(); i++)
+		{
+			DefaultMutableTreeNode child = children.get(i);
+			sortProjectTreeNode(child);
+			node.add(child);
+		}
+	}
+
+	private String projectTreeLabel(DefaultMutableTreeNode node) {
+		Object user = node.getUserObject();
+		if(user instanceof ProjectTreeFile)
+			return ((ProjectTreeFile)user).label;
+		return user == null ? "" : user.toString();
 	}
 
 	private DefaultMutableTreeNode findProjectTreeChild(DefaultMutableTreeNode parent, String label, boolean filePart) {
@@ -3910,10 +4010,18 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	private String getMachineNameFromFile(File fzmFile) throws IOException {
+		String name = getMachineAttributeValueFromFile(fzmFile, "name");
+		if(!name.equals(""))
+			return name;
+		return stripExtension(fzmFile.getName());
+	}
+
+	private String getMachineAttributeValueFromFile(File fzmFile, String attributeName) throws IOException {
 		java.util.List<String> lines = Files.readAllLines(fzmFile.toPath(), StandardCharsets.UTF_8);
 		boolean inGlobals = false;
 		boolean inMachine = false;
 		boolean inName = false;
+		boolean matchedName = false;
 		for(int i = 0; i < lines.size(); i++)
 		{
 			String line = lines.get(i).trim();
@@ -3929,7 +4037,9 @@ public class FizzimGui extends javax.swing.JFrame {
 				inName = true;
 			else if(inName && line.equals("</name>"))
 				inName = false;
-			else if(inName && line.equals("<value>"))
+			else if(inName && !line.equals("") && !line.startsWith("<"))
+				matchedName = line.equals(attributeName);
+			else if(inMachine && matchedName && line.equals("<value>"))
 			{
 				for(int j = i + 1; j < lines.size(); j++)
 				{
@@ -3940,9 +4050,12 @@ public class FizzimGui extends javax.swing.JFrame {
 						break;
 					return value;
 				}
+				matchedName = false;
 			}
+			else if(inMachine && matchedName && line.equals("</attribute>"))
+				matchedName = false;
 		}
-		return stripExtension(fzmFile.getName());
+		return "";
 	}
 
 	private void storeRecentFiles(LinkedList<File> recentFiles) {

@@ -2,6 +2,8 @@ import java.awt.Component;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.JOptionPane;
 
 public class VerilogNameValidator {
@@ -35,6 +37,11 @@ public class VerilogNameValidator {
 			"wand", "weak", "weak0", "weak1", "while", "wildcard", "wire", "with", "within", "wor",
 			"xnor", "xor"
 	}));
+	private static final Set<String> PARAMETER_DECLARATION_WORDS = new HashSet<String>(Arrays.asList(new String[] {
+			"parameter", "localparam", "signed", "unsigned", "integer", "real", "realtime", "time",
+			"int", "shortint", "longint", "byte", "bit", "logic", "reg", "wire", "tri", "string",
+			"event", "chandle", "var", "const", "automatic", "static", "type"
+	}));
 
 	private VerilogNameValidator() {
 	}
@@ -61,13 +68,34 @@ public class VerilogNameValidator {
 		return true;
 	}
 
-	private static String baseIdentifier(String name) {
+	public static String baseIdentifier(String name) {
 		if(name == null)
 			return "";
 		String identifier = name.trim();
 		int bracket = identifier.indexOf('[');
 		if(bracket > -1)
 			identifier = identifier.substring(0, bracket).trim();
+		return identifier;
+	}
+
+	public static String parameterIdentifier(String declaration) {
+		if(declaration == null)
+			return "";
+		String text = declaration.trim();
+		if(text.startsWith("`"))
+			text = text.substring(1).trim();
+		int equals = text.indexOf('=');
+		if(equals >= 0)
+			text = text.substring(0, equals).trim();
+		text = text.replaceAll("\\[[^\\]]*\\]", " ");
+		Matcher matcher = Pattern.compile("[A-Za-z_][A-Za-z0-9_$]*").matcher(text);
+		String identifier = "";
+		while(matcher.find())
+		{
+			String token = matcher.group();
+			if(!PARAMETER_DECLARATION_WORDS.contains(token.toLowerCase()))
+				identifier = token;
+		}
 		return identifier;
 	}
 }

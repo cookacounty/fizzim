@@ -2980,7 +2980,7 @@ class GlobalProperties extends javax.swing.JDialog {
 				ObjAttribute obj = globalLists.get(0).get(i);
 				if(obj.getName().equals("name") && VerilogNameValidator.showReservedWordError(this, obj.getValue(), "module name"))
 					return false;
-				if(obj.getType().equals("parameter") && VerilogNameValidator.showReservedWordError(this, obj.getName(), "parameter name"))
+				if(obj.getType().equals("parameter") && VerilogNameValidator.showReservedWordError(this, VerilogNameValidator.parameterIdentifier(obj.getName()), "parameter name"))
 					return false;
 			}
 			for(int i = 0; i < globalLists.get(1).size(); i++)

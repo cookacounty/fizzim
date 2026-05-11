@@ -4222,7 +4222,7 @@ public void updateTransitions()
 				ObjAttribute attr = globalList.get(listIndex).get(i);
 				String type = attr.getType() == null ? "" : attr.getType().trim().toLowerCase();
 				if(type.equals("parameter") || type.equals("define") || type.equals("`define"))
-					addKnownExpressionName(names, stripVerilogMacroPrefix(attr.getName()));
+					addKnownExpressionName(names, VerilogNameValidator.parameterIdentifier(stripVerilogMacroPrefix(attr.getName())));
 			}
 		}
 		names.add("state");
@@ -4249,7 +4249,7 @@ public void updateTransitions()
 		int bracket = name.indexOf("[");
 		if(bracket >= 0)
 			name = name.substring(0, bracket);
-		return name;
+		return name.trim();
 	}
 
 	private LinkedList<String> extractExpressionIdentifiers(String expression)
