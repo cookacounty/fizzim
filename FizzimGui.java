@@ -2067,6 +2067,8 @@ public class FizzimGui extends javax.swing.JFrame {
 			propertyInspectorEditButton.setEnabled(false);
 			return;
 		}
+		if(selectionContainsTransition(selected))
+			drawArea1.updateTrans();
 		if(selected.size() > 1)
 		{
 			propertyInspectorTitle.setText(t("properties.title") + " - " + selected.size() + " " + t("properties.objects"));
@@ -2113,6 +2115,18 @@ public class FizzimGui extends javax.swing.JFrame {
 				return false;
 		}
 		return true;
+	}
+
+	private boolean selectionContainsTransition(LinkedList<GeneralObj> selected) {
+		if(selected == null)
+			return false;
+		for(int i = 0; i < selected.size(); i++)
+		{
+			GeneralObj obj = selected.get(i);
+			if(obj.getType() == 1 || obj.getType() == 2)
+				return true;
+		}
+		return false;
 	}
 
 	private String objectTypeName(GeneralObj obj) {

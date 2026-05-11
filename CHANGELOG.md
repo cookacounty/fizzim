@@ -51,6 +51,9 @@ part of the current codebase.
 - Kept transition priority as a built-in transition property so it remains
   editable from transition dialogs and the property inspector without needing
   the old global Transitions editor.
+- Forced transition attribute synchronization before showing transition
+  property editors/inspector rows, restoring `priority` for older diagrams that
+  did not already carry the built-in priority attribute.
 - Added parent-qualified debug state names for grouped states, so simulation
   debug can display names like `GROUP.CHILD`.
 - Increased the generated debug `statename` width to 256 characters by default.
