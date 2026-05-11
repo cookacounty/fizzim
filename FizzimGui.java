@@ -1972,29 +1972,42 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	private void ZoomFitActionPerformed(ActionEvent evt) {
 		enterZoomFitMode();
-		scheduleFitDiagramToViewport();
+		scheduleFitDiagramToViewport(true);
 	}
 
 	public void fitDiagramShortcut() {
 		enterZoomFitMode();
-		scheduleFitDiagramToViewport();
+		scheduleFitDiagramToViewport(true);
 	}
 
-	private void fitDiagramToViewport() {
+	private void fitDiagramToViewport(boolean allowZoomIn) {
 		getContentPane().doLayout();
 		jPanel3.doLayout();
 		jTabbedPane1.doLayout();
 		jScrollPane1.doLayout();
 		Dimension viewport = jScrollPane1.getViewport().getExtentSize();
-		drawArea1.fitDiagramToViewport(viewport);
+		drawArea1.fitDiagramToViewport(viewport, allowZoomIn);
 	}
 
 	private void scheduleFitDiagramToViewport() {
+		scheduleFitDiagramToViewport(true);
+	}
+
+	private void scheduleFitDiagramToViewport(final boolean allowZoomIn) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				fitDiagramToViewport();
+				fitDiagramToViewport(allowZoomIn);
 			}
 		});
+	}
+
+	public void fitDiagramOnlyIfZoomOutNeeded() {
+		if(!zoomFitMode || jScrollPane1 == null || drawArea1 == null)
+			return;
+		Dimension viewport = jScrollPane1.getViewport().getExtentSize();
+		Dimension diagram = drawArea1.getPreferredSize();
+		if(diagram.width > viewport.width || diagram.height > viewport.height)
+			scheduleFitDiagramToViewport(false);
 	}
 
 	private void revalidateForPaneChange() {

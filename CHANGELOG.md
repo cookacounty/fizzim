@@ -275,6 +275,9 @@ part of the current codebase.
 - Project diagrams are now sorted by project-relative path, so adding a new
   diagram groups it with files in the same folder and keeps the Project tree
   ordered A-Z.
+- Normal diagram edits now preserve the current zoom/pan. In fit mode, moving
+  objects can zoom out only when needed to keep the expanded diagram visible;
+  reducing the diagram extents no longer zooms in automatically.
 - Improved project navigation. Opening a project diagram now reuses the current
   window by default, prompts before unsaved edits are discarded, marks the active
   dirty project file in the tree, and offers right-click Open in New Window and

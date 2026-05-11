@@ -404,17 +404,46 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 
 	public void updateCanvasExtents()
 	{
-		updateCanvasExtents(DIAGRAM_PADDING);
+		updateCanvasExtents(DIAGRAM_PADDING, false);
 	}
 
 	private void updateCanvasExtents(int padding)
 	{
+		updateCanvasExtents(padding, true);
+	}
+
+	private void updateCanvasExtents(int padding, boolean forceToBounds)
+	{
 		Rectangle bounds = getDiagramBounds(currPage);
-		originX = bounds.x - padding;
-		originY = bounds.y - padding;
-		logicalWidth = Math.max(1, bounds.width + padding * 2);
-		logicalHeight = Math.max(1, bounds.height + padding * 2);
+		JViewport scrollViewport = (JViewport)SwingUtilities.getAncestorOfClass(JViewport.class, this);
+		Point oldView = scrollViewport == null ? null : scrollViewport.getViewPosition();
+		double oldModelX = oldView == null ? originX : originX + oldView.x / zoom;
+		double oldModelY = oldView == null ? originY : originY + oldView.y / zoom;
+
+		int newOriginX = bounds.x - padding;
+		int newOriginY = bounds.y - padding;
+		int newRight = bounds.x + bounds.width + padding;
+		int newBottom = bounds.y + bounds.height + padding;
+
+		if(!forceToBounds)
+		{
+			newOriginX = Math.min(originX, newOriginX);
+			newOriginY = Math.min(originY, newOriginY);
+			newRight = Math.max(originX + logicalWidth, newRight);
+			newBottom = Math.max(originY + logicalHeight, newBottom);
+		}
+
+		originX = newOriginX;
+		originY = newOriginY;
+		logicalWidth = Math.max(1, newRight - newOriginX);
+		logicalHeight = Math.max(1, newBottom - newOriginY);
 		updateZoomedSize();
+		if(oldView != null && !forceToBounds)
+			scrollViewport.setViewPosition(new Point(
+					Math.max(0, (int)Math.round((oldModelX - originX) * zoom)),
+					Math.max(0, (int)Math.round((oldModelY - originY) * zoom))));
+		if(!forceToBounds)
+			notifyFitExtentsChanged();
 	}
 
 	private void expandCanvasExtentsForDrag()
@@ -617,15 +646,29 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 
 	public void fitDiagramToViewport(Dimension viewport)
 	{
+		fitDiagramToViewport(viewport, true);
+	}
+
+	public void fitDiagramToViewport(Dimension viewport, boolean allowZoomIn)
+	{
 		if(viewport == null || viewport.width <= 0 || viewport.height <= 0)
 			return;
 		updateCanvasExtents(FIT_PADDING);
 		double xZoom = viewport.getWidth() / logicalWidth;
 		double yZoom = viewport.getHeight() / logicalHeight;
-		setZoom(Math.min(1.0, Math.min(xZoom, yZoom)));
+		double fitZoom = Math.min(1.0, Math.min(xZoom, yZoom));
+		if(!allowZoomIn)
+			fitZoom = Math.min(getZoom(), fitZoom);
+		setZoom(fitZoom);
 		JViewport scrollViewport = (JViewport)SwingUtilities.getAncestorOfClass(JViewport.class, this);
 		if(scrollViewport != null)
 			scrollViewport.setViewPosition(new Point(0, 0));
+	}
+
+	private void notifyFitExtentsChanged()
+	{
+		if(frame instanceof FizzimGui)
+			((FizzimGui)frame).fitDiagramOnlyIfZoomOutNeeded();
 	}
 
 	private int modelX(MouseEvent e)
