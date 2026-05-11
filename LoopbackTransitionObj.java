@@ -306,10 +306,10 @@ private static final double BEND_ENDPOINT_PULL = 0.25;
 			{
 				g2D.setStroke(new BasicStroke(6.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 			}
-			else if(isHighestPriority())
+			else if(shouldDrawBold())
 			{
 				float width = oldStroke instanceof BasicStroke ? ((BasicStroke)oldStroke).getLineWidth() : 1.0f;
-				g2D.setStroke(new BasicStroke(Math.max(2.5f, width + 1.5f)));
+				g2D.setStroke(new BasicStroke(Math.max(3.0f, width + 2.0f), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 			}
 			Color drawColor = getDrawColor();
 			g2D.setColor(isLintHighlighted() ? new Color(255, 140, 0) : drawColor);

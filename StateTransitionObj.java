@@ -677,10 +677,10 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			{
 				g2D.setStroke(new BasicStroke(6.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 			}
-			else if(isHighestPriority())
+			else if(shouldDrawBold())
 			{
 				float width = oldStroke instanceof BasicStroke ? ((BasicStroke)oldStroke).getLineWidth() : 1.0f;
-				g2D.setStroke(new BasicStroke(Math.max(2.5f, width + 1.5f)));
+				g2D.setStroke(new BasicStroke(Math.max(3.0f, width + 2.0f), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 			}
 
 		    Color drawColor = getDrawColor();

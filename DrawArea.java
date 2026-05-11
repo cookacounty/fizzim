@@ -3501,7 +3501,10 @@ public void updateTransitions()
 		{
 			GeneralObj obj = (GeneralObj)objList.get(i);
 			if(obj.getType() == 1 || obj.getType() == 2)
+			{
 				((TransitionObj)obj).setHighestPriority(false);
+				((TransitionObj)obj).setPriorityConflict(false);
+			}
 		}
 
 		LinkedHashMap<StateObj, LinkedList<TransitionObj>> transitionsBySource = getTransitionsBySource();
@@ -3512,7 +3515,28 @@ public void updateTransitions()
 			if(transitions.size() <= 1)
 				continue;
 			sortTransitionsByPriority(transitions);
+			markPriorityConflicts(transitions);
 			transitions.get(0).setHighestPriority(true);
+		}
+	}
+
+	private void markPriorityConflicts(LinkedList<TransitionObj> transitions)
+	{
+		for(int i = 0; i < transitions.size(); i++)
+		{
+			TransitionObj a = transitions.get(i);
+			double aPriority = getTransitionPriority(a);
+			if(aPriority == Double.MAX_VALUE)
+				continue;
+			for(int j = i + 1; j < transitions.size(); j++)
+			{
+				TransitionObj b = transitions.get(j);
+				if(Double.compare(aPriority, getTransitionPriority(b)) == 0)
+				{
+					a.setPriorityConflict(true);
+					b.setPriorityConflict(true);
+				}
+			}
 		}
 	}
 

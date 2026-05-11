@@ -79,7 +79,9 @@ public double getAngle(Point outer, Point inner)
 
 public Color color = Color.BLACK;
 private static final Color DEFAULT_TRUE_COLOR = new Color(0, 100, 0);
+private static final Color PRIORITY_CONFLICT_COLOR = new Color(185, 28, 28);
 private boolean highestPriority = false;
+private boolean priorityConflict = false;
 
 public void setColor(Color c)
 {
@@ -98,6 +100,16 @@ public void setHighestPriority(boolean b)
 public boolean isHighestPriority()
 {
 	return highestPriority;
+}
+
+public void setPriorityConflict(boolean b)
+{
+	priorityConflict = b;
+}
+
+public boolean isPriorityConflict()
+{
+	return priorityConflict;
 }
 
 public boolean isDefaultTrueTransition()
@@ -120,7 +132,14 @@ public boolean isDefaultTrueTransition()
 
 public Color getDrawColor()
 {
+	if(isPriorityConflict())
+		return PRIORITY_CONFLICT_COLOR;
 	return isDefaultTrueTransition() ? DEFAULT_TRUE_COLOR : color;
+}
+
+public boolean shouldDrawBold()
+{
+	return isHighestPriority() || isPriorityConflict();
 }
 
 public abstract void updateObjPages(int page);
