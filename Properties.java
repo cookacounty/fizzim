@@ -2623,13 +2623,16 @@ class GlobalProperties extends javax.swing.JDialog {
 			int tab1 = GPTabbedPane.getSelectedIndex();
 			int globalTab = uiTabToGlobalTab(tab1);
 			LinkedList<ObjAttribute> list = globalLists.get(globalTab);
-			int[] globalRows = new int[rows.length];
+			LinkedList<ObjAttribute> selectedAttributes = new LinkedList<ObjAttribute>();
 			for(int i = 0; i < rows.length; i++)
-				globalRows[i] = tableRowToGlobalRow(currTable, rows[i]);
-			Arrays.sort(globalRows);
-			for(int i = globalRows.length - 1; i > -1; i--)
 			{
-				ObjAttribute obj = list.get(globalRows[i]);
+				int globalRow = tableRowToGlobalRow(currTable, rows[i]);
+				if(globalRow >= 0 && globalRow < list.size())
+					selectedAttributes.add(list.get(globalRow));
+			}
+			for(int i = selectedAttributes.size() - 1; i > -1; i--)
+			{
+				ObjAttribute obj = selectedAttributes.get(i);
 				if(isOutputEditorTab(currTab) || obj.getEditable(0) != ObjAttribute.ABS)
 				{
 					if((obj.getName().equals("reset_signal") || obj.getName().equals("reset_state")) && currTab == TAB_MACHINE)
@@ -2650,7 +2653,7 @@ class GlobalProperties extends javax.swing.JDialog {
 		                        JOptionPane.ERROR_MESSAGE);
 					}
 					else
-						list.remove(globalRows[i]);
+						list.remove(obj);
 				}
 				else
 				{
