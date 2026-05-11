@@ -23,6 +23,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.awt.event.KeyEvent;
+import java.awt.KeyEventDispatcher;
+import java.awt.KeyboardFocusManager;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -74,6 +77,7 @@ import javax.swing.event.HyperlinkListener;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.plaf.basic.BasicTabbedPaneUI;
+import javax.swing.text.JTextComponent;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
@@ -151,6 +155,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private String lintStatusMode = "stale";
 	private int lintErrorCount = 0;
 	private int lintWarningCount = 0;
+	private KeyEventDispatcher spaceFitDispatcher = null;
 	
 
 
@@ -183,6 +188,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		drawArea1.setLogicalSize(maxW, maxH);
 
 		initComponents();
+		installSpaceFitShortcut();
 
 		//custom initComponents
 
@@ -1115,6 +1121,32 @@ public class FizzimGui extends javax.swing.JFrame {
 	private void showProjectPane() {
 		if(sideTabbedPane != null && projectPanel != null)
 			sideTabbedPane.setSelectedComponent(projectPanel);
+	}
+
+	private void installSpaceFitShortcut() {
+		spaceFitDispatcher = new KeyEventDispatcher() {
+			public boolean dispatchKeyEvent(KeyEvent event) {
+				if(event.getID() != KeyEvent.KEY_PRESSED || event.getKeyCode() != KeyEvent.VK_SPACE
+						|| event.getModifiersEx() != 0)
+					return false;
+				Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+				if(focusOwner == null || SwingUtilities.getWindowAncestor(focusOwner) != FizzimGui.this)
+					return false;
+				if(shouldLetFocusedComponentUseSpace(focusOwner))
+					return false;
+				fitDiagramShortcut();
+				event.consume();
+				return true;
+			}
+		};
+		KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(spaceFitDispatcher);
+	}
+
+	private boolean shouldLetFocusedComponentUseSpace(Component focusOwner) {
+		return focusOwner instanceof JTextComponent
+				|| focusOwner instanceof JTable
+				|| focusOwner instanceof JComboBox
+				|| focusOwner instanceof JMenuItem;
 	}
 
 	private void buildPropertyInspectorPanel() {
@@ -2460,6 +2492,11 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(closed)
 			return;
 		closed = true;
+		if(spaceFitDispatcher != null)
+		{
+			KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(spaceFitDispatcher);
+			spaceFitDispatcher = null;
+		}
 		openWindowCount--;
 		dispose();
 		if(openWindowCount <= 0)
