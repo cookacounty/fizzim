@@ -33,6 +33,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 public class TextObj extends GeneralObj {
+	private static final String HDL_STATE_ATTR = "fizzim2_hdl_generated";
+	private static final String HDL_OUTPUT_ATTR = "fizzim2_hdl_output";
 
 	private int selectStatus = 0;
 	private int tX,tY,tW,tH,xTemp,yTemp;
@@ -137,6 +139,8 @@ public class TextObj extends GeneralObj {
 		
 		for(int i = 0; i < globalList.size(); i++)
 		{
+			if(i == 3 || i == 4)
+				continue;
 			if(i >= 3 && globalList.get(i).size() < 2)
 				continue;
 			else if(i < 3 && globalList.get(i).size() < 1)
@@ -158,6 +162,8 @@ public class TextObj extends GeneralObj {
 				if((i == 3 || i == 4) && j == 0)
 					continue;
 				ObjAttribute obj = globalList.get(i).get(j);
+				if(isHiddenSummaryAttribute(obj))
+					continue;
 				String name = "   " + obj.getName();
 
 				if(col1W < fm.stringWidth(name))
@@ -178,12 +184,67 @@ public class TextObj extends GeneralObj {
 					col4W = fm.stringWidth(comm);
 				col4.add(comm);
 			}
+			if(i == 0)
+				addGlobalSummaryRow("   HDL output", resolveHdlOutputSummary(), "", "");
 		}
 
 		col1W += space;
 		col2W += space;
 		col3W += space;
 		col4W += space;
+	}
+
+	private boolean isHiddenSummaryAttribute(ObjAttribute obj)
+	{
+		return obj.getName().equals(HDL_STATE_ATTR) || obj.getName().equals(HDL_OUTPUT_ATTR);
+	}
+
+	private void addGlobalSummaryRow(String name, String value, String type, String comment)
+	{
+		if(col1W < fm.stringWidth(name))
+			col1W = fm.stringWidth(name);
+		col1.add(name);
+		if(col2W < fm.stringWidth(value))
+			col2W = fm.stringWidth(value);
+		col2.add(value);
+		if(col3W < fm.stringWidth(type))
+			col3W = fm.stringWidth(type);
+		col3.add(type);
+		if(col4W < fm.stringWidth(comment))
+			col4W = fm.stringWidth(comment);
+		col4.add(comment);
+	}
+
+	private String resolveHdlOutputSummary()
+	{
+		String generatedPath = getMachineValue(HDL_OUTPUT_ATTR);
+		if(generatedPath != null && !generatedPath.trim().equals(""))
+			return generatedPath.trim();
+		String moduleName = getMachineValue("name");
+		if(moduleName == null || moduleName.trim().equals(""))
+			moduleName = "fsm";
+		return sanitizeHdlFilename(moduleName) + ".v";
+	}
+
+	private String getMachineValue(String name)
+	{
+		if(globalList == null || globalList.size() == 0)
+			return "";
+		LinkedList<ObjAttribute> machine = globalList.get(0);
+		for(int i = 0; i < machine.size(); i++)
+		{
+			ObjAttribute attr = machine.get(i);
+			if(attr.getName().equals(name))
+				return attr.getValue();
+		}
+		return "";
+	}
+
+	private String sanitizeHdlFilename(String name)
+	{
+		if(name == null || name.trim().equals(""))
+			return "fsm";
+		return name.trim().replaceAll("[^A-Za-z0-9_.$-]", "_");
 	}
 
 	public void prepareGlobalBounds(FontMetrics metrics, LinkedList<LinkedList<ObjAttribute>> global, Font font, boolean b, int s, Color c) {

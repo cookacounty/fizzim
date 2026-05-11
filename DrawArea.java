@@ -706,31 +706,11 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 
 	private void startBlankCanvasPan(MouseEvent e)
 	{
-		blankCanvasPan = true;
-		panScreenStart = new Point(e.getXOnScreen(), e.getYOnScreen());
-		JViewport viewport = (JViewport)SwingUtilities.getAncestorOfClass(JViewport.class, this);
-		panViewStart = viewport == null ? null : viewport.getViewPosition();
 	}
 
 	private boolean panBlankCanvas(MouseEvent e)
 	{
-		if(!blankCanvasPan || (e.getModifiersEx() & MouseEvent.BUTTON1_DOWN_MASK) == 0
-				|| panScreenStart == null || panViewStart == null)
-			return false;
-
-		int dx = e.getXOnScreen() - panScreenStart.x;
-		int dy = e.getYOnScreen() - panScreenStart.y;
-		if(Math.abs(dx) < PAN_DRAG_THRESHOLD && Math.abs(dy) < PAN_DRAG_THRESHOLD)
-			return true;
-
-		notifyViewManuallyChanged();
-		JViewport viewport = (JViewport)SwingUtilities.getAncestorOfClass(JViewport.class, this);
-		if(viewport == null)
-			return true;
-
-		ensurePanCanvasMargin(viewport);
-		setViewportPosition(viewport, panViewStart.x - dx, panViewStart.y - dy);
-		return true;
+		return false;
 	}
 
 	private void panViewportByWheel(MouseWheelEvent e)
@@ -2330,11 +2310,18 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			{
 				resetClickCycle();
 				unselectObjs();
-				multipleSelect = false;
+				mXTemp = x;
+				mYTemp = y;
+				mX0 = 0;
+				mY0 = 0;
+				mX1 = 0;
+				mY1 = 0;
+				multipleSelect = true;
+				selectionBoxMode = SELECT_REPLACE;
+				boxBaseSelectedIndices.clear();
 				objsSelected = false;
 				selectedIndices.clear();
 				notifySelectionChanged();
-				startBlankCanvasPan(e);
 			}
 			else if(plainLeftClick)
 			{
