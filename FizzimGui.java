@@ -2474,11 +2474,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	private void ProjectNewActionPerformed(java.awt.event.ActionEvent evt) {
-		projectDiagramFiles.clear();
-		currProjectFile = null;
-		updateProjectPanel();
-		JOptionPane.showMessageDialog(this, "Created an empty project.\nUse File > Project > Add Diagrams to add FSMs.",
-				"Project", JOptionPane.INFORMATION_MESSAGE);
+		createNewProjectWithPrompt(true);
 	}
 
 	private void ProjectOpenActionPerformed(java.awt.event.ActionEvent evt) {
@@ -2499,7 +2495,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(currProjectFile == null)
 			ProjectSaveAsActionPerformed(evt);
 		else
-			saveProject(currProjectFile);
+			saveProject(currProjectFile, true);
 	}
 
 	private void ProjectSaveAsActionPerformed(java.awt.event.ActionEvent evt) {
@@ -2513,20 +2509,29 @@ public class FizzimGui extends javax.swing.JFrame {
 			e1.printStackTrace();
 		}
 		if(ProjectSaveAction.getSelected())
-			saveProject(ensureProjectExtension(ProjectSaveAction.getSelectedFile()));
+			saveProject(ensureProjectExtension(ProjectSaveAction.getSelectedFile()), true);
 	}
 
 	private void ProjectAddCurrentActionPerformed(java.awt.event.ActionEvent evt) {
+		if(!ensureProjectReadyForAdd())
+			return;
 		if(currFile == null)
 		{
 			JOptionPane.showMessageDialog(this, "Save or open a diagram before adding it to the project.",
 					"Project", JOptionPane.INFORMATION_MESSAGE);
 			return;
 		}
-		addProjectDiagram(currFile);
+		if(addProjectDiagram(currFile))
+		{
+			autosaveProject();
+			JOptionPane.showMessageDialog(this, "Added diagram to project:\n" + currFile.getAbsolutePath()
+					+ "\n\nProject diagrams: " + projectDiagramFiles.size(), "Project", JOptionPane.INFORMATION_MESSAGE);
+		}
 	}
 
 	private void ProjectAddDiagramsActionPerformed(java.awt.event.ActionEvent evt) {
+		if(!ensureProjectReadyForAdd())
+			return;
 		try {
 			if(currProjectFile != null)
 				FileOpenAction.setCurrentDirectory(currProjectFile.getAbsoluteFile().getParentFile());
@@ -2543,9 +2548,18 @@ public class FizzimGui extends javax.swing.JFrame {
 			File[] selectedFiles = FileOpenAction.getSelectedFiles();
 			if(selectedFiles == null || selectedFiles.length == 0)
 				selectedFiles = new File[] { FileOpenAction.getSelectedFile() };
+			int added = 0;
 			for(int i = 0; i < selectedFiles.length; i++)
 				if(isFizzimFile(selectedFiles[i]))
-					addProjectDiagram(selectedFiles[i]);
+					if(addProjectDiagram(selectedFiles[i]))
+						added++;
+			if(added > 0)
+			{
+				autosaveProject();
+				JOptionPane.showMessageDialog(this, "Added " + added + " diagram" + (added == 1 ? "" : "s")
+						+ " to project.\n\nProject diagrams: " + projectDiagramFiles.size(),
+						"Project", JOptionPane.INFORMATION_MESSAGE);
+			}
 		}
 	}
 
@@ -2555,6 +2569,50 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	private void ProjectLintAllActionPerformed(java.awt.event.ActionEvent evt) {
 		lintProject();
+	}
+
+	private boolean createNewProjectWithPrompt(boolean showMessage) {
+		try {
+			if(currProjectFile == null)
+			{
+				if(currFile != null)
+					ProjectSaveAction.setCurrentDirectory(currFile.getAbsoluteFile().getParentFile());
+				else
+					ProjectSaveAction.setCurrentDirectory(new java.io.File(System.getProperty("user.dir")).getAbsoluteFile());
+			}
+			else
+				ProjectSaveAction.setSelectedFile(currProjectFile);
+			ProjectSaveAction.showSaveDialog(this);
+		} catch (java.awt.HeadlessException e1) {
+			e1.printStackTrace();
+		}
+		if(!ProjectSaveAction.getSelected())
+			return false;
+		File file = ensureProjectExtension(ProjectSaveAction.getSelectedFile());
+		if(file.exists())
+		{
+			int choice = JOptionPane.showConfirmDialog(this,
+					"Replace existing project file?\n" + file.getAbsolutePath(),
+					"New Project", JOptionPane.YES_NO_OPTION);
+			if(choice != JOptionPane.YES_OPTION)
+				return false;
+		}
+		projectDiagramFiles.clear();
+		currProjectFile = file.getAbsoluteFile();
+		return saveProject(currProjectFile, showMessage);
+	}
+
+	private boolean ensureProjectReadyForAdd() {
+		if(currProjectFile != null)
+			return true;
+		Object[] options = { "Create Project...", "Cancel" };
+		int choice = JOptionPane.showOptionDialog(this,
+				"Create and save a project before adding diagrams?\nThe project file location is used for relative diagram paths.",
+				"Project", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE,
+				null, options, options[0]);
+		if(choice != JOptionPane.YES_OPTION)
+			return false;
+		return createNewProjectWithPrompt(false);
 	}
 
 	private void openProject(File projectFile) {
@@ -2585,6 +2643,10 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	private boolean saveProject(File projectFile) {
+		return saveProject(projectFile, true);
+	}
+
+	private boolean saveProject(File projectFile, boolean showMessage) {
 		try {
 			File file = ensureProjectExtension(projectFile).getAbsoluteFile();
 			File parent = file.getParentFile();
@@ -2602,8 +2664,9 @@ public class FizzimGui extends javax.swing.JFrame {
 			Files.write(file.toPath(), text.toString().getBytes(StandardCharsets.UTF_8));
 			currProjectFile = file;
 			updateProjectPanel();
-			JOptionPane.showMessageDialog(this, "Saved project:\n" + file.getAbsolutePath()
-					+ "\n\nDiagrams: " + projectDiagramFiles.size(), "Project", JOptionPane.INFORMATION_MESSAGE);
+			if(showMessage)
+				JOptionPane.showMessageDialog(this, "Saved project:\n" + file.getAbsolutePath()
+						+ "\n\nDiagrams: " + projectDiagramFiles.size(), "Project", JOptionPane.INFORMATION_MESSAGE);
 			return true;
 		} catch (IOException ex) {
 			JOptionPane.showMessageDialog(this, "Could not save project:\n" + ex.getMessage(),
@@ -2612,15 +2675,20 @@ public class FizzimGui extends javax.swing.JFrame {
 		}
 	}
 
-	private void addProjectDiagram(File diagram) {
+	private boolean autosaveProject() {
+		if(currProjectFile == null)
+			return false;
+		return saveProject(currProjectFile, false);
+	}
+
+	private boolean addProjectDiagram(File diagram) {
 		File absolute = diagram.getAbsoluteFile();
 		for(int i = 0; i < projectDiagramFiles.size(); i++)
 			if(projectDiagramFiles.get(i).getAbsolutePath().equals(absolute.getAbsolutePath()))
-				return;
+				return false;
 		projectDiagramFiles.add(absolute);
 		updateProjectPanel();
-		JOptionPane.showMessageDialog(this, "Added diagram to project:\n" + absolute.getAbsolutePath()
-				+ "\n\nProject diagrams: " + projectDiagramFiles.size(), "Project", JOptionPane.INFORMATION_MESSAGE);
+		return true;
 	}
 
 	private void updateProjectPanel() {
@@ -2633,7 +2701,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(projectDiagramFiles.size() == 0 && currProjectFile == null)
 		{
 			projectTreeRoot.add(new DefaultMutableTreeNode("No project open"));
-			projectTreeRoot.add(new DefaultMutableTreeNode("Use Add Diagrams to start one"));
+			projectTreeRoot.add(new DefaultMutableTreeNode("Use File > Project > New Project..."));
 		}
 		else if(projectDiagramFiles.size() == 0)
 			projectTreeRoot.add(new DefaultMutableTreeNode("(No diagrams in project)"));
@@ -2738,10 +2806,16 @@ public class FizzimGui extends javax.swing.JFrame {
 		File file = selectedProjectFile();
 		if(file == null)
 			return;
+		boolean removed = false;
 		for(int i = projectDiagramFiles.size() - 1; i >= 0; i--)
 			if(sameFile(projectDiagramFiles.get(i), file))
+			{
 				projectDiagramFiles.remove(i);
+				removed = true;
+			}
 		updateProjectPanel();
+		if(removed)
+			autosaveProject();
 	}
 
 	private void showProjectContextMenu(MouseEvent evt) {

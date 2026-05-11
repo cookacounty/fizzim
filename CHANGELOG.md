@@ -254,6 +254,9 @@ part of the current codebase.
   Remove from Project actions.
 - Added project-level Lint All from both `File > Project` and the Project pane,
   with an aggregated multi-diagram lint report.
+- Made project creation explicit. New Project now prompts for a `.fzp` path,
+  adding diagrams requires a saved project file, and add/remove changes
+  auto-save the project so relative paths stay predictable.
 
 ### Build And Packaging
 
