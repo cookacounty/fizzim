@@ -13,10 +13,10 @@ block generation, then adds a deeper ASIC/RTL review pass for legal diagrams
 that may still generate risky, surprising, or hard to sign off state-machine
 RTL.
 
-Saving a diagram also runs lint silently and updates the toolbar lint-status
-indicator. The indicator is advisory: green means clean, yellow means warnings,
-red means errors, and gray means lint is stale or has not been run since the
-last edit. Clicking the indicator opens the normal lint pane.
+Opening or saving a diagram also runs lint silently and updates the toolbar
+lint-status indicator. The indicator is advisory: green means clean, yellow
+means warnings, red means errors, and gray means lint is stale or has not been
+run since the last edit. Clicking the indicator opens the normal lint pane.
 
 ## First Implemented Checks
 

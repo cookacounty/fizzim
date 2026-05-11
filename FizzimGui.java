@@ -3545,6 +3545,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		}
 		loading = false;
 		restorePersistedHdlStatus();
+		updateLintStatus();
 		enterZoomFitMode();
 		scheduleFitDiagramToViewport();
 

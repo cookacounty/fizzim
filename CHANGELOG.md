@@ -43,8 +43,8 @@ part of the current codebase.
   forks to be pass-through, fan-in, fan-out, or partial branch points.
 - Added interactive lint results: selecting an issue selects/highlights the
   associated state, fork, state group, or transition in the diagram.
-- Added a passive toolbar lint-status indicator. Saving a diagram runs lint
-  silently and updates the indicator without opening the lint pane.
+- Added a passive toolbar lint-status indicator. Opening or saving a diagram
+  runs lint silently and updates the indicator without opening the lint pane.
 - Added transition-equation linting for references that are not declared in the
   global input/output lists or as built-in FSM signals.
 - Added reset reachability linting for real states, including paths through
