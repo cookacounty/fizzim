@@ -64,6 +64,13 @@ part of the current codebase.
   edited from transition property dialogs and the property inspector.
 - Transition priority edits now stop the active table edit before saving, and
   automatic priority assignment preserves user-local priority values.
+- Stopped generic diagram commits from renumbering existing transition
+  priorities. Automatic priority assignment now applies only to newly created
+  transitions, preventing older diagrams from changing HDL branch order after
+  unrelated edits.
+- Deleting an output or internal now removes the matching per-state,
+  per-state-group, and per-transition attributes as well as the global
+  definition, so stale local assignments cannot survive the delete.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in

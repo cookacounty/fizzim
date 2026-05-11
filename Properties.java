@@ -876,6 +876,7 @@ class TransProperties extends javax.swing.JDialog {
 	Vector<StateObj> stateObjs;
 	boolean loopback = false;
 	boolean stub = false;
+	boolean transitionWasNew = false;
 	LinkedList<LinkedList<ObjAttribute>> globalList;
 	Component window = this;
 	JColorChooser colorChooser;
@@ -891,6 +892,7 @@ class TransProperties extends javax.swing.JDialog {
 		globalList = drawArea.getGlobalList();
 		colorChooser = drawArea.getColorChooser();
 		drawArea.updateTrans();
+		transitionWasNew = trans.getStartState() == null;
 		if(trans.getType() == 1)
 		{
 			StateTransitionObj t1 = (StateTransitionObj) t;
@@ -1371,6 +1373,8 @@ class TransProperties extends javax.swing.JDialog {
 			{
 				if(start != end)
 					trans.initTrans(start,end);
+				if(transitionWasNew)
+					drawArea.assignPriorityForNewTransition(trans);
 				boolean b = jCheckBox1.isSelected();
 				if(b != stub)
 				{
@@ -1399,6 +1403,8 @@ class TransProperties extends javax.swing.JDialog {
 			else
 			{
 				trans.initTrans(start);
+				if(transitionWasNew)
+					drawArea.assignPriorityForNewTransition(trans);
 				drawArea.commitUndo();
 				dispose();
 			}
@@ -2598,17 +2604,7 @@ class GlobalProperties extends javax.swing.JDialog {
 
 		private void removeOutputBackReferences(ObjAttribute obj)
 		{
-			if(obj.getType().equals("reg"))
-				removeAttribute(3,obj.getName());
-			if(obj.getType().equals("regdp"))
-			{
-				removeAttribute(3,obj.getName());
-				removeAttribute(4,obj.getName());
-			}
-			if(obj.getType().equals("comb"))
-				removeAttribute(3,obj.getName());
-			if(obj.getType().equals("flag"))
-				removeAttribute(3,obj.getName());
+			drawArea.removeOutputAttributeEverywhere(obj.getName());
 		}
 
 		private boolean isOutputEditorTab(int tab)

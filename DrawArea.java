@@ -2051,7 +2051,6 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			repaint();
 			return false;
 		}
-		autoAssignTransitionPriorities();
 		refreshTransitionPriorityHighlights();
 		int size = undoList.size();
 		// clears redo points ahead of current position
@@ -3089,6 +3088,7 @@ public void updateTransitions()
     		sTrans.initTrans((StateObj)tempObj,getStateObj(input));
     		
     		trans.updateAttrib(globalList,4);
+    		assignPriorityForNewTransition((TransitionObj)trans);
     		commitUndo();
         }
         else if(getPageIndex(input) > -1)
@@ -3463,40 +3463,39 @@ public void updateTransitions()
 		}
 	}
 
-	private void autoAssignTransitionPriorities()
+	public void assignPriorityForNewTransition(TransitionObj newTrans)
 	{
+		if(newTrans == null || newTrans.getStartState() == null)
+			return;
+		if(isLocalTransitionPriority(newTrans))
+			return;
+		ObjAttribute priority = getTransitionPriorityAttribute(newTrans);
+		if(priority == null)
+			return;
+		String priorityText = priority.getValue() == null ? "" : priority.getValue().trim();
+		if(!priorityText.equals("") && !priorityText.equals("1000"))
+			return;
+
 		LinkedHashMap<StateObj, LinkedList<TransitionObj>> transitionsBySource = getTransitionsBySource();
-		for(Iterator<StateObj> it = transitionsBySource.keySet().iterator(); it.hasNext(); )
+		LinkedList<TransitionObj> siblings = transitionsBySource.get(newTrans.getStartState());
+		if(siblings == null || siblings.size() <= 1)
 		{
-			StateObj source = it.next();
-			LinkedList<TransitionObj> transitions = transitionsBySource.get(source);
-			if(transitions.size() <= 1)
-			{
-				if(!isLocalTransitionPriority(transitions.get(0)))
-					setTransitionPriorityImplied(transitions.get(0));
-				continue;
-			}
-			sortTransitionsByPriority(transitions);
-			LinkedHashSet<Integer> usedLocalPriorities = new LinkedHashSet<Integer>();
-			for(int i = 0; i < transitions.size(); i++)
-			{
-				TransitionObj trans = transitions.get(i);
-				if(isLocalTransitionPriority(trans))
-					usedLocalPriorities.add(new Integer(Math.max(0, Math.min(PRIORITY_MAX, (int)getTransitionPriority(trans)))));
-			}
-			int nextPriority = 0;
-			for(int i = 0; i < transitions.size(); i++)
-			{
-				TransitionObj trans = transitions.get(i);
-				if(isLocalTransitionPriority(trans))
-					continue;
-				while(usedLocalPriorities.contains(new Integer(nextPriority)) && nextPriority < PRIORITY_MAX)
-					nextPriority++;
-				setTransitionPriority(trans, Math.min(nextPriority, PRIORITY_MAX));
-				usedLocalPriorities.add(new Integer(Math.min(nextPriority, PRIORITY_MAX)));
-				nextPriority++;
-			}
+			setTransitionPriorityImplied(newTrans);
+			return;
 		}
+
+		int nextPriority = 0;
+		for(int i = 0; i < siblings.size(); i++)
+		{
+			TransitionObj sibling = siblings.get(i);
+			if(sibling == newTrans)
+				continue;
+			double siblingPriority = getTransitionPriority(sibling);
+			if(siblingPriority == Double.MAX_VALUE)
+				continue;
+			nextPriority = Math.max(nextPriority, (int)Math.floor(siblingPriority) + 1);
+		}
+		setTransitionPriority(newTrans, Math.min(nextPriority, PRIORITY_MAX));
 	}
 
 	private boolean isLocalTransitionPriority(TransitionObj trans)
@@ -3663,12 +3662,36 @@ public void updateTransitions()
 		}
 	}
 
+	public void removeOutputAttributeEverywhere(String name) {
+		if(name == null || name.equals(""))
+			return;
+
+		removeOutputAttributes(globalList.get(3), name);
+		removeOutputAttributes(globalList.get(4), name);
+
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj) objList.elementAt(i);
+			if(obj.getType() == 0 || obj.getType() == 1 || obj.getType() == 2 || obj.getType() == 5)
+				removeOutputAttributes(obj.getAttributeList(), name);
+		}
+	}
+
 	private void renameOutputAttributes(LinkedList<ObjAttribute> list, String oldName, String newName) {
 		for(int i = 0; i < list.size(); i++)
 		{
 			ObjAttribute attr = list.get(i);
 			if(attr.getType().equals("output") && attr.getName().equals(oldName))
 				attr.setName(newName);
+		}
+	}
+
+	private void removeOutputAttributes(LinkedList<ObjAttribute> list, String name) {
+		for(int i = list.size() - 1; i >= 0; i--)
+		{
+			ObjAttribute attr = list.get(i);
+			if(attr.getType().equals("output") && attr.getName().equals(name))
+				list.remove(i);
 		}
 	}
 
