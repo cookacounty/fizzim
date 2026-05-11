@@ -45,6 +45,9 @@ part of the current codebase.
   compatibility.
 - Added one-click conversion between Outputs and Internals in the global
   property editor while preserving the existing HDL-compatible storage.
+- Removed the exposed States and Transitions tabs/menu entries from the global
+  property editor; those derived backend attributes remain managed through the
+  object property editors and output/internal definitions.
 - Added parent-qualified debug state names for grouped states, so simulation
   debug can display names like `GROUP.CHILD`.
 - Increased the generated debug `statename` width to 256 characters by default.

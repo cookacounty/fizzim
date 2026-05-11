@@ -935,32 +935,6 @@ public class FizzimGui extends javax.swing.JFrame {
 
 		GlobalMenu.add(GlobalItemInternals);
 
-		GlobalMenu.add(jSeparator3);
-
-
-		
-		GlobalItemStates.setText("States");
-		GlobalItemStates.setMnemonic(java.awt.event.KeyEvent.VK_S);
-		GlobalItemStates.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				GlobalItemStatesActionPerformed(evt);
-			}
-		});
-
-		GlobalMenu.add(GlobalItemStates);
-
-		GlobalItemTransitions.setText("Transitions");
-		GlobalItemTransitions.setMnemonic(java.awt.event.KeyEvent.VK_T);
-		GlobalItemTransitions
-				.addActionListener(new java.awt.event.ActionListener() {
-					public void actionPerformed(java.awt.event.ActionEvent evt) {
-						GlobalItemTransitionsActionPerformed(evt);
-					}
-				});
-
-		GlobalMenu.add(GlobalItemTransitions);
-		
-
 		MenuBar.add(GlobalMenu);
 
 		HelpMenu.setMnemonic(java.awt.event.KeyEvent.VK_H);
@@ -1103,8 +1077,6 @@ public class FizzimGui extends javax.swing.JFrame {
 		GlobalItemInputs.setText(t("menu.interface.inputs"));
 		GlobalItemOutputs.setText(t("menu.interface.outputs"));
 		GlobalItemInternals.setText(t("menu.interface.internals"));
-		GlobalItemStates.setText(t("menu.interface.states"));
-		GlobalItemTransitions.setText(t("menu.interface.transitions"));
 		HelpMenu.setText(t("menu.help"));
 		HelpItemHelp.setText(t("menu.help.wiki"));
 		HelpItemAbout.setText(t("menu.help.about"));

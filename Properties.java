@@ -2091,8 +2091,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
 			GPScrollState.setViewportView(GPTableState);
-			GPTabbedPane.addTab("States", GPScrollState);
-			
+
 			GPTableTrans.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(4),globalLists, drawArea));
 			GPTableTrans.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 			DialogLayoutUtil.makeTableResizeUseful(GPTableTrans);
@@ -2102,8 +2101,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
 			GPScrollTrans.setViewportView(GPTableTrans);
-			GPTabbedPane.addTab("Transitions", GPScrollTrans);
-			
+
 			
                         // set default column widths
                         setcolumnwidths(GPTableMachine);
