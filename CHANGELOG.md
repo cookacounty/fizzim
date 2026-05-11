@@ -170,6 +170,8 @@ part of the current codebase.
 - Improved batch movement of selected states, state groups, forks, and text so
   connected transitions move with the selected objects and state-group children
   are not moved twice.
+- Dragging a state group now snapshots its contained states/forks at mouse-down
+  and does not capture additional objects until the mouse is released.
 - Added keyboard nudging for selected states, state groups, and forks with arrow
   keys, plus larger Shift+arrow steps.
 - Added zoom controls for the canvas:

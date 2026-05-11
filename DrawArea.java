@@ -88,6 +88,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	private int mX0,mY0,mX1,mY1;
 	private LinkedList<Integer> selectedIndices = new LinkedList<Integer>();
 	private LinkedList<Integer> boxBaseSelectedIndices = new LinkedList<Integer>();
+	private HashMap<StateGroupObj, LinkedList<StateObj>> stateGroupDragChildren = new HashMap<StateGroupObj, LinkedList<StateObj>>();
 	private static final int SELECT_REPLACE = 0;
 	private static final int SELECT_ADD = 1;
 	private static final int SELECT_TOGGLE = 2;
@@ -2178,6 +2179,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	public void mousePressed(MouseEvent e) {
 		
 		//System.out.println("mousePressed:" + " Button:" + e.getButton() + " Modifiers:" + e.getModifiers() + " Popup Trigger:" + e.isPopupTrigger() + " ControlDown:" + e.isControlDown());
+		stateGroupDragChildren.clear();
 		boolean popupMouse = isPopupMouse(e);
 		if(popupMouse)
 			startPanCandidate(e);
@@ -2254,6 +2256,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 					objsSelected = false;
 					unselectObjs();
 				}
+				captureStateGroupDragChildren();
 			}
 			else if(popupMouse)
 			{
@@ -2425,6 +2428,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			{
 				rememberClickCycle(e, x, y, clickHits, bestMatch);
 			}
+			captureStateGroupDragChildren();
 			
 			repaint();
 		}
@@ -2511,6 +2515,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		rightButtonDragged = false;
 		panScreenStart = null;
 		panViewStart = null;
+		stateGroupDragChildren.clear();
 		clearPendingPopup();
 		clearSmartGuides();
 		
@@ -2565,7 +2570,7 @@ public void updateTransitions()
 					if(s.getType() == 5 && s.getSelectStatus() == StateObj.CENTER)
 					{
 						oldCoords = ((StateObj)s).getCoords();
-						childEndpoints = getContainedTransitionEndpoints((StateGroupObj)s);
+						childEndpoints = getStateGroupDragChildren((StateGroupObj)s);
 					}
 					boolean batchMove = objsSelected;
 					boolean disableEndpointSnap = (snapDisabled || batchMove) && isTransitionEndpoint(s) && s.getSelectStatus() == StateObj.CENTER;
@@ -3197,6 +3202,28 @@ public void updateTransitions()
 				states.add((StateObj)obj);
 		}
 		return states;
+	}
+
+	private void captureStateGroupDragChildren()
+	{
+		stateGroupDragChildren.clear();
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 5 && obj.getSelectStatus() == StateObj.CENTER)
+				stateGroupDragChildren.put((StateGroupObj)obj, getContainedTransitionEndpoints((StateGroupObj)obj));
+		}
+	}
+
+	private LinkedList<StateObj> getStateGroupDragChildren(StateGroupObj stateGroup)
+	{
+		LinkedList<StateObj> children = stateGroupDragChildren.get(stateGroup);
+		if(children == null)
+		{
+			children = getContainedTransitionEndpoints(stateGroup);
+			stateGroupDragChildren.put(stateGroup, children);
+		}
+		return children;
 	}
 
 	private LinkedList<StateGroupObj> getSelectedStateGroups()
