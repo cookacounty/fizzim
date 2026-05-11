@@ -43,6 +43,8 @@ part of the current codebase.
   forks to be pass-through, fan-in, fan-out, or partial branch points.
 - Added interactive lint results: selecting an issue selects/highlights the
   associated state, fork, state group, or transition in the diagram.
+- Added a passive toolbar lint-status indicator. Saving a diagram runs lint
+  silently and updates the indicator without opening the lint pane.
 - Added transition-equation linting for references that are not declared in the
   global input/output lists or as built-in FSM signals.
 - Added reset reachability linting for real states, including paths through
@@ -292,8 +294,7 @@ part of the current codebase.
 - Added diagrams for forks, state groups, priority behavior, and the Fizzim 2.0
   overview.
 - Updated the app title bar and splash screen for Fizzim 2.0.
-- Refined the Fizzim 2.0 branding with a simpler modern splash screen, an
-  integrated `F²` wordmark, and a larger `F²` application icon for better
-  Windows readability.
+- Refined the Fizzim 2.0 branding with a simpler modern splash screen, the
+  `F^2izz||m` logic-inspired wordmark, and a compact `F^2` application icon.
 - Kept attribution to original author Michael Zimmer and added Aaron Cook for
   Fizzim 2.0 feature updates.

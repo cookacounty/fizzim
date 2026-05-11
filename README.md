@@ -150,13 +150,13 @@ java -jar fizzim.jar
 Generate HDL directly with the Perl backend:
 
 ```sh
-perl fizzim.pl -noaddversion testcases/generic_ctrl_fsm.fzm
+perl fizzim.pl -noaddversion testcases/generic_state_machine.fzm
 ```
 
 On Windows, the same command can be run from PowerShell if Perl is on `PATH`:
 
 ```powershell
-perl fizzim.pl -noaddversion testcases\generic_ctrl_fsm.fzm
+perl fizzim.pl -noaddversion testcases\generic_state_machine.fzm
 ```
 
 Run the public backend regression tests:
@@ -204,9 +204,9 @@ make.cmd jar
 
 ## Branding
 
-Fizzim 2.0 uses a simplified dark-header splash screen with an integrated `F²`
-wordmark, plus a matching `F²` app icon, to reflect the updated GUI and modeling
-features.
+Fizzim 2.0 keeps the application name as Fizzim, but the splash and overview
+art use the `F^2izz||m` wordmark as a visual nod to logic operators. The app
+icon remains a compact `F^2`.
 
 ## Credits
 

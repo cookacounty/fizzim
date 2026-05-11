@@ -250,6 +250,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		lintButton = new javax.swing.JButton();
 		generateHdlButton = new javax.swing.JButton();
 		hdlStatusLabel = new javax.swing.JLabel();
+		lintStatusLabel = new javax.swing.JLabel();
 		zoomPercentLabel = new javax.swing.JLabel();
 		selectionStatusLabel = new javax.swing.JLabel();
 		propertyInspectorPanel = new javax.swing.JPanel();
@@ -431,6 +432,17 @@ public class FizzimGui extends javax.swing.JFrame {
 		hdlStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(140, 120, 40)));
 		markHdlOutOfSync();
 		zoomPanel.add(hdlStatusLabel);
+		lintStatusLabel.setOpaque(true);
+		lintStatusLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+		lintStatusLabel.setPreferredSize(new java.awt.Dimension(112, 22));
+		lintStatusLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		lintStatusLabel.addMouseListener(new MouseAdapter() {
+			public void mouseClicked(MouseEvent evt) {
+				showLintPanel();
+			}
+		});
+		markLintStale();
+		zoomPanel.add(lintStatusLabel);
 		zoomOutButton.setText("-");
 		zoomOutButton.setToolTipText("Zoom out");
 		zoomOutButton.addActionListener(new java.awt.event.ActionListener() {
@@ -1330,6 +1342,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		hdlGeneratedInSync = false;
 		setMachineAttributeValue(HDL_STATE_ATTR, "0");
 		updateHdlStatusIndicator();
+		markLintStale();
 		updateWindowTitle();
 	}
 
@@ -1371,6 +1384,55 @@ public class FizzimGui extends javax.swing.JFrame {
 			hdlStatusLabel.setForeground(new Color(100, 75, 0));
 			hdlStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(170, 135, 30)));
 		}
+	}
+
+	private void markLintStale() {
+		if(lintStatusLabel == null)
+			return;
+		lintStatusLabel.setText("Lint stale");
+		lintStatusLabel.setToolTipText("Save the diagram to refresh lint status. Click to run lint now.");
+		lintStatusLabel.setBackground(new Color(225, 230, 235));
+		lintStatusLabel.setForeground(new Color(75, 85, 99));
+		lintStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(150, 160, 170)));
+	}
+
+	private void updateLintStatus() {
+		if(lintStatusLabel == null || drawArea1 == null)
+			return;
+		drawArea1.lintDiagram();
+		LinkedList<DrawArea.LintIssue> issues = drawArea1.getLastLintIssues();
+		int errors = 0;
+		int warnings = 0;
+		for(int i = 0; i < issues.size(); i++)
+		{
+			DrawArea.LintIssue issue = issues.get(i);
+			if(issue.severity.equals("ERROR"))
+				errors++;
+			else if(issue.severity.equals("WARN"))
+				warnings++;
+		}
+		if(errors > 0)
+		{
+			lintStatusLabel.setText("Lint errors");
+			lintStatusLabel.setBackground(new Color(255, 205, 205));
+			lintStatusLabel.setForeground(new Color(120, 20, 20));
+			lintStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(185, 70, 70)));
+		}
+		else if(warnings > 0)
+		{
+			lintStatusLabel.setText("Lint warn");
+			lintStatusLabel.setBackground(new Color(255, 235, 150));
+			lintStatusLabel.setForeground(new Color(100, 75, 0));
+			lintStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(170, 135, 30)));
+		}
+		else
+		{
+			lintStatusLabel.setText("Lint clean");
+			lintStatusLabel.setBackground(new Color(190, 235, 190));
+			lintStatusLabel.setForeground(new Color(20, 85, 20));
+			lintStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(80, 145, 80)));
+		}
+		lintStatusLabel.setToolTipText(errors + " errors, " + warnings + " warnings. Click to open lint results.");
 	}
 
 	private boolean runHdlComparison(File fzmFile, File primaryOutput) throws IOException, InterruptedException {
@@ -2219,11 +2281,13 @@ public class FizzimGui extends javax.swing.JFrame {
 	//GEN-FIRST:event_EditItemRedoActionPerformed
 	private void EditItemRedoActionPerformed(java.awt.event.ActionEvent evt) {
 		drawArea1.redo();
+		updateLintStatus();
 	}//GEN-LAST:event_EditItemRedoActionPerformed
 
 	//GEN-FIRST:event_EditItemUndoActionPerformed
 	private void EditItemUndoActionPerformed(java.awt.event.ActionEvent evt) {
 		drawArea1.undo();
+		updateLintStatus();
 	}//GEN-LAST:event_EditItemUndoActionPerformed
 
 
@@ -3571,6 +3635,7 @@ public class FizzimGui extends javax.swing.JFrame {
 
 			writer.close();
 			drawArea1.setFileModifed(false);
+			updateLintStatus();
 			
 			return true;
 			
@@ -3758,6 +3823,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JButton lintButton;
 	private javax.swing.JButton generateHdlButton;
 	private javax.swing.JLabel hdlStatusLabel;
+	private javax.swing.JLabel lintStatusLabel;
 	private javax.swing.JLabel zoomPercentLabel;
 	private javax.swing.JLabel selectionStatusLabel;
 	private javax.swing.JPanel propertyInspectorPanel;

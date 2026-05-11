@@ -6,11 +6,17 @@ https://github.com/cookacounty/fizzim/wiki/Validation-and-Lint
 
 This file is kept as a repo-local design note and may lag the wiki.
 
-This document captures the intent behind the Fizzim 2.0
-`Tools > Validate / Lint Diagram` interface. The command runs structural checks
-that should block generation, then adds a deeper ASIC/RTL review pass for legal
-diagrams that may still generate risky, surprising, or hard to sign off
-state-machine RTL.
+This document captures the intent behind the Fizzim 2.0 lint interface. Lint is
+available from the main-window `Lint` button, `Tools > Validate / Lint Diagram`,
+and project-level `Lint All`. The command runs structural checks that should
+block generation, then adds a deeper ASIC/RTL review pass for legal diagrams
+that may still generate risky, surprising, or hard to sign off state-machine
+RTL.
+
+Saving a diagram also runs lint silently and updates the toolbar lint-status
+indicator. The indicator is advisory: green means clean, yellow means warnings,
+red means errors, and gray means lint is stale or has not been run since the
+last edit. Clicking the indicator opens the normal lint pane.
 
 ## First Implemented Checks
 
@@ -41,10 +47,10 @@ state-machine RTL.
 The public testcase area includes
 `testcases/generic_state_machine_lint_issues.fzm`. It is intentionally not a
 golden regression input. Instead, it is a compact GUI showcase for the lint
-interface. Open it in Fizzim and run `Tools > Validate / Lint Diagram` to see
-common findings. It is rebuilt from the lint-clean generic source diagram and
-then adds simple structural examples for an unreachable state, a transition into
-a fork with no exit, and a fork branch with no incoming transition.
+interface. Open it in Fizzim and press the `Lint` toolbar button to see common
+findings. It is rebuilt from the lint-clean generic source diagram and then adds
+simple structural examples for an unreachable state, a transition into a fork
+with no exit, and a fork branch with no incoming transition.
 
 ## RTL Rationale
 
