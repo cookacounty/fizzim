@@ -2294,6 +2294,51 @@ class GlobalProperties extends javax.swing.JDialog {
 				outputTableModel.fireTableDataChanged();
 			if(internalTableModel != null)
 				internalTableModel.fireTableDataChanged();
+			if(GPTableState != null && GPTableState.getModel() instanceof MyTableModel)
+				((MyTableModel)GPTableState.getModel()).fireTableDataChanged();
+			if(GPTableTrans != null && GPTableTrans.getModel() instanceof MyTableModel)
+				((MyTableModel)GPTableTrans.getModel()).fireTableDataChanged();
+		}
+
+		private void syncDerivedOutputOrder()
+		{
+			syncDerivedOutputOrder(globalLists.get(3));
+			syncDerivedOutputOrder(globalLists.get(4));
+		}
+
+		private void syncDerivedOutputOrder(LinkedList<ObjAttribute> derivedList)
+		{
+			LinkedList<ObjAttribute> reordered = new LinkedList<ObjAttribute>();
+			LinkedList<ObjAttribute> remaining = new LinkedList<ObjAttribute>(derivedList);
+
+			for(int i = 0; i < derivedList.size(); i++)
+			{
+				ObjAttribute attr = derivedList.get(i);
+				if(!attr.getType().equals("output"))
+				{
+					reordered.add(attr);
+					remaining.remove(attr);
+				}
+			}
+
+			for(int i = 0; i < globalLists.get(2).size(); i++)
+			{
+				String outputName = globalLists.get(2).get(i).getName();
+				for(int j = 0; j < remaining.size(); j++)
+				{
+					ObjAttribute attr = remaining.get(j);
+					if(attr.getType().equals("output") && attr.getName().equals(outputName))
+					{
+						reordered.add(attr);
+						remaining.remove(j);
+						j--;
+					}
+				}
+			}
+
+			reordered.addAll(remaining);
+			derivedList.clear();
+			derivedList.addAll(reordered);
 		}
 
 		private void removeOutputBackReferences(ObjAttribute obj)
@@ -2575,6 +2620,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			for(int i = 0; i < moved.size(); i++)
 				outputList.add(insertRow + i, moved.get(i));
 
+			syncDerivedOutputOrder();
 			refreshOutputViews();
 			currTable.clearSelection();
 			for(int i = 0; i < rows.length; i++) {
@@ -2620,6 +2666,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			}
 			if(error == 0)
 			{
+			syncDerivedOutputOrder();
 			drawArea.updateStates();
 			drawArea.updateTrans();
 			drawArea.updateGlobalTable();

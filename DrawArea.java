@@ -483,6 +483,9 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			return bounds;
 
 		FontMetrics metrics = getFontMetrics(currFont);
+		if((obj.getType() == 0 || obj.getType() == 5) && obj instanceof StateObj)
+			return addStateLikeAttributeBounds(bounds, (StateObj)obj, attrs, metrics, page);
+
 		Point center = obj.getCenter(page);
 		int step = -1;
 		for(int i = 0; i < attrs.size(); i++)
@@ -498,6 +501,44 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			else
 				bounds.add(attrBounds);
 		}
+		return bounds;
+	}
+
+	private Rectangle addStateLikeAttributeBounds(Rectangle bounds, StateObj state, LinkedList<ObjAttribute> attrs, FontMetrics metrics, int page)
+	{
+		int[] coords = state.getCoords();
+		Rectangle shape = normalizedBounds(coords[0], coords[1], coords[2], coords[3], 0);
+		ObjAttribute nameAttr = null;
+		for(int i = 0; i < attrs.size(); i++)
+		{
+			if(attrs.get(i).getName().equals("name"))
+			{
+				nameAttr = attrs.get(i);
+				break;
+			}
+		}
+		if(nameAttr != null)
+			bounds = addRectangleToBounds(bounds, nameAttr.getStateDrawBounds(metrics, currFont, shape, page, 0));
+
+		int row = 1;
+		for(int i = 0; i < attrs.size(); i++)
+		{
+			ObjAttribute attr = attrs.get(i);
+			if(attr == nameAttr || !attr.isCanvasVisible())
+				continue;
+			bounds = addRectangleToBounds(bounds, attr.getStateDrawBounds(metrics, currFont, shape, page, row));
+			row++;
+		}
+		return bounds;
+	}
+
+	private Rectangle addRectangleToBounds(Rectangle bounds, Rectangle addition)
+	{
+		if(addition == null)
+			return bounds;
+		if(bounds == null)
+			return new Rectangle(addition);
+		bounds.add(addition);
 		return bounds;
 	}
 

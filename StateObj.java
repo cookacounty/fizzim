@@ -158,23 +158,8 @@ public class StateObj extends GeneralObj implements Cloneable {
 		if (myPage == currPage) {
 			xTemp = x;
 			yTemp = y;
-			boolean wasSelected = selectStatus != NONE;
 			selectStatus = NONE;
-			// check text objects
-			if (attrib != null && wasSelected) {
-				for (int j = 0; j < attrib.size(); j++) {
-					ObjAttribute s = attrib.get(j);
-					s.unselect();
-				}
-				for (int i = 0; i < attrib.size(); i++) {
-					ObjAttribute s = attrib.get(i);
-					if (s.setSelectStatus(x, y)) {
-						selectStatus = TXT;
-						break;
-					}
-				}
-			}
-			else if(attrib != null) {
+			if(attrib != null) {
 				for (int j = 0; j < attrib.size(); j++) {
 					ObjAttribute s = attrib.get(j);
 					s.unselect();

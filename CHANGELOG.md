@@ -155,6 +155,13 @@ part of the current codebase.
   highlighting.
 - Added blue hover affordances for states, state groups, forks, transitions, and
   loopbacks so editable canvas targets are easier to discover before clicking.
+- Changed state and state-group internal text to a deterministic HDL-friendly
+  layout: bold top-centered names with left-aligned visible values underneath.
+  Existing diagrams automatically use the new visual style when opened, while
+  saved attributes and backend generation remain unchanged.
+- Kept state and transition variable/action display order synchronized with the
+  global Outputs/Internals order, so reordering interface variables immediately
+  changes the deterministic canvas display order.
 - Added selected-object cleanup commands for selected-route cleanup, selected
   horizontal/vertical alignment, and selected horizontal/vertical distribution.
 - Added automatic transition priority normalization for sources with multiple
