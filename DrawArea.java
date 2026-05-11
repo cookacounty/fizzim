@@ -3386,13 +3386,37 @@ public void updateTransitions()
 			LinkedList<TransitionObj> transitions = transitionsBySource.get(source);
 			if(transitions.size() <= 1)
 			{
-				setTransitionPriorityImplied(transitions.get(0));
+				if(!isLocalTransitionPriority(transitions.get(0)))
+					setTransitionPriorityImplied(transitions.get(0));
 				continue;
 			}
 			sortTransitionsByPriority(transitions);
+			LinkedHashSet<Integer> usedLocalPriorities = new LinkedHashSet<Integer>();
 			for(int i = 0; i < transitions.size(); i++)
-				setTransitionPriority(transitions.get(i), Math.min(i, PRIORITY_MAX));
+			{
+				TransitionObj trans = transitions.get(i);
+				if(isLocalTransitionPriority(trans))
+					usedLocalPriorities.add(new Integer(Math.max(0, Math.min(PRIORITY_MAX, (int)getTransitionPriority(trans)))));
+			}
+			int nextPriority = 0;
+			for(int i = 0; i < transitions.size(); i++)
+			{
+				TransitionObj trans = transitions.get(i);
+				if(isLocalTransitionPriority(trans))
+					continue;
+				while(usedLocalPriorities.contains(new Integer(nextPriority)) && nextPriority < PRIORITY_MAX)
+					nextPriority++;
+				setTransitionPriority(trans, Math.min(nextPriority, PRIORITY_MAX));
+				usedLocalPriorities.add(new Integer(Math.min(nextPriority, PRIORITY_MAX)));
+				nextPriority++;
+			}
 		}
+	}
+
+	private boolean isLocalTransitionPriority(TransitionObj trans)
+	{
+		ObjAttribute priority = getTransitionPriorityAttribute(trans);
+		return priority != null && priority.getEditable(1) == ObjAttribute.LOCAL;
 	}
 
 	private void refreshTransitionPriorityHighlights()

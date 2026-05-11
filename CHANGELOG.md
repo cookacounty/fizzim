@@ -58,6 +58,8 @@ part of the current codebase.
   `equation`, and default/implied priority labels stay hidden on the canvas.
 - Normalized older transition priority edit flags so the priority value can be
   edited from transition property dialogs and the property inspector.
+- Transition priority edits now stop the active table edit before saving, and
+  automatic priority assignment preserves user-local priority values.
 - Added parent-qualified debug state names for grouped states, so simulation
   debug can display names like `GROUP.CHILD`.
 - Increased the generated debug `statename` width to 256 characters by default.

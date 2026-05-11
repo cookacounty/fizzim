@@ -1278,7 +1278,8 @@ class TransProperties extends javax.swing.JDialog {
 
 	//GEN-FIRST:event_TPOKActionPerformed
 	private void TPOKActionPerformed(java.awt.event.ActionEvent evt) {
-		TPTable.editCellAt(0,0);
+		if(TPTable.isEditing())
+			TPTable.getCellEditor().stopCellEditing();
 		if(!drawArea.checkTransNames())
 		{
 			JOptionPane.showMessageDialog(this,
