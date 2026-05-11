@@ -344,6 +344,7 @@ function writeReferenceRtl() {
             trigger1 <= 2'd2;
             if (mode0) trigger <= 1'b1;
           end
+          else if (mode1) color <= "xact";
         end
         S_A1: begin
           if (break_req) begin
@@ -504,7 +505,7 @@ function main() {
     makeTransition(transitionTemplate, "T_F2_C", "F2", "S_C", "option1", 0, { "trigger1[1:0]": "1" }),
     makeTransition(transitionTemplate, "T_F2_ERR", "F2", "S_ERR", "1", 1, {}),
     makeTransition(transitionTemplate, "T_GA_F3", "SG_A", "F3", "break_req", 0, { "trigger1[1:0]": "2" }),
-    makeTransition(transitionTemplate, "T_A0_A1", "S_A0", "S_A1", "mode1", 5, {}),
+    makeTransition(transitionTemplate, "T_A0_A1", "S_A0", "S_A1", "mode1", 5, { "color[100:0]": '"xact"' }),
     makeTransition(transitionTemplate, "T_A1_GB", "S_A1", "SG_B", "start", 5, { trigger: "1" }),
     makeTransition(transitionTemplate, "T_F3_DONE", "F3", "S_DONE", "mode0", 0, { trigger: "1" }),
     makeTransition(transitionTemplate, "T_F3_ERR", "F3", "S_ERR", "1", 1, {}),

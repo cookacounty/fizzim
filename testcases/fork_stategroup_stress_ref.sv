@@ -131,6 +131,7 @@ module fork_stategroup_stress_ref (
             trigger1 <= 2'd2;
             if (mode0) trigger <= 1'b1;
           end
+          else if (mode1) color <= "xact";
         end
         S_A1: begin
           if (break_req) begin

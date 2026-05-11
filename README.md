@@ -19,6 +19,20 @@ for forks, state groups, and transition actions.
 The repo keeps only short reference material here. The wiki is the source of
 truth for detailed usage, lint, backend testing, and legacy documentation.
 
+## Core Modeling Semantics
+
+When the same output/internal is assigned in more than one modeling layer,
+Fizzim resolves the generated HDL in this priority order:
+
+1. Transition actions, highest priority.
+2. Concrete state assignments.
+3. State group assignments, lowest priority shared defaults.
+
+State groups intentionally provide inherited defaults only. If a child state
+sets the same variable, the child state's value wins. If a transition action
+sets that variable on the route into the state, the transition action wins for
+that clock.
+
 ## Quick Start
 
 Fizzim builds into a runnable Java jar. For normal use you need a JDK to build

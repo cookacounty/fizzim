@@ -98,6 +98,9 @@ part of the current codebase.
 - Backend fork expansion now walks multi-level fork decision trees until each
   route reaches a concrete state or state group, preserving route priority,
   combined conditions, and transition actions along the flattened path.
+- Clarified and regression-tested assignment precedence: transition actions
+  override concrete state assignments, and concrete state assignments override
+  inherited state-group assignments.
 - Added an `Instantiate` toolbar button that shows a copyable parent-module
   Verilog snippet with IO wire declarations, optional parameter defaults, named
   parameter overrides, and named port connections.

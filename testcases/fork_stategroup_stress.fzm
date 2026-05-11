@@ -10492,9 +10492,9 @@ false
             GLOBAL_FIXED
             </status>
          <value>
-
+         "xact"
             <status>
-            GLOBAL_VAR
+            LOCAL
             </status>
          </value>
          <vis>

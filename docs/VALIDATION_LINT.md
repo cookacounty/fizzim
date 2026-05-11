@@ -70,6 +70,18 @@ transition condition becomes `(incoming_condition) && (branch_condition)`. This
 is expected HDL behavior, so lint should not warn merely because a fork has
 fan-in.
 
+Generated assignment precedence is intentional and should be treated as part of
+the modeling contract:
+
+1. Transition actions have the highest priority.
+2. Concrete state assignments override inherited state-group assignments.
+3. State group assignments are shared defaults for child states.
+
+This means a state group can safely define a common output value, while an
+individual child state can override only the exceptions. A transition action on
+the route into that child state still wins for the clock where the transition is
+taken.
+
 These checks line up with common RTL lint themes from Verilator and Verible:
 incomplete decision coverage, unreachable branches, accidental priority logic,
 bad assignment style, and synthesis/simulation mismatch risk.

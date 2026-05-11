@@ -2819,6 +2819,10 @@ sub apply_stategroups {
           next if ($att eq "name");
           next unless exists $stategroups{$group}{attributes}{$att}{value};
           next if ($stategroups{$group}{attributes}{$att}{value} eq "");
+          # State groups provide inherited defaults only.  A concrete state
+          # assignment must take priority over the group value, and transition
+          # actions are emitted later so they remain the highest-priority
+          # datapath assignment.
           if (!exists $states{$child}{attributes}{$att}{value} || ($states{$child}{attributes}{$att}{value} eq "")) {
             $states{$child}{attributes}{$att}{value} = $stategroups{$group}{attributes}{$att}{value};
           }
