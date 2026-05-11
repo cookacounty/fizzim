@@ -14,7 +14,7 @@ CLASS_FILES := $(patsubst %.java,%.class,$(JAVA_SOURCES))
 JAR_NAME ?= fizzim.jar
 MANIFEST ?= manifest.txt
 JAVA_RELEASE ?= 11
-JAR_ASSETS := splash.png icon.png org
+JAR_ASSETS := splash.png icon.png org *.properties
 
 .PHONY: all jar clean test test-verilog test-fuzz help
 

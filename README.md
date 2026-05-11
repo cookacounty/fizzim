@@ -43,6 +43,18 @@ java -jar fizzim.jar
 The jar builds with Java 11-compatible bytecode by default, so Java 11 or newer
 is recommended.
 
+## GUI Language
+
+The GUI language can be changed from `Settings > Language`. English, Japanese,
+Simplified Chinese, Traditional Chinese, Korean, German, French, Spanish,
+Portuguese, Hindi, and Russian are currently supported.
+
+Localization is intentionally limited to GUI chrome such as menus, toolbar
+buttons, status labels, the Project pane, the Lint pane, and the quick property
+inspector. FSM object names, HDL-facing fields, attribute keys, generated
+Verilog/SystemVerilog, and diagram content remain in English-compatible text so
+existing diagrams and backend generation behavior stay stable.
+
 ## Install Prerequisites
 
 ### Windows
