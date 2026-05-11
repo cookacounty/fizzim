@@ -60,6 +60,11 @@ part of the current codebase.
   edited from transition property dialogs and the property inspector.
 - Transition priority edits now stop the active table edit before saving, and
   automatic priority assignment preserves user-local priority values.
+- Transition property tables and the side property inspector now add visual
+  dividers between identity/condition, priority, and transition action rows.
+- The main window now remembers its last size, position, and maximized state in
+  per-user Java preferences, restoring only when the saved bounds intersect a
+  current screen.
 - Added parent-qualified debug state names for grouped states, so simulation
   debug can display names like `GROUP.CHILD`.
 - Increased the generated debug `statename` width to 256 characters by default.

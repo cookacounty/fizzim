@@ -10,6 +10,8 @@ import java.awt.FontMetrics;
 import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -132,6 +134,11 @@ public class FizzimGui extends javax.swing.JFrame {
 	private static final String PREF_HDL_COMPARE_BACKEND = "hdlCompareBackendPath";
 	private static final String PREF_HDL_COMPARE_ARGS = "hdlCompareArgs";
 	private static final String PREF_HDL_COMPARE_SUFFIX = "hdlCompareSuffix";
+	private static final String PREF_WINDOW_X = "windowX";
+	private static final String PREF_WINDOW_Y = "windowY";
+	private static final String PREF_WINDOW_W = "windowW";
+	private static final String PREF_WINDOW_H = "windowH";
+	private static final String PREF_WINDOW_MAXIMIZED = "windowMaximized";
 	private static final String HDL_STATE_ATTR = "fizzim2_hdl_generated";
 	private static final String HDL_OUTPUT_ATTR = "fizzim2_hdl_output";
 	private static final Preferences USER_PREFS = Preferences.userNodeForPackage(FizzimGui.class);
@@ -1164,6 +1171,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		propertyInspectorPanel.add(propertyInspectorTitle, BorderLayout.NORTH);
 		propertyInspectorTable.setFont(FizzimFonts.tableFont());
 		propertyInspectorTable.setRowHeight(propertyInspectorTable.getRowHeight() + 3);
+		propertyInspectorTable.setDefaultRenderer(Object.class, new TransitionSectionRenderer());
 		propertyInspectorScroll.setViewportView(propertyInspectorTable);
 		propertyInspectorPanel.add(propertyInspectorScroll, BorderLayout.CENTER);
 		propertyInspectorEditButton.setText("Open Full Editor");
@@ -2513,6 +2521,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(closed)
 			return;
 		closed = true;
+		saveWindowBounds();
 		if(spaceFitDispatcher != null)
 		{
 			KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(spaceFitDispatcher);
@@ -2522,6 +2531,48 @@ public class FizzimGui extends javax.swing.JFrame {
 		dispose();
 		if(openWindowCount <= 0)
 			System.exit(0);
+	}
+
+	public boolean restoreWindowBounds() {
+		int w = USER_PREFS.getInt(PREF_WINDOW_W, -1);
+		int h = USER_PREFS.getInt(PREF_WINDOW_H, -1);
+		if(w < 300 || h < 250)
+			return false;
+		Rectangle bounds = new Rectangle(USER_PREFS.getInt(PREF_WINDOW_X, 50),
+				USER_PREFS.getInt(PREF_WINDOW_Y, 50), w, h);
+		if(!intersectsAnyScreen(bounds))
+			return false;
+		setBounds(bounds);
+		if(USER_PREFS.getBoolean(PREF_WINDOW_MAXIMIZED, false))
+			setExtendedState(getExtendedState() | Frame.MAXIMIZED_BOTH);
+		return true;
+	}
+
+	private void saveWindowBounds() {
+		boolean maximized = (getExtendedState() & Frame.MAXIMIZED_BOTH) == Frame.MAXIMIZED_BOTH;
+		Rectangle bounds = getBounds();
+		if(bounds.width >= 300 && bounds.height >= 250)
+		{
+			USER_PREFS.putInt(PREF_WINDOW_X, bounds.x);
+			USER_PREFS.putInt(PREF_WINDOW_Y, bounds.y);
+			USER_PREFS.putInt(PREF_WINDOW_W, bounds.width);
+			USER_PREFS.putInt(PREF_WINDOW_H, bounds.height);
+		}
+		USER_PREFS.putBoolean(PREF_WINDOW_MAXIMIZED, maximized);
+		try {
+			USER_PREFS.flush();
+		} catch (Exception e) { }
+	}
+
+	private boolean intersectsAnyScreen(Rectangle bounds) {
+		GraphicsDevice[] screens = GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices();
+		for(int i = 0; i < screens.length; i++)
+		{
+			Rectangle screenBounds = screens[i].getDefaultConfiguration().getBounds();
+			if(screenBounds.intersects(bounds))
+				return true;
+		}
+		return false;
 	}
 
 	//GEN-FIRST:event_EditItemDeleteActionPerformed
@@ -4008,8 +4059,9 @@ public class FizzimGui extends javax.swing.JFrame {
 				System.setErr ( new PrintStream (fout));
 
 				FizzimGui fzim = new FizzimGui();
+				if(!fzim.restoreWindowBounds())
+					fzim.setSize(new java.awt.Dimension(1000, 685));
 				fzim.setVisible(true);
-				fzim.setSize(new java.awt.Dimension(1000, 685));
 				fzim.new SplashWindow("splash.png",fzim,3500);
 				// If command line filename is not null, open
 				// this file.

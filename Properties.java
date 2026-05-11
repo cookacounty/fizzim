@@ -26,11 +26,13 @@ import javax.swing.border.Border;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 import javax.swing.AbstractCellEditor;
+import javax.swing.BorderFactory;
 
 //Written by: Michael Zimmer - mike@zimmerdesignservices.com
 
@@ -661,7 +663,67 @@ class MyJColorRenderer extends JLabel implements TableCellRenderer {
         setBackground(newColor);
         return this;
 	}
-	
+
+}
+
+class TransitionSectionRenderer extends DefaultTableCellRenderer {
+	public Component getTableCellRendererComponent(JTable table, Object value,
+			boolean isSelected, boolean hasFocus, int row, int column) {
+		Component component = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+		if(component instanceof JLabel)
+		{
+			JLabel label = (JLabel)component;
+			label.setBorder(sectionStartsAt(table, row) ? BorderFactory.createMatteBorder(3, 0, 0, 0, new Color(190, 205, 220)) : null);
+			if(isSelected)
+				label.setBackground(table.getSelectionBackground());
+			else if(sectionStartsAt(table, row))
+				label.setBackground(new Color(245, 248, 252));
+			else
+				label.setBackground(table.getBackground());
+		}
+		return component;
+	}
+
+	private boolean sectionStartsAt(JTable table, int viewRow)
+	{
+		if(viewRow < 0)
+			return false;
+		String field = String.valueOf(table.getValueAt(viewRow, 0));
+		if(field.equals("priority"))
+			return true;
+		if(field.startsWith("Action: "))
+			return firstActionRow(table, viewRow);
+		if(table.getModel().getColumnCount() > 3)
+		{
+			int modelRow = table.convertRowIndexToModel(viewRow);
+			Object type = table.getModel().getValueAt(modelRow, 3);
+			if("output".equals(String.valueOf(type)))
+				return firstOutputRow(table, viewRow);
+		}
+		return false;
+	}
+
+	private boolean firstActionRow(JTable table, int viewRow)
+	{
+		for(int i = viewRow - 1; i >= 0; i--)
+			if(String.valueOf(table.getValueAt(i, 0)).startsWith("Action: "))
+				return false;
+		return true;
+	}
+
+	private boolean firstOutputRow(JTable table, int viewRow)
+	{
+		if(table.getModel().getColumnCount() <= 3)
+			return false;
+		for(int i = viewRow - 1; i >= 0; i--)
+		{
+			int modelRow = table.convertRowIndexToModel(i);
+			Object type = table.getModel().getValueAt(modelRow, 3);
+			if("output".equals(String.valueOf(type)))
+				return false;
+		}
+		return true;
+	}
 }
 
 // http://java.sun.com/docs/books/tutorial/uiswing/components/table.html
@@ -872,8 +934,8 @@ class TransProperties extends javax.swing.JDialog {
 		TPTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 		FizzimFonts.applyCodeFont(TPTable);
 		DialogLayoutUtil.makeTableResizeUseful(TPTable);
+		TPTable.setDefaultRenderer(Object.class, new TransitionSectionRenderer());
 
-		
 		//use dropdown boxes
 		String[] options = new String[]{"No", "Yes", "Only non-default"};
 		TableColumn column = TPTable.getColumnModel().getColumn(2);
