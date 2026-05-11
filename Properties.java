@@ -2663,9 +2663,9 @@ class GlobalProperties extends javax.swing.JDialog {
 			if(currTable.isEditing())
 				currTable.getCellEditor().stopCellEditing();
 			
+			int tabAtDelete = currTab;
 			int[] rows = currTable.getSelectedRows();
-			int tab1 = GPTabbedPane.getSelectedIndex();
-			int globalTab = uiTabToGlobalTab(tab1);
+			int globalTab = uiTabToGlobalTab(tabAtDelete);
 			LinkedList<ObjAttribute> list = globalLists.get(globalTab);
 			LinkedList<ObjAttribute> selectedAttributes = new LinkedList<ObjAttribute>();
 			for(int i = 0; i < rows.length; i++)
@@ -2677,19 +2677,19 @@ class GlobalProperties extends javax.swing.JDialog {
 			for(int i = selectedAttributes.size() - 1; i > -1; i--)
 			{
 				ObjAttribute obj = selectedAttributes.get(i);
-				if(isOutputEditorTab(currTab) || obj.getEditable(0) != ObjAttribute.ABS)
+				if(isOutputEditorTab(tabAtDelete) || obj.getEditable(0) != ObjAttribute.ABS)
 				{
-					if((obj.getName().equals("reset_signal") || obj.getName().equals("reset_state")) && currTab == TAB_MACHINE)
+					if((obj.getName().equals("reset_signal") || obj.getName().equals("reset_state")) && tabAtDelete == TAB_MACHINE)
 						GPOption3.setEnabled(true);
-					if(obj.getName().equals("graycode") && currTab == TAB_TRANSITIONS)
+					if(obj.getName().equals("graycode") && tabAtDelete == TAB_TRANSITIONS)
 						GPOption3.setEnabled(true);
-					if(obj.getName().equals("priority") && currTab == TAB_TRANSITIONS)
+					if(obj.getName().equals("priority") && tabAtDelete == TAB_TRANSITIONS)
 						GPOption5.setEnabled(true);
 					
 					//if output being deleted, delete in states and trans
-					if(isOutputEditorTab(currTab))
+					if(isOutputEditorTab(tabAtDelete))
 						removeOutputBackReferences(obj);
-					if(obj.getType().equals("output") && checkGlobalName(globalLists.get(2), obj.getName()) && !isOutputEditorTab(currTab))
+					if(obj.getType().equals("output") && checkGlobalName(globalLists.get(2), obj.getName()) && !isOutputEditorTab(tabAtDelete))
 					{
 						JOptionPane.showMessageDialog(this,
 		                        "Must remove from outputs tab",
@@ -2697,7 +2697,7 @@ class GlobalProperties extends javax.swing.JDialog {
 		                        JOptionPane.ERROR_MESSAGE);
 					}
 					else
-						list.remove(obj);
+						removeGlobalAttribute(list, obj);
 				}
 				else
 				{
@@ -2712,6 +2712,20 @@ class GlobalProperties extends javax.swing.JDialog {
 				
 
 		}//GEN-LAST:event_GPNewActionPerformed
+
+		private void removeGlobalAttribute(LinkedList<ObjAttribute> list, ObjAttribute obj) {
+			if(list.remove(obj))
+				return;
+			for(int i = list.size() - 1; i >= 0; i--)
+			{
+				ObjAttribute candidate = list.get(i);
+				if(candidate.getName().equals(obj.getName()) && candidate.getType().equals(obj.getType()))
+				{
+					list.remove(i);
+					return;
+				}
+			}
+		}
 
 		//GEN-FIRST:event_GPDeleteActionPerformed
 		private void GPOption2ActionPerformed(java.awt.event.ActionEvent evt) {
