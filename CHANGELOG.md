@@ -299,6 +299,8 @@ part of the current codebase.
   button, while still leaving text/table editing alone.
 - Scoped the Space zoom-to-fit shortcut to the main canvas/viewport so it does
   not fire from side panes, toolbar controls, or dialogs.
+- Transition label groups now draw on a subtle light background so labels remain
+  readable when a transition line passes behind them.
 - Improved project navigation. Opening a project diagram now reuses the current
   window by default, prompts before unsaved edits are discarded, marks the active
   dirty project file in the tree, and offers right-click Open in New Window and

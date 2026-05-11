@@ -483,6 +483,13 @@ public class ObjAttribute implements Cloneable {
 		tW = width;
 		tH = lineHeight * lines.size();
 
+		int padX = 4;
+		int padY = 3;
+		Color labelBackground = new Color(255, 255, 255, 230);
+		g2D.setColor(labelBackground);
+		g2D.fillRoundRect(txbase - padX, tybase - lineHeight + 2 - padY,
+				width + padX * 2, lineHeight * lines.size() + padY * 2, 6, 6);
+
 		for(int i = 0; i < lines.size(); i++)
 		{
 			boolean actionLine = actionLines.get(i).booleanValue();
