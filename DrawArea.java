@@ -3300,6 +3300,7 @@ public void updateTransitions()
 	
     // update transition attribute lists when global list is updated
 	public void updateTrans() {
+		ensureTransitionPriorityDefinition();
 		syncTransitionOutputDefaultsWithOutputs();
 		for(int i = 1; i < objList.size(); i++)
 		{
@@ -3311,6 +3312,20 @@ public void updateTransitions()
 			}
 		}
 		
+	}
+
+	private void ensureTransitionPriorityDefinition()
+	{
+		if(globalList == null || globalList.size() <= 4)
+			return;
+		LinkedList<ObjAttribute> transGlobals = globalList.get(4);
+		for(int i = 0; i < transGlobals.size(); i++)
+			if(transGlobals.get(i).getName().equals("priority"))
+				return;
+		int[] editable = { ObjAttribute.ABS, ObjAttribute.GLOBAL_VAR,
+				ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR,
+				ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR };
+		transGlobals.add(new ObjAttribute("priority", "1000", 1, "", "", Color.black, "", "", editable));
 	}
 
 	public void syncTransitionOutputDefaultsWithOutputs()

@@ -227,8 +227,8 @@ public class FizzimGui extends javax.swing.JFrame {
 		globalList.get(4).add(new ObjAttribute("equation", "1", 1,
 				"def_type","",Color.black,"","",editable));
 
-		
-		
+		globalList.get(4).add(new ObjAttribute("priority", "1000", 1,
+				"","",Color.black,"","",editable));
 	}
 
 	/** This method is called from within the constructor to

@@ -48,6 +48,9 @@ part of the current codebase.
 - Removed the exposed States and Transitions tabs/menu entries from the global
   property editor; those derived backend attributes remain managed through the
   object property editors and output/internal definitions.
+- Kept transition priority as a built-in transition property so it remains
+  editable from transition dialogs and the property inspector without needing
+  the old global Transitions editor.
 - Added parent-qualified debug state names for grouped states, so simulation
   debug can display names like `GROUP.CHILD`.
 - Increased the generated debug `statename` width to 256 characters by default.
