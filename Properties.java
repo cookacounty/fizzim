@@ -2611,6 +2611,13 @@ class GlobalProperties extends javax.swing.JDialog {
 			return list.get(modelRow);
 		}
 
+		private boolean hasFilteredGlobalRows(JTable table)
+		{
+			return table.getModel() instanceof FilteredOutputTableModel ||
+				table.getModel() instanceof FilteredParameterTableModel ||
+				table.getModel() instanceof FilteredMachineTableModel;
+		}
+
 		private void refreshOutputViews()
 		{
 			if(outputTableModel != null)
@@ -2930,15 +2937,14 @@ class GlobalProperties extends javax.swing.JDialog {
 				return;
 			if(currTable.isEditing())
 				currTable.getCellEditor().stopCellEditing();
-			int[] rows = currTable.getSelectedRows();
+			int[] rows = selectedRowsForDelete(currTable);
 			if(rows.length == 0)
 				return;
 
-			FilteredOutputTableModel model = (FilteredOutputTableModel)currTable.getModel();
 			LinkedList<ObjAttribute> moved = new LinkedList<ObjAttribute>();
 			for(int i = 0; i < rows.length; i++)
 			{
-				int actualRow = model.actualRow(rows[i]);
+				int actualRow = tableRowToGlobalRow(currTable, rows[i]);
 				ObjAttribute attr = globalLists.get(2).get(actualRow);
 				OutputAttributeFilter.setInternal(attr, makeInternal);
 				moved.add(attr);
@@ -2966,51 +2972,59 @@ class GlobalProperties extends javax.swing.JDialog {
 		}
 
 		private void GPUpActionPerformed(java.awt.event.ActionEvent evt) {
-			if(currTable.getModel() instanceof FilteredOutputTableModel)
-				moveSelectedFilteredOutputRows((FilteredOutputTableModel)currTable.getModel(), -1);
+			if(hasFilteredGlobalRows(currTable))
+				moveSelectedFilteredGlobalRows(-1);
 			else
 				AttributeTableReorder.moveSelectedRows(currTable, globalLists.get(uiTabToGlobalTab(currTab)), -1);
 		}
 
 		private void GPDownActionPerformed(java.awt.event.ActionEvent evt) {
-			if(currTable.getModel() instanceof FilteredOutputTableModel)
-				moveSelectedFilteredOutputRows((FilteredOutputTableModel)currTable.getModel(), 1);
+			if(hasFilteredGlobalRows(currTable))
+				moveSelectedFilteredGlobalRows(1);
 			else
 				AttributeTableReorder.moveSelectedRows(currTable, globalLists.get(uiTabToGlobalTab(currTab)), 1);
 		}
 
-		private void moveSelectedFilteredOutputRows(FilteredOutputTableModel model, int direction) {
-			int[] rows = currTable.getSelectedRows();
+		private void moveSelectedFilteredGlobalRows(int direction) {
+			if(currTable.isEditing())
+				currTable.getCellEditor().stopCellEditing();
+			int[] rows = selectedRowsForDelete(currTable);
 			if(rows.length == 0)
 				return;
 			Arrays.sort(rows);
 			int targetViewRow = direction < 0 ? rows[0] - 1 : rows[rows.length - 1] + 1;
-			if(targetViewRow < 0 || targetViewRow >= model.getRowCount())
+			if(targetViewRow < 0 || targetViewRow >= currTable.getRowCount())
 				return;
 
+			LinkedList<ObjAttribute> list = globalLists.get(uiTabToGlobalTab(currTab));
 			int[] actualRows = new int[rows.length];
 			for(int i = 0; i < rows.length; i++)
-				actualRows[i] = model.actualRow(rows[i]);
-			int targetActualRow = model.actualRow(targetViewRow);
-			LinkedList<ObjAttribute> outputList = globalLists.get(2);
+				actualRows[i] = tableRowToGlobalRow(currTable, rows[i]);
+			int targetActualRow = tableRowToGlobalRow(currTable, targetViewRow);
 			LinkedList<ObjAttribute> moved = new LinkedList<ObjAttribute>();
 			for(int i = 0; i < actualRows.length; i++)
-				moved.add(outputList.get(actualRows[i]));
+				moved.add(list.get(actualRows[i]));
 			for(int i = actualRows.length - 1; i >= 0; i--)
-				outputList.remove(actualRows[i]);
+				list.remove(actualRows[i]);
 
 			int insertRow = targetActualRow;
 			if(direction > 0)
 				insertRow = targetActualRow - actualRows.length + 1;
 			for(int i = 0; i < moved.size(); i++)
-				outputList.add(insertRow + i, moved.get(i));
+				list.add(insertRow + i, moved.get(i));
 
-			syncDerivedOutputOrder();
+			if(currTable.getModel() instanceof FilteredOutputTableModel)
+				syncDerivedOutputOrder();
 			refreshOutputViews();
 			currTable.clearSelection();
-			for(int i = 0; i < rows.length; i++) {
-				int viewRow = rows[i] + direction;
-				currTable.addRowSelectionInterval(viewRow, viewRow);
+			selectVisibleRowsForAttributes(moved);
+		}
+
+		private void selectVisibleRowsForAttributes(LinkedList<ObjAttribute> moved) {
+			for(int i = 0; i < currTable.getRowCount(); i++) {
+				ObjAttribute attr = tableRowToAttribute(currTable, i, globalLists.get(uiTabToGlobalTab(currTab)));
+				if(moved.contains(attr))
+					currTable.addRowSelectionInterval(i, i);
 			}
 		}
 		

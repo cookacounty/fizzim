@@ -83,6 +83,9 @@ part of the current codebase.
 - Fixed global property tab-to-list mapping for Inputs and Outputs, so Delete
   and Add operate on the intended backend list after the Parameters and
   Internals panes are inserted into the editor.
+- Audited filtered global-property tables so selection, move between
+  Output/Internal, and Up/Down reordering consistently translate visible rows
+  back to the underlying attribute list.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in
