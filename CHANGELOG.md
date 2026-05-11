@@ -236,6 +236,8 @@ part of the current codebase.
 - Duplicate source-local transition priorities now draw thick red on every
   conflicting transition, overriding both normal highest-priority bold styling
   and always-true dark-green styling.
+- Single outgoing transitions are also treated as the highest-priority
+  transition for their source and therefore render bold.
 - Added default new-FSM settings for `posedge clk`, `negedge rst_l`, and implied
   loopback behavior.
 - Switched canvas text, the global canvas table, and attribute-editor table

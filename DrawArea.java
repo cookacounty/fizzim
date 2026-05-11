@@ -3512,11 +3512,10 @@ public void updateTransitions()
 		{
 			StateObj source = it.next();
 			LinkedList<TransitionObj> transitions = transitionsBySource.get(source);
-			if(transitions.size() <= 1)
-				continue;
 			sortTransitionsByPriority(transitions);
 			markPriorityConflicts(transitions);
-			transitions.get(0).setHighestPriority(true);
+			if(transitions.size() > 0)
+				transitions.get(0).setHighestPriority(true);
 		}
 	}
 
