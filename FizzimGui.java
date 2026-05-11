@@ -45,6 +45,7 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.net.URL;
+import java.net.URISyntaxException;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -111,6 +112,13 @@ public class FizzimGui extends javax.swing.JFrame {
 	private static final String PREF_HDL_USE_MODULE_FILENAME = "hdlUseModuleFilename";
 	private static final String PREF_HDL_OUTPUT_FILENAME = "hdlOutputFilename";
 	private static final String PREF_HDL_EXTRA_ARGS = "hdlExtraArgs";
+	private static final String PREF_HDL_COMPARE_ENABLED = "hdlCompareEnabled";
+	private static final String PREF_HDL_COMPARE_COMMAND = "hdlCompareCommand";
+	private static final String PREF_HDL_COMPARE_BACKEND = "hdlCompareBackendPath";
+	private static final String PREF_HDL_COMPARE_ARGS = "hdlCompareArgs";
+	private static final String PREF_HDL_COMPARE_SUFFIX = "hdlCompareSuffix";
+	private static final String HDL_STATE_ATTR = "fizzim2_hdl_generated";
+	private static final String HDL_OUTPUT_ATTR = "fizzim2_hdl_output";
 	private static final Preferences USER_PREFS = Preferences.userNodeForPackage(FizzimGui.class);
 	private static int openWindowCount = 0;
 
@@ -128,6 +136,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	int maxW = 936;
 	boolean loading = false;
 	private boolean zoomFitMode = false;
+	private boolean hdlGeneratedInSync = false;
 	
 
 
@@ -230,6 +239,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		zoomInButton = new javax.swing.JButton();
 		zoomFitButton = new javax.swing.JButton();
 		generateHdlButton = new javax.swing.JButton();
+		hdlStatusLabel = new javax.swing.JLabel();
 		zoomPercentLabel = new javax.swing.JLabel();
 		selectionStatusLabel = new javax.swing.JLabel();
 		propertyInspectorPanel = new javax.swing.JPanel();
@@ -283,7 +293,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		});
 
 		setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
-		setTitle(APP_TITLE);
+		updateWindowTitle();
 		addComponentListener(new java.awt.event.ComponentAdapter() {
 			public void componentResized(java.awt.event.ComponentEvent evt) {
 				formComponentResized(evt);
@@ -384,6 +394,12 @@ public class FizzimGui extends javax.swing.JFrame {
 		selectionStatusLabel.setPreferredSize(new java.awt.Dimension(260, 22));
 		selectionStatusLabel.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
 		zoomPanel.add(selectionStatusLabel);
+		hdlStatusLabel.setOpaque(true);
+		hdlStatusLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+		hdlStatusLabel.setPreferredSize(new java.awt.Dimension(112, 22));
+		hdlStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(140, 120, 40)));
+		markHdlOutOfSync();
+		zoomPanel.add(hdlStatusLabel);
 		zoomOutButton.setText("-");
 		zoomOutButton.setToolTipText("Zoom out");
 		zoomOutButton.addActionListener(new java.awt.event.ActionListener() {
@@ -1001,12 +1017,28 @@ public class FizzimGui extends javax.swing.JFrame {
 		JCheckBox useModuleName = new JCheckBox("Use module name for filename", getHdlUseModuleFilename());
 		JTextField outputFileField = new JTextField(getHdlOutputFilename(), 24);
 		JTextField extraArgsField = new JTextField(getHdlExtraArgs(), 24);
+		JCheckBox compareEnabled = new JCheckBox("Generate comparison HDL and diff", getHdlCompareEnabled());
+		JTextField compareCommandField = new JTextField(getHdlCompareCommand(), 24);
+		JTextField compareBackendField = new JTextField(getHdlCompareBackendPath(), 24);
+		JTextField compareArgsField = new JTextField(getHdlCompareArgs(), 24);
+		JTextField compareSuffixField = new JTextField(getHdlCompareSuffix(), 24);
 		outputFileField.setEnabled(!useModuleName.isSelected());
 		useModuleName.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				outputFileField.setEnabled(!useModuleName.isSelected());
 			}
 		});
+		ActionListener compareToggle = new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				boolean enabled = compareEnabled.isSelected();
+				compareCommandField.setEnabled(enabled);
+				compareBackendField.setEnabled(enabled);
+				compareArgsField.setEnabled(enabled);
+				compareSuffixField.setEnabled(enabled);
+			}
+		};
+		compareEnabled.addActionListener(compareToggle);
+		compareToggle.actionPerformed(null);
 
 		JPanel panel = new JPanel(new java.awt.GridLayout(0, 2, 6, 6));
 		panel.add(new JLabel("Perl command:"));
@@ -1021,6 +1053,16 @@ public class FizzimGui extends javax.swing.JFrame {
 		panel.add(outputFileField);
 		panel.add(new JLabel("Backend options:"));
 		panel.add(extraArgsField);
+		panel.add(new JLabel(""));
+		panel.add(compareEnabled);
+		panel.add(new JLabel("Compare command:"));
+		panel.add(compareCommandField);
+		panel.add(new JLabel("Compare backend:"));
+		panel.add(compareBackendField);
+		panel.add(new JLabel("Compare options:"));
+		panel.add(compareArgsField);
+		panel.add(new JLabel("Compare file suffix:"));
+		panel.add(compareSuffixField);
 		int result = JOptionPane.showConfirmDialog(this, panel,
 				generationContext ? "HDL Generation Settings" : "Configure HDL Generation",
 				JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
@@ -1032,6 +1074,11 @@ public class FizzimGui extends javax.swing.JFrame {
 		USER_PREFS.putBoolean(PREF_HDL_USE_MODULE_FILENAME, useModuleName.isSelected());
 		USER_PREFS.put(PREF_HDL_OUTPUT_FILENAME, blankDefault(outputFileField.getText(), ""));
 		USER_PREFS.put(PREF_HDL_EXTRA_ARGS, extraArgsField.getText().trim());
+		USER_PREFS.putBoolean(PREF_HDL_COMPARE_ENABLED, compareEnabled.isSelected());
+		USER_PREFS.put(PREF_HDL_COMPARE_COMMAND, blankDefault(compareCommandField.getText(), "java"));
+		USER_PREFS.put(PREF_HDL_COMPARE_BACKEND, blankDefault(compareBackendField.getText(), "FizzimJavaBackend"));
+		USER_PREFS.put(PREF_HDL_COMPARE_ARGS, blankDefault(compareArgsField.getText(), getHdlExtraArgs()));
+		USER_PREFS.put(PREF_HDL_COMPARE_SUFFIX, blankDefault(compareSuffixField.getText(), ".java"));
 		return true;
 	}
 
@@ -1065,9 +1112,15 @@ public class FizzimGui extends javax.swing.JFrame {
 			HdlGenerationResult result = runHdlBackend(output);
 			if(result.exitCode == 0)
 			{
-				JOptionPane.showMessageDialog(this,
-						"Generated HDL:\n" + output.getAbsolutePath(),
-						"Generate HDL", JOptionPane.INFORMATION_MESSAGE);
+				boolean generatedOk = true;
+				if(getHdlCompareEnabled())
+					generatedOk = runHdlComparison(output);
+				else
+					JOptionPane.showMessageDialog(this,
+							"Generated HDL:\n" + output.getAbsolutePath(),
+							"Generate HDL", JOptionPane.INFORMATION_MESSAGE);
+				if(generatedOk)
+					markHdlGeneratedInSync(output);
 			}
 			else
 			{
@@ -1083,17 +1136,115 @@ public class FizzimGui extends javax.swing.JFrame {
 		}
 	}
 
+	public void markHdlOutOfSync() {
+		hdlGeneratedInSync = false;
+		setMachineAttributeValue(HDL_STATE_ATTR, "0");
+		updateHdlStatusIndicator();
+		updateWindowTitle();
+	}
+
+	private void markHdlGeneratedInSync(File output) {
+		hdlGeneratedInSync = true;
+		setMachineAttributeValue(HDL_STATE_ATTR, "1");
+		if(output != null)
+			setMachineAttributeValue(HDL_OUTPUT_ATTR, pathRelativeToFzm(output));
+		updateHdlStatusIndicator();
+		drawArea1.setFileModifiedPreserveHdlStatus(true);
+	}
+
+	public void updateWindowTitle() {
+		String title = APP_TITLE;
+		if(currFile != null)
+			title += " - " + currFile.getName();
+		if(drawArea1 != null && drawArea1.getFileModifed())
+			title = "*" + title;
+		setTitle(title);
+	}
+
+	private void updateHdlStatusIndicator() {
+		if(hdlStatusLabel == null)
+			return;
+		if(hdlGeneratedInSync)
+		{
+			hdlStatusLabel.setText("HDL in sync");
+			hdlStatusLabel.setToolTipText("HDL has been generated since the last diagram change.");
+			hdlStatusLabel.setBackground(new Color(190, 235, 190));
+			hdlStatusLabel.setForeground(new Color(20, 85, 20));
+			hdlStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(80, 145, 80)));
+		}
+		else
+		{
+			hdlStatusLabel.setText("HDL stale");
+			hdlStatusLabel.setToolTipText("Generate HDL to synchronize output with the current diagram.");
+			hdlStatusLabel.setBackground(new Color(255, 235, 150));
+			hdlStatusLabel.setForeground(new Color(100, 75, 0));
+			hdlStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(170, 135, 30)));
+		}
+	}
+
+	private boolean runHdlComparison(File primaryOutput) throws IOException, InterruptedException {
+		File compareOutput = comparisonOutputFile(primaryOutput);
+		HdlGenerationResult compare = runConfiguredHdlBackend(compareOutput, getHdlCompareCommand(),
+				getHdlCompareBackendPath(), getHdlCompareArgs());
+		if(compare.exitCode != 0)
+		{
+			JOptionPane.showMessageDialog(this,
+					"Primary HDL generated:\n" + primaryOutput.getAbsolutePath()
+					+ "\n\nComparison generation failed with exit code " + compare.exitCode + "\n\n" + compare.stderr,
+					"Generate HDL", JOptionPane.ERROR_MESSAGE);
+			return false;
+		}
+		File diffFile = new File(primaryOutput.getParentFile(), stripExtension(primaryOutput.getName()) + ".diff.txt");
+		String diff = diffFiles(primaryOutput, compareOutput);
+		if(diff.equals(""))
+		{
+			if(diffFile.exists())
+				diffFile.delete();
+			JOptionPane.showMessageDialog(this,
+					"Generated HDL matched comparison output.\n\nPrimary:\n" + primaryOutput.getAbsolutePath()
+					+ "\n\nComparison:\n" + compareOutput.getAbsolutePath(),
+					"Generate HDL", JOptionPane.INFORMATION_MESSAGE);
+			return true;
+		}
+		else
+		{
+			Files.write(diffFile.toPath(), diff.getBytes(StandardCharsets.UTF_8));
+			JOptionPane.showMessageDialog(this,
+					"Generated HDL mismatch detected.\n\nPrimary:\n" + primaryOutput.getAbsolutePath()
+					+ "\n\nComparison:\n" + compareOutput.getAbsolutePath()
+					+ "\n\nDiff:\n" + diffFile.getAbsolutePath(),
+					"Generate HDL", JOptionPane.WARNING_MESSAGE);
+			return false;
+		}
+	}
+
 	private HdlGenerationResult runHdlBackend(File output) throws IOException, InterruptedException {
+		return runConfiguredHdlBackend(output, getHdlPerlCommand(), getHdlBackendPath(), getHdlExtraArgs());
+	}
+
+	private HdlGenerationResult runConfiguredHdlBackend(File output, String commandName, String backendPath, String backendArgs) throws IOException, InterruptedException {
 		File fzmDir = currFile.getAbsoluteFile().getParentFile();
-		File backend = resolveRelativeToApp(getHdlBackendPath());
-		if(!backend.exists())
-			throw new IOException("Backend script not found: " + backend.getAbsolutePath());
 		File errorFile = File.createTempFile("fizzim-hdl-generation", ".log");
 		ArrayList<String> command = new ArrayList<String>();
-		command.add(getHdlPerlCommand());
-		command.add(backend.getAbsolutePath());
-		command.addAll(splitCommandArgs(getHdlExtraArgs()));
-		command.add(currFile.getName());
+		if(isJavaBackendClass(commandName, backendPath))
+		{
+			command.add(resolveJavaCommand(commandName));
+			command.add("-cp");
+			command.add(applicationClassPath());
+			command.add(backendPath.trim());
+			command.addAll(splitCommandArgs(backendArgs));
+			command.add(currFile.getName());
+		}
+		else
+		{
+			File backend = resolveRelativeToApp(backendPath);
+			if(!backend.exists())
+				throw new IOException("Backend script not found: " + backend.getAbsolutePath());
+			command.add(commandName);
+			command.add(backend.getAbsolutePath());
+			command.addAll(splitCommandArgs(backendArgs));
+			command.add(currFile.getName());
+		}
 		ProcessBuilder builder = new ProcessBuilder(command);
 		builder.directory(fzmDir);
 		builder.redirectOutput(output);
@@ -1103,6 +1254,40 @@ public class FizzimGui extends javax.swing.JFrame {
 		String stderr = new String(Files.readAllBytes(errorFile.toPath()), StandardCharsets.UTF_8);
 		errorFile.delete();
 		return new HdlGenerationResult(exit, stderr);
+	}
+
+	private File comparisonOutputFile(File primaryOutput) {
+		String suffix = getHdlCompareSuffix();
+		if(suffix == null || suffix.trim().equals(""))
+			suffix = ".java";
+		String base = stripExtension(primaryOutput.getName());
+		return new File(primaryOutput.getParentFile(), base + suffix + ".v");
+	}
+
+	private String stripExtension(String filename) {
+		int dot = filename.lastIndexOf('.');
+		if(dot <= 0)
+			return filename;
+		return filename.substring(0, dot);
+	}
+
+	private String diffFiles(File primary, File comparison) throws IOException {
+		java.util.List<String> primaryLines = Files.readAllLines(primary.toPath(), StandardCharsets.UTF_8);
+		java.util.List<String> comparisonLines = Files.readAllLines(comparison.toPath(), StandardCharsets.UTF_8);
+		StringBuffer diff = new StringBuffer();
+		int max = Math.max(primaryLines.size(), comparisonLines.size());
+		for(int i = 0; i < max; i++)
+		{
+			String a = i < primaryLines.size() ? primaryLines.get(i) : null;
+			String b = i < comparisonLines.size() ? comparisonLines.get(i) : null;
+			if(a == null || b == null || !a.equals(b))
+			{
+				diff.append("@@ line ").append(i + 1).append(" @@\n");
+				diff.append("- ").append(a == null ? "<missing>" : a).append("\n");
+				diff.append("+ ").append(b == null ? "<missing>" : b).append("\n");
+			}
+		}
+		return diff.toString();
 	}
 
 	private File resolveHdlOutputFile() {
@@ -1131,11 +1316,99 @@ public class FizzimGui extends javax.swing.JFrame {
 		return new File(fzmDir, path);
 	}
 
+	private String pathRelativeToFzm(File file) {
+		if(file == null)
+			return "";
+		try {
+			File fzmDir = currFile == null ? new File(System.getProperty("user.dir")) : currFile.getAbsoluteFile().getParentFile();
+			return fzmDir.toPath().toAbsolutePath().normalize().relativize(file.toPath().toAbsolutePath().normalize()).toString();
+		} catch (Exception ex) {
+			return file.getAbsolutePath();
+		}
+	}
+
+	private void restorePersistedHdlStatus() {
+		String generated = getMachineAttributeValue(HDL_STATE_ATTR);
+		String output = getMachineAttributeValue(HDL_OUTPUT_ATTR);
+		hdlGeneratedInSync = generated.equals("1") && !output.equals("") && resolveRelativeToFzm(output).exists();
+		updateHdlStatusIndicator();
+	}
+
+	private String getMachineAttributeValue(String name) {
+		ObjAttribute attr = findMachineAttribute(name);
+		return attr == null || attr.getValue() == null ? "" : attr.getValue().trim();
+	}
+
+	private void setMachineAttributeValue(String name, String value) {
+		if(globalList == null || globalList.size() == 0)
+			return;
+		ObjAttribute attr = findMachineAttribute(name);
+		if(attr == null)
+		{
+			int[] editable = { ObjAttribute.ABS, ObjAttribute.GLOBAL_VAR,
+					ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR,
+					ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR };
+			attr = new ObjAttribute(name, value, 0, "attribute", "", Color.black, "", "", editable);
+			globalList.get(0).add(attr);
+		}
+		else
+			attr.setValue(value);
+	}
+
+	private ObjAttribute findMachineAttribute(String name) {
+		if(globalList == null || globalList.size() == 0)
+			return null;
+		for(int i = 0; i < globalList.get(0).size(); i++)
+		{
+			ObjAttribute attr = globalList.get(0).get(i);
+			if(attr.getName().equals(name))
+				return attr;
+		}
+		return null;
+	}
+
 	private File resolveRelativeToApp(String path) {
 		File candidate = new File(path);
 		if(candidate.isAbsolute())
 			return candidate;
+		File appRelative = new File(applicationDirectory(), path);
+		if(appRelative.exists())
+			return appRelative;
 		return new File(System.getProperty("user.dir"), path);
+	}
+
+	private File applicationDirectory() {
+		File classPath = new File(applicationClassPath());
+		if(classPath.isFile())
+			return classPath.getParentFile();
+		return classPath;
+	}
+
+	private String applicationClassPath() {
+		try {
+			return new File(FizzimGui.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getAbsolutePath();
+		} catch (URISyntaxException ex) {
+			return new File(System.getProperty("user.dir")).getAbsolutePath();
+		}
+	}
+
+	private boolean isJavaBackendClass(String commandName, String backendPath) {
+		if(backendPath == null || backendPath.trim().equals(""))
+			return false;
+		String backend = backendPath.trim();
+		String command = commandName == null ? "" : commandName.trim().toLowerCase();
+		return backend.equals("FizzimJavaBackend")
+				&& (command.equals("") || command.equals("java") || command.equals("javaw") || command.endsWith("\\java.exe")
+						|| command.endsWith("/java") || command.endsWith("/java.exe"));
+	}
+
+	private String resolveJavaCommand(String commandName) {
+		String command = commandName == null ? "" : commandName.trim();
+		String lower = command.toLowerCase();
+		if(!command.equals("") && !lower.equals("java") && !lower.equals("javaw"))
+			return command;
+		String executable = System.getProperty("os.name").toLowerCase().contains("win") ? "java.exe" : "java";
+		return new File(new File(System.getProperty("java.home"), "bin"), executable).getAbsolutePath();
 	}
 
 	private String getMachineName() {
@@ -1192,6 +1465,29 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	private static String getHdlExtraArgs() {
 		return USER_PREFS.get(PREF_HDL_EXTRA_ARGS, "-noaddversion");
+	}
+
+	private static boolean getHdlCompareEnabled() {
+		return USER_PREFS.getBoolean(PREF_HDL_COMPARE_ENABLED, false);
+	}
+
+	private static String getHdlCompareCommand() {
+		return USER_PREFS.get(PREF_HDL_COMPARE_COMMAND, "java");
+	}
+
+	private static String getHdlCompareBackendPath() {
+		return USER_PREFS.get(PREF_HDL_COMPARE_BACKEND, "FizzimJavaBackend");
+	}
+
+	private static String getHdlCompareArgs() {
+		String args = USER_PREFS.get(PREF_HDL_COMPARE_ARGS, "");
+		if(args == null || args.trim().equals(""))
+			return getHdlExtraArgs();
+		return args;
+	}
+
+	private static String getHdlCompareSuffix() {
+		return USER_PREFS.get(PREF_HDL_COMPARE_SUFFIX, ".java");
 	}
 
 	private static class HdlGenerationResult {
@@ -1600,10 +1896,9 @@ public class FizzimGui extends javax.swing.JFrame {
 			}
 			if(FileSaveAction.getSelected())
 				if(tryToSave(FileSaveAction.getSelectedFile(), "fzm", true))
-					setTitle(APP_TITLE + " - " + currFile.getName());
+					updateWindowTitle();
 					
 			} else {
-			setTitle(APP_TITLE + " - " + currFile.getName());
 			saveFile(currFile);
 		}
 	}//GEN-LAST:event_FileItemSaveActionPerformed
@@ -1794,13 +2089,14 @@ public class FizzimGui extends javax.swing.JFrame {
 			}
 			jTabbedPane1.setComponentAt(1,jScrollPane1);
 			currFile = null;
-			setTitle(APP_TITLE);
+			updateWindowTitle();
 			for(int i = 0; i < globalList.size(); i++)
 			{
 				globalList.get(i).clear();
 			}
 			initGlobal();
 			drawArea1.open(globalList);
+			markHdlOutOfSync();
 		}
 
 	}//GEN-LAST:event_FileItemNewActionPerformed
@@ -1883,7 +2179,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		}
 		if(FileSaveAction.getSelected())
 			if(tryToSave(FileSaveAction.getSelectedFile(), "fzm", true))
-				setTitle(APP_TITLE + " - " + currFile.getName());
+				updateWindowTitle();
 				
 	}
 
@@ -2059,9 +2355,10 @@ public class FizzimGui extends javax.swing.JFrame {
 		jTabbedPane1.setComponentAt(1,jScrollPane1);
 		jTabbedPane1.setSelectedIndex(1);
 		drawArea1.setCurrPage(1);
-		setTitle(APP_TITLE + " - " + currFile.getName());
+		updateWindowTitle();
 		rememberRecentFile(currFile);
 		loading = false;
+		restorePersistedHdlStatus();
 		enterZoomFitMode();
 		scheduleFitDiagramToViewport();
 
@@ -2315,6 +2612,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JButton zoomInButton;
 	private javax.swing.JButton zoomFitButton;
 	private javax.swing.JButton generateHdlButton;
+	private javax.swing.JLabel hdlStatusLabel;
 	private javax.swing.JLabel zoomPercentLabel;
 	private javax.swing.JLabel selectionStatusLabel;
 	private javax.swing.JPanel propertyInspectorPanel;

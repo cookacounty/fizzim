@@ -195,6 +195,24 @@ part of the current codebase.
   `Settings > HDL Generation` for backend command, backend script, output
   directory, filename behavior, and backend options. By default HDL is emitted
   next to the `.fzm` file as `<module_name>.v`.
+- Added a power-user HDL comparison mode that can run a second configurable
+  backend, emit sidecar comparison HDL, and report a generated diff file when
+  the two outputs do not match.
+- Added an HDL generation status indicator. The main toolbar shows yellow when
+  HDL is stale or not yet generated, and green after successful generation until
+  the diagram changes again.
+- Added a conventional unsaved-change marker in the window title. Modified
+  diagrams now show `*Fizzim 2.0 - filename.fzm` until saved.
+- Persisted HDL generation state into the diagram file. After successful GUI
+  generation, the `.fzm` records that the HDL is in sync and remembers the
+  generated HDL path, so reopening the diagram restores the green status when
+  the generated file is still present.
+- HDL generation metadata now marks the diagram as unsaved instead of silently
+  saving the `.fzm`, so the title-bar `*` reflects that the XML changed.
+- Added a Java HDL backend entry point, `FizzimJavaBackend`, plus Windows and
+  Linux launcher scripts. The entry point currently delegates to the checked-in
+  Perl backend so Java-launched generation is line-for-line compatible while the
+  backend is ported incrementally.
 - Updated the backend for forked transitions, state groups, state group default
   entry behavior, transition actions, and widened debug `statename` output.
 - Pruned lower-priority transitions that become unreachable behind an
@@ -221,6 +239,11 @@ part of the current codebase.
   Suite tools such as Icarus Verilog and Yosys when present.
 - Added documentation for the test environment and how to rerun backend
   regressions.
+- Added `testcases/tools/fuzz_backend_compare.js` and `make test-fuzz` /
+  `make.cmd test-fuzz` for randomized non-human-readable FSM backend fuzzing.
+  The fuzz flow mutates the generic feature diagram, exercises forks, state
+  groups, transition actions, priorities, internals, and equations, then checks
+  direct Perl generation against Java-launched generation line-for-line.
 
 ### Build And Packaging
 

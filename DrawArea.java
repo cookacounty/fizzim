@@ -1685,6 +1685,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		updateGlobalTable();
 		FizzimGui fgui = (FizzimGui) frame;
 		fgui.updateGlobal(globalList);
+		notifyHdlOutOfSync();
 		repaint();
 
 	}
@@ -1712,6 +1713,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		updateGlobalTable();
 		FizzimGui fgui = (FizzimGui) frame;
 		fgui.updateGlobal(globalList);
+		notifyHdlOutOfSync();
 		repaint();
 	}
 	
@@ -2009,6 +2011,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		undoList.add(tempList);
 		currUndoIndex++;
 		fileModified = true;
+		notifyHdlOutOfSync();
 		repaint();
 	}
 	
@@ -4843,11 +4846,28 @@ public void updateTransitions()
 	public void setFileModifed(boolean b)
 	{
 		fileModified = b;
+		if(b)
+			notifyHdlOutOfSync();
+		else if(frame instanceof FizzimGui)
+			((FizzimGui)frame).updateWindowTitle();
+	}
+
+	public void setFileModifiedPreserveHdlStatus(boolean b)
+	{
+		fileModified = b;
+		if(frame instanceof FizzimGui)
+			((FizzimGui)frame).updateWindowTitle();
 	}
 	
 	public boolean getFileModifed()
 	{
 		return fileModified;
+	}
+
+	private void notifyHdlOutOfSync()
+	{
+		if(!loading && frame instanceof FizzimGui)
+			((FizzimGui)frame).markHdlOutOfSync();
 	}
 
 

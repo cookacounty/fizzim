@@ -11,6 +11,7 @@ if /I "%TARGET%"=="jar" goto :jar
 if /I "%TARGET%"=="clean" goto :clean
 if /I "%TARGET%"=="test" goto :test
 if /I "%TARGET%"=="test-verilog" goto :test
+if /I "%TARGET%"=="test-fuzz" goto :test_fuzz
 
 echo Unknown target: %TARGET%
 echo.
@@ -47,6 +48,12 @@ exit /b 0
 bash testcases/run_backend_flow.sh
 exit /b %errorlevel%
 
+:test_fuzz
+call :jar
+if errorlevel 1 exit /b %errorlevel%
+node testcases\tools\fuzz_backend_compare.js
+exit /b %errorlevel%
+
 :help
 echo Fizzim build and test helper
 echo.
@@ -59,6 +66,7 @@ echo.
 echo   make.cmd jar
 echo   make.cmd clean
 echo   make.cmd test
+echo   make.cmd test-fuzz
 echo.
 echo JAVA_HOME may point at a JDK directory.
 echo JAVA_RELEASE defaults to 11 and may be overridden.
