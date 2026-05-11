@@ -635,13 +635,19 @@ public class ObjAttribute implements Cloneable {
 	}
 
 	public boolean isCanvasVisible() {
-		return getVisible() && !isHiddenDefaultEquation();
+		return getVisible() && !isHiddenDefaultEquation() && !isHiddenDefaultPriority();
 	}
 
 	private boolean isHiddenDefaultEquation() {
 		if(!name.equals("equation") || value == null)
 			return false;
 		return value.trim().equals("1");
+	}
+
+	private boolean isHiddenDefaultPriority() {
+		if(!name.equals("priority") || value == null)
+			return false;
+		return value.trim().equals("1000") && editable[1] != LOCAL;
 	}
 
 	//unselects object

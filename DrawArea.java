@@ -3319,13 +3319,33 @@ public void updateTransitions()
 		if(globalList == null || globalList.size() <= 4)
 			return;
 		LinkedList<ObjAttribute> transGlobals = globalList.get(4);
+		ObjAttribute priority = null;
 		for(int i = 0; i < transGlobals.size(); i++)
-			if(transGlobals.get(i).getName().equals("priority"))
-				return;
+		{
+			ObjAttribute attr = transGlobals.get(i);
+			if(attr.getName().equals("priority"))
+			{
+				priority = attr;
+				transGlobals.remove(i);
+				break;
+			}
+		}
 		int[] editable = { ObjAttribute.ABS, ObjAttribute.GLOBAL_VAR,
 				ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR,
 				ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR };
-		transGlobals.add(new ObjAttribute("priority", "1000", 1, "", "", Color.black, "", "", editable));
+		if(priority == null)
+			priority = new ObjAttribute("priority", "1000", ObjAttribute.NONDEFAULT, "", "", Color.black, "", "", editable);
+		priority.setVisibility(ObjAttribute.NONDEFAULT);
+		int insertIndex = transitionAttributeInsertIndexAfter("equation", transGlobals);
+		transGlobals.add(insertIndex, priority);
+	}
+
+	private int transitionAttributeInsertIndexAfter(String name, LinkedList<ObjAttribute> attrs)
+	{
+		for(int i = 0; i < attrs.size(); i++)
+			if(attrs.get(i).getName().equals(name))
+				return i + 1;
+		return attrs.size();
 	}
 
 	public void syncTransitionOutputDefaultsWithOutputs()
