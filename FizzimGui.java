@@ -3273,7 +3273,10 @@ public class FizzimGui extends javax.swing.JFrame {
 			return;
 		}
 		if(confirmSaveCurrentDiagramBeforeSwitch())
-			openFile(file);
+		{
+			openFile(file, false);
+			rememberLastOpened("project", currProjectFile);
+		}
 	}
 
 	private void openSelectedProjectDiagramInNewWindow() {
@@ -3286,7 +3289,8 @@ public class FizzimGui extends javax.swing.JFrame {
 					"Project", JOptionPane.ERROR_MESSAGE);
 			return;
 		}
-		openFileInNewWindow(file);
+		openFileInNewWindow(file, false);
+		rememberLastOpened("project", currProjectFile);
 	}
 
 	private File selectedProjectFile() {
@@ -3727,11 +3731,15 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	private void openFileInNewWindow(File selectedFile) {
+		openFileInNewWindow(selectedFile, true);
+	}
+
+	private void openFileInNewWindow(File selectedFile, boolean rememberFile) {
 		FizzimGui newWindow = new FizzimGui();
 		newWindow.setSize(getSize());
 		newWindow.setLocation(getX() + 30, getY() + 30);
 		newWindow.setVisible(true);
-		newWindow.openFile(selectedFile);
+		newWindow.openFile(selectedFile, rememberFile);
 	}
 
 	private void openFile(File selectedFile) {

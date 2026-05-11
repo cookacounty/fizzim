@@ -304,6 +304,8 @@ part of the current codebase.
 - Opening a project now automatically switches the side panel to the Project tab.
 - Fizzim now attempts to reopen the last opened project or diagram at startup,
   while safely ignoring missing files.
+- Opening a diagram from the Project pane no longer replaces the startup restore
+  target; Fizzim will restore the project on the next launch.
 
 ### Build And Packaging
 
