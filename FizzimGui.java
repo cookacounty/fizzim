@@ -263,6 +263,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		projectOpenButton = new javax.swing.JButton();
 		projectAddButton = new javax.swing.JButton();
 		projectBuildButton = new javax.swing.JButton();
+		projectLintButton = new javax.swing.JButton();
 		lintPanel = new javax.swing.JPanel();
 		lintIssueModel = new javax.swing.DefaultListModel();
 		lintIssueList = new javax.swing.JList(lintIssueModel);
@@ -283,6 +284,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		FileProjectAddCurrent = new javax.swing.JMenuItem();
 		FileProjectAddDiagrams = new javax.swing.JMenuItem();
 		FileProjectBuildAll = new javax.swing.JMenuItem();
+		FileProjectLintAll = new javax.swing.JMenuItem();
 		FileItemSave = new javax.swing.JMenuItem();
 		FileItemSaveAs = new javax.swing.JMenuItem();
 		FileExport = new javax.swing.JMenu("Export to...");
@@ -560,6 +562,13 @@ public class FizzimGui extends javax.swing.JFrame {
 			}
 		});
 		FileProjectMenu.add(FileProjectBuildAll);
+		FileProjectLintAll.setText("Lint All");
+		FileProjectLintAll.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ProjectLintAllActionPerformed(evt);
+			}
+		});
+		FileProjectMenu.add(FileProjectLintAll);
 		FileMenu.add(FileProjectMenu);
 
 		FileItemSave.setAccelerator(javax.swing.KeyStroke.getKeyStroke(
@@ -975,6 +984,13 @@ public class FizzimGui extends javax.swing.JFrame {
 			}
 		});
 		projectButtonPanel.add(projectBuildButton);
+		projectLintButton.setText("Lint All");
+		projectLintButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				ProjectLintAllActionPerformed(evt);
+			}
+		});
+		projectButtonPanel.add(projectLintButton);
 		projectPanel.add(projectButtonPanel, BorderLayout.SOUTH);
 		updateProjectPanel();
 	}
@@ -2537,6 +2553,10 @@ public class FizzimGui extends javax.swing.JFrame {
 		buildProject();
 	}
 
+	private void ProjectLintAllActionPerformed(java.awt.event.ActionEvent evt) {
+		lintProject();
+	}
+
 	private void openProject(File projectFile) {
 		try {
 			File file = ensureProjectExtension(projectFile).getAbsoluteFile();
@@ -2627,6 +2647,8 @@ public class FizzimGui extends javax.swing.JFrame {
 		projectBuildButton.setEnabled(hasProjectItem);
 		FileProjectSave.setEnabled(currProjectFile != null);
 		FileProjectBuildAll.setEnabled(hasProjectItem);
+		FileProjectLintAll.setEnabled(hasProjectItem);
+		projectLintButton.setEnabled(hasProjectItem);
 		selectCurrentProjectFileInTree();
 	}
 
@@ -2781,12 +2803,20 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	private boolean confirmSaveCurrentProjectDiagramBeforeBuild() {
+		return confirmSaveCurrentProjectDiagramForDiskOperation("Build All", "Build All");
+	}
+
+	private boolean confirmSaveCurrentProjectDiagramBeforeLintAll() {
+		return confirmSaveCurrentProjectDiagramForDiskOperation("Lint All", "Lint All");
+	}
+
+	private boolean confirmSaveCurrentProjectDiagramForDiskOperation(String title, String operationName) {
 		if(currFile == null || !drawArea1.getFileModifed() || !projectContainsFile(currFile))
 			return true;
+		String message = "Save changes to " + currFile.getName() + " before " + operationName
+				+ "?\n" + operationName + " uses diagram files from disk.";
 		Object[] options = { "Save", "Cancel" };
-		int choice = JOptionPane.showOptionDialog(this,
-				"Save changes to " + currFile.getName() + " before Build All?\nBuild All uses diagram files from disk.",
-				"Build All", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE,
+		int choice = JOptionPane.showOptionDialog(this, message, title, JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE,
 				null, options, options[0]);
 		return choice == JOptionPane.YES_OPTION && saveFile(currFile);
 	}
@@ -2888,6 +2918,94 @@ public class FizzimGui extends javax.swing.JFrame {
 		JOptionPane.showMessageDialog(this, new JScrollPane(text),
 				"Build All: " + pass + " passed, " + fail + " failed",
 				fail == 0 ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE);
+	}
+
+	private void lintProject() {
+		if(projectDiagramFiles.size() == 0)
+		{
+			JOptionPane.showMessageDialog(this, "The current project has no diagrams.",
+					"Lint All", JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		if(!confirmSaveCurrentProjectDiagramBeforeLintAll())
+			return;
+
+		StringBuffer report = new StringBuffer();
+		report.append("Fizzim Project Lint Report\n");
+		report.append("==========================\n\n");
+		if(currProjectFile != null)
+			report.append("Project: ").append(currProjectFile.getAbsolutePath()).append("\n");
+		report.append("Diagrams: ").append(projectDiagramFiles.size()).append("\n\n");
+
+		int clean = 0;
+		int warn = 0;
+		int error = 0;
+		int fail = 0;
+		for(int i = 0; i < projectDiagramFiles.size(); i++)
+		{
+			File fzm = projectDiagramFiles.get(i);
+			if(!fzm.exists())
+			{
+				fail++;
+				report.append("FAIL ").append(projectDisplayPath(fzm)).append("\n  Missing diagram file\n\n");
+				continue;
+			}
+			try {
+				ProjectLintResult result = lintProjectDiagram(fzm);
+				if(result.errorCount > 0)
+					error++;
+				else if(result.warnCount > 0)
+					warn++;
+				else
+					clean++;
+				report.append(result.statusLine(projectDisplayPath(fzm))).append("\n");
+				if(result.issueCount() > 0)
+				{
+					for(int j = 0; j < result.issues.size(); j++)
+						report.append("  ").append(result.issues.get(j).toString()).append("\n");
+				}
+				else
+					report.append("  No lint issues found.\n");
+				report.append("\n");
+			} catch (Exception ex) {
+				fail++;
+				report.append("FAIL ").append(projectDisplayPath(fzm)).append("\n  ")
+						.append(ex.getMessage()).append("\n\n");
+			}
+		}
+
+		report.insert(report.indexOf("\n\n") + 2, "Clean: " + clean + "  Warn: " + warn
+				+ "  Error: " + error + "  Failed: " + fail + "\n");
+		JTextArea text = new JTextArea(report.toString(), 24, 100);
+		text.setEditable(false);
+		text.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+		text.setCaretPosition(0);
+		JOptionPane.showMessageDialog(this, new JScrollPane(text),
+				"Lint All: " + clean + " clean, " + warn + " warning, " + error + " error, " + fail + " failed",
+				(error == 0 && fail == 0) ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE);
+	}
+
+	private ProjectLintResult lintProjectDiagram(File fzm) {
+		FizzimGui checker = new FizzimGui();
+		try {
+			checker.openFile(fzm, false);
+			String lintReport = checker.drawArea1.lintDiagram();
+			ProjectLintResult result = new ProjectLintResult();
+			result.report = lintReport;
+			LinkedList<DrawArea.LintIssue> issues = checker.drawArea1.getLastLintIssues();
+			for(int i = 0; i < issues.size(); i++)
+			{
+				DrawArea.LintIssue issue = issues.get(i);
+				result.issues.add(issue);
+				if("ERROR".equals(issue.severity))
+					result.errorCount++;
+				else if("WARN".equals(issue.severity))
+					result.warnCount++;
+			}
+			return result;
+		} finally {
+			checker.closeWindow();
+		}
 	}
 
 	private boolean runProjectHdlComparison(File fzmFile, File primaryOutput, StringBuffer report) throws IOException, InterruptedException {
@@ -3009,6 +3127,10 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	private void openFile(File selectedFile) {
+		openFile(selectedFile, true);
+	}
+
+	private void openFile(File selectedFile, boolean rememberFile) {
 		loading = true;
 		currFile = selectedFile;
 		FileParser fileParser = new FileParser(currFile, this, drawArea1);
@@ -3016,7 +3138,8 @@ public class FizzimGui extends javax.swing.JFrame {
 		jTabbedPane1.setSelectedIndex(1);
 		drawArea1.setCurrPage(1);
 		updateWindowTitle();
-		rememberRecentFile(currFile);
+		if(rememberFile)
+			rememberRecentFile(currFile);
 		loading = false;
 		restorePersistedHdlStatus();
 		enterZoomFitMode();
@@ -3251,6 +3374,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JMenuItem FileProjectAddCurrent;
 	private javax.swing.JMenuItem FileProjectAddDiagrams;
 	private javax.swing.JMenuItem FileProjectBuildAll;
+	private javax.swing.JMenuItem FileProjectLintAll;
 	private javax.swing.JMenuItem FilePref;
 	private javax.swing.JMenuItem FileItemSave;
 	private javax.swing.JMenuItem FileItemSaveAs;
@@ -3300,6 +3424,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JButton projectOpenButton;
 	private javax.swing.JButton projectAddButton;
 	private javax.swing.JButton projectBuildButton;
+	private javax.swing.JButton projectLintButton;
 	private LinkedList<GeneralObj> inspectorSelectedObjects = new LinkedList<GeneralObj>();
 	private javax.swing.JPanel lintPanel;
 	private javax.swing.DefaultListModel lintIssueModel;
@@ -3328,6 +3453,25 @@ public class FizzimGui extends javax.swing.JFrame {
 
 		public String toString() {
 			return label;
+		}
+	}
+
+	private static class ProjectLintResult {
+		String report;
+		int errorCount;
+		int warnCount;
+		LinkedList<DrawArea.LintIssue> issues = new LinkedList<DrawArea.LintIssue>();
+
+		int issueCount() {
+			return errorCount + warnCount;
+		}
+
+		String statusLine(String displayPath) {
+			if(errorCount > 0)
+				return "ERROR " + displayPath + " (" + errorCount + " error, " + warnCount + " warning)";
+			if(warnCount > 0)
+				return "WARN  " + displayPath + " (" + warnCount + " warning)";
+			return "PASS  " + displayPath;
 		}
 	}
 	private DrawArea drawArea1;

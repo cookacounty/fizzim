@@ -252,6 +252,8 @@ part of the current codebase.
   window by default, prompts before unsaved edits are discarded, marks the active
   dirty project file in the tree, and offers right-click Open in New Window and
   Remove from Project actions.
+- Added project-level Lint All from both `File > Project` and the Project pane,
+  with an aggregated multi-diagram lint report.
 
 ### Build And Packaging
 
