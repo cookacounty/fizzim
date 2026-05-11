@@ -821,7 +821,7 @@ class TransProperties extends javax.swing.JDialog {
 		pref = state;
 		globalList = drawArea.getGlobalList();
 		colorChooser = drawArea.getColorChooser();
-		drawArea.updateTrans();
+		drawArea.syncTransitionAttributes(trans);
 		if(trans.getType() == 1)
 		{
 			StateTransitionObj t1 = (StateTransitionObj) t;

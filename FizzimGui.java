@@ -2068,7 +2068,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			return;
 		}
 		if(selectionContainsTransition(selected))
-			drawArea1.updateTrans();
+			syncSelectedTransitionAttributes(selected);
 		if(selected.size() > 1)
 		{
 			propertyInspectorTitle.setText(t("properties.title") + " - " + selected.size() + " " + t("properties.objects"));
@@ -2127,6 +2127,15 @@ public class FizzimGui extends javax.swing.JFrame {
 				return true;
 		}
 		return false;
+	}
+
+	private void syncSelectedTransitionAttributes(LinkedList<GeneralObj> selected) {
+		for(int i = 0; i < selected.size(); i++)
+		{
+			GeneralObj obj = selected.get(i);
+			if(obj.getType() == 1 || obj.getType() == 2)
+				drawArea1.syncTransitionAttributes((TransitionObj)obj);
+		}
 	}
 
 	private String objectTypeName(GeneralObj obj) {
