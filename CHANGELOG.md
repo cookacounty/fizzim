@@ -274,6 +274,9 @@ part of the current codebase.
 - Project Build All now honors each diagram's stored HDL output path when one
   is present, allowing diagrams in the same project to generate to different
   destinations while still using the global HDL settings as defaults.
+- Added a Project-pane right-click action to set an individual diagram's HDL
+  output path. The path is stored in the selected `.fzm` relative to that FSM
+  file, so it stays portable across projects.
 - HDL generation metadata now marks the diagram as unsaved instead of silently
   saving the `.fzm`, so the title-bar `*` reflects that the XML changed.
 - Added a Java HDL backend entry point, `FizzimJavaBackend`, plus Windows and

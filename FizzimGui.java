@@ -3668,6 +3668,80 @@ public class FizzimGui extends javax.swing.JFrame {
 		rememberLastOpened("project", currProjectFile);
 	}
 
+	private void setSelectedProjectDiagramHdlPath() {
+		File file = selectedProjectFile();
+		if(file == null)
+			return;
+		if(!isFizzimFile(file) || !file.exists())
+		{
+			JOptionPane.showMessageDialog(this, "Project diagram could not be updated:\n" + file.getAbsolutePath(),
+					"Project", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		try {
+			String machineName = sameFile(file, currFile) ? getMachineName() : getMachineNameFromFile(file);
+			String currentPath = getPersistedHdlOutputPath(file);
+			if(currentPath.equals(""))
+				currentPath = pathRelativeToFzm(file, resolveHdlOutputFileFromSettings(file, machineName,
+						getHdlOutputDir(), getHdlUseModuleFilename(), getHdlOutputFilename()));
+			String selectedPath = promptForProjectDiagramHdlPath(file, currentPath);
+			if(selectedPath == null)
+				return;
+			if(sameFile(file, currFile))
+			{
+				setMachineAttributeValue(HDL_OUTPUT_ATTR, selectedPath);
+				drawArea1.setFileModifed(true);
+				if(!saveFile(currFile))
+					return;
+			}
+			else
+				setMachineAttributeValueInFile(file, HDL_OUTPUT_ATTR, selectedPath);
+			updateProjectPanel();
+			JOptionPane.showMessageDialog(this,
+					"HDL output path for " + file.getName() + ":\n" + selectedPath
+					+ "\n\nPath is stored relative to the FSM file.",
+					"Project", JOptionPane.INFORMATION_MESSAGE);
+		} catch (IOException ex) {
+			JOptionPane.showMessageDialog(this, "Could not update HDL output path:\n" + ex.getMessage(),
+					"Project", JOptionPane.ERROR_MESSAGE);
+		}
+	}
+
+	private String promptForProjectDiagramHdlPath(final File fzmFile, String currentPath) {
+		final JTextField pathField = new JTextField(currentPath, 34);
+		JButton browseButton = new JButton("Browse...");
+		browseButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent event) {
+				JFileChooser chooser = new JFileChooser(fzmFile.getAbsoluteFile().getParentFile());
+				chooser.setDialogTitle("Select HDL Output File");
+				String path = pathField.getText().trim();
+				if(!path.equals(""))
+					chooser.setSelectedFile(resolveRelativeToFzm(fzmFile, path));
+				if(chooser.showSaveDialog(FizzimGui.this) == JFileChooser.APPROVE_OPTION)
+					pathField.setText(pathRelativeToFzm(fzmFile, chooser.getSelectedFile()));
+			}
+		});
+		JPanel row = new JPanel(new BorderLayout(6, 0));
+		row.add(pathField, BorderLayout.CENTER);
+		row.add(browseButton, BorderLayout.EAST);
+		JPanel panel = new JPanel(new BorderLayout(0, 8));
+		panel.add(new JLabel("HDL output path for " + fzmFile.getName() + ":"), BorderLayout.NORTH);
+		panel.add(row, BorderLayout.CENTER);
+		panel.add(new JLabel("Relative paths are stored from the FSM file directory."), BorderLayout.SOUTH);
+		int result = JOptionPane.showConfirmDialog(this, panel, "Set HDL Output Path",
+				JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+		if(result != JOptionPane.OK_OPTION)
+			return null;
+		String selectedPath = pathField.getText().trim();
+		if(selectedPath.equals(""))
+			selectedPath = currentPath;
+		File output = resolveRelativeToFzm(fzmFile, selectedPath);
+		String name = output.getName();
+		if(!name.toLowerCase().endsWith(".v"))
+			output = new File(output.getParentFile(), name + ".v");
+		return pathRelativeToFzm(fzmFile, output);
+	}
+
 	private File selectedProjectFile() {
 		TreePath path = projectTree.getSelectionPath();
 		if(path == null)
@@ -3717,6 +3791,13 @@ public class FizzimGui extends javax.swing.JFrame {
 			}
 		});
 		menu.add(openNewItem);
+		JMenuItem hdlPathItem = new JMenuItem("Set HDL Output Path...");
+		hdlPathItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent event) {
+				setSelectedProjectDiagramHdlPath();
+			}
+		});
+		menu.add(hdlPathItem);
 		menu.addSeparator();
 		JMenuItem removeItem = new JMenuItem(t("project.context.remove"));
 		removeItem.addActionListener(new ActionListener() {
@@ -4020,8 +4101,8 @@ public class FizzimGui extends javax.swing.JFrame {
 		java.util.List<String> lines = Files.readAllLines(fzmFile.toPath(), StandardCharsets.UTF_8);
 		boolean inGlobals = false;
 		boolean inMachine = false;
-		boolean inName = false;
-		boolean matchedName = false;
+		boolean inAttribute = false;
+		boolean inValue = false;
 		for(int i = 0; i < lines.size(); i++)
 		{
 			String line = lines.get(i).trim();
@@ -4033,29 +4114,128 @@ public class FizzimGui extends javax.swing.JFrame {
 				inMachine = true;
 			else if(inMachine && line.equals("</machine>"))
 				inMachine = false;
-			else if(inMachine && line.equals("<name>"))
-				inName = true;
-			else if(inName && line.equals("</name>"))
-				inName = false;
-			else if(inName && !line.equals("") && !line.startsWith("<"))
-				matchedName = line.equals(attributeName);
-			else if(inMachine && matchedName && line.equals("<value>"))
-			{
-				for(int j = i + 1; j < lines.size(); j++)
-				{
-					String value = lines.get(j).trim();
-					if(value.equals("") || value.startsWith("<status>") || value.startsWith("</status>"))
-						continue;
-					if(value.startsWith("<"))
-						break;
-					return value;
-				}
-				matchedName = false;
-			}
-			else if(inMachine && matchedName && line.equals("</attribute>"))
-				matchedName = false;
+			else if(inMachine && line.equals("<" + attributeName + ">"))
+				inAttribute = true;
+			else if(inAttribute && line.equals("</" + attributeName + ">"))
+				inAttribute = false;
+			else if(inAttribute && line.equals("<value>"))
+				inValue = true;
+			else if(inValue && line.equals("</value>"))
+				inValue = false;
+			else if(inValue && !line.equals("") && !line.startsWith("<"))
+				return line;
 		}
 		return "";
+	}
+
+	private void setMachineAttributeValueInFile(File fzmFile, String attributeName, String value) throws IOException {
+		java.util.List<String> lines = Files.readAllLines(fzmFile.toPath(), StandardCharsets.UTF_8);
+		ArrayList<String> updated = new ArrayList<String>();
+		boolean inGlobals = false;
+		boolean inMachine = false;
+		boolean inAttribute = false;
+		boolean inValue = false;
+		boolean valueWritten = false;
+		boolean foundAttribute = false;
+		for(int i = 0; i < lines.size(); i++)
+		{
+			String rawLine = lines.get(i);
+			String line = rawLine.trim();
+			if(inMachine && line.equals("</machine>") && !foundAttribute)
+			{
+				appendMachineAttributeXml(updated, attributeName, value);
+				foundAttribute = true;
+			}
+			if(line.equals("<globals>"))
+				inGlobals = true;
+			else if(line.equals("</globals>"))
+				inGlobals = false;
+			else if(inGlobals && line.equals("<machine>"))
+				inMachine = true;
+			else if(inMachine && line.equals("</machine>"))
+				inMachine = false;
+			else if(inMachine && line.equals("<" + attributeName + ">"))
+			{
+				inAttribute = true;
+				foundAttribute = true;
+			}
+			else if(inAttribute && line.equals("</" + attributeName + ">"))
+				inAttribute = false;
+			else if(inAttribute && line.equals("<value>"))
+			{
+				inValue = true;
+				valueWritten = false;
+			}
+			else if(inValue && !valueWritten && (line.equals("") || !line.startsWith("<")))
+			{
+				updated.add("         " + value);
+				valueWritten = true;
+				continue;
+			}
+			else if(inValue && line.equals("</value>"))
+				inValue = false;
+			updated.add(rawLine);
+		}
+		Files.write(fzmFile.toPath(), updated, StandardCharsets.UTF_8);
+	}
+
+	private void appendMachineAttributeXml(ArrayList<String> lines, String name, String value) {
+		lines.add("      <" + name + ">");
+		lines.add("            <status>");
+		lines.add("            ABS");
+		lines.add("            </status>");
+		lines.add("         <value>");
+		lines.add("         " + value);
+		lines.add("            <status>");
+		lines.add("            GLOBAL_VAR");
+		lines.add("            </status>");
+		lines.add("         </value>");
+		lines.add("         <vis>");
+		lines.add("         0");
+		lines.add("            <status>");
+		lines.add("            GLOBAL_VAR");
+		lines.add("            </status>");
+		lines.add("         </vis>");
+		lines.add("         <type>");
+		lines.add("         attribute");
+		lines.add("            <status>");
+		lines.add("            GLOBAL_VAR");
+		lines.add("            </status>");
+		lines.add("         </type>");
+		lines.add("         <comment>");
+		lines.add("");
+		lines.add("            <status>");
+		lines.add("            GLOBAL_VAR");
+		lines.add("            </status>");
+		lines.add("         </comment>");
+		lines.add("         <color>");
+		lines.add("         -16777216");
+		lines.add("            <status>");
+		lines.add("            GLOBAL_VAR");
+		lines.add("            </status>");
+		lines.add("         </color>");
+		lines.add("         <useratts>");
+		lines.add("");
+		lines.add("            <status>");
+		lines.add("            GLOBAL_VAR");
+		lines.add("            </status>");
+		lines.add("         </useratts>");
+		lines.add("         <resetval>");
+		lines.add("");
+		lines.add("            <status>");
+		lines.add("            GLOBAL_VAR");
+		lines.add("            </status>");
+		lines.add("         </resetval>");
+		lines.add("         <x2Obj>");
+		lines.add("         0");
+		lines.add("         </x2Obj>");
+		lines.add("         <y2Obj>");
+		lines.add("         0");
+		lines.add("         </y2Obj>");
+		lines.add("         <page>");
+		lines.add("         -1");
+		lines.add("         </page>");
+		lines.add("      </" + name + ">");
 	}
 
 	private void storeRecentFiles(LinkedList<File> recentFiles) {
