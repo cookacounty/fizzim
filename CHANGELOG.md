@@ -85,6 +85,9 @@ part of the current codebase.
   runs lint silently and updates the indicator without opening the lint pane.
 - Added transition-equation linting for references that are not declared in the
   global input/output lists or as built-in FSM signals.
+- Transition-equation reference lint now treats parameters as declared
+  expression names and ignores identifiers used only inside bit-select or
+  part-select brackets.
 - Added reset reachability linting for real states, including paths through
   state-group exits, group default entries, and forks.
 - Added state coverage linting for states with no outgoing transition when

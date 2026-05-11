@@ -4212,15 +4212,18 @@ public void updateTransitions()
 	{
 		TreeSet<String> names = new TreeSet<String>();
 		for(int i = 0; i < globalList.get(1).size(); i++)
-			names.add(baseIdentifier(globalList.get(1).get(i).getName()));
+			addKnownExpressionName(names, globalList.get(1).get(i).getName());
 		for(int i = 0; i < globalList.get(2).size(); i++)
-			names.add(baseIdentifier(globalList.get(2).get(i).getName()));
-		for(int i = 0; i < globalList.get(0).size(); i++)
+			addKnownExpressionName(names, globalList.get(2).get(i).getName());
+		for(int listIndex = 0; listIndex < globalList.size(); listIndex++)
 		{
-			ObjAttribute attr = globalList.get(0).get(i);
-			String type = attr.getType() == null ? "" : attr.getType().trim().toLowerCase();
-			if(type.equals("parameter") || type.equals("define") || type.equals("`define"))
-				names.add(baseIdentifier(stripVerilogMacroPrefix(attr.getName())));
+			for(int i = 0; i < globalList.get(listIndex).size(); i++)
+			{
+				ObjAttribute attr = globalList.get(listIndex).get(i);
+				String type = attr.getType() == null ? "" : attr.getType().trim().toLowerCase();
+				if(type.equals("parameter") || type.equals("define") || type.equals("`define"))
+					addKnownExpressionName(names, stripVerilogMacroPrefix(attr.getName()));
+			}
 		}
 		names.add("state");
 		names.add("nextstate");
@@ -4231,11 +4234,21 @@ public void updateTransitions()
 		return names;
 	}
 
+	private void addKnownExpressionName(TreeSet<String> names, String name)
+	{
+		String base = baseIdentifier(name);
+		if(!base.equals(""))
+			names.add(base);
+	}
+
 	private String baseIdentifier(String name)
 	{
+		if(name == null)
+			return "";
+		name = name.trim();
 		int bracket = name.indexOf("[");
 		if(bracket >= 0)
-			return name.substring(0, bracket);
+			name = name.substring(0, bracket);
 		return name;
 	}
 
@@ -4261,6 +4274,7 @@ public void updateTransitions()
 	{
 		String stripped = expression;
 		stripped = stripped.replaceAll("(?i)(?:\\d+\\s*)?'\\s*[bBoOdDhH]\\s*[0-9a-f_xz?]+", " ");
+		stripped = stripped.replaceAll("\\[[^\\]]*\\]", " ");
 		stripped = stripped.replaceAll("`[A-Za-z_][A-Za-z0-9_$]*", " ");
 		return stripped;
 	}
