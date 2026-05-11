@@ -3314,15 +3314,6 @@ public void updateTransitions()
 		
 	}
 
-	public void syncTransitionAttributes(TransitionObj trans)
-	{
-		if(trans == null)
-			return;
-		ensureTransitionPriorityDefinition();
-		syncTransitionOutputDefaultsWithOutputs();
-		trans.updateAttrib(globalList, 4);
-	}
-
 	private void ensureTransitionPriorityDefinition()
 	{
 		if(globalList == null || globalList.size() <= 4)
