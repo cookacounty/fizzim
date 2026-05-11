@@ -204,10 +204,10 @@ function combineEq(a, b) {
   return a || b;
 }
 
-function combinePriority(inPri, outPri, index, count) {
+function combinePriority(inPri, outPri, index, count, depth = 1) {
   inPri = (inPri || "").trim();
   outPri = (outPri || "").trim();
-  if (inPri) return count <= 1 ? inPri : (Number(inPri) + ((index + 1) / 1000000000)).toFixed(9);
+  if (inPri) return count <= 1 ? inPri : (Number(inPri) + ((index + 1) / (1000 ** depth))).toFixed(9);
   return outPri;
 }
 
@@ -224,18 +224,27 @@ function compareInfo(a, b) {
 function overlayAttrs(base, overlay) {
   const result = clone(base);
   const ranges = attrRanges(overlay.block);
-  for (const [name, r] of Object.entries(ranges)) setAttrBlock(result.block, name, overlay.block.slice(r[0], r[1]));
+  for (const [name, r] of Object.entries(ranges)) {
+    const incoming = attrBlock(result.block, name);
+    const outgoing = overlay.block.slice(r[0], r[1]);
+    if (incoming && attrValue(incoming) !== "" && attrValue(outgoing) === "") {
+      continue;
+    }
+    setAttrBlock(result.block, name, outgoing);
+  }
   return result;
 }
 
 function mergeFork(inObj, outObj, index, count, states) {
   const merged = overlayAttrs(inObj, outObj);
   const i = tinfo(inObj), o = tinfo(outObj);
+  const depth = ((inObj.meta && inObj.meta.forkDepth) || 0) + 1;
+  merged.meta = { forkDepth: depth };
   setTransition(merged, "name", `${i.name}__${o.name}`);
   setTransition(merged, "startState", i.start);
   setTransition(merged, "endState", o.end);
   setTransition(merged, "equation", combineEq(i.equation, o.equation));
-  setTransition(merged, "priority", combinePriority(i.priority, o.priority, index, count));
+  setTransition(merged, "priority", combinePriority(i.priority, o.priority, index, count, depth));
   autoRoute(merged, states);
   return merged;
 }

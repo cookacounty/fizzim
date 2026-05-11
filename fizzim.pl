@@ -2955,7 +2955,7 @@ sub expand_fork_routes {
 
 sub merge_fork_transition {
   my ($inref, $outref, $out_index, $out_count) = @_;
-  my (%merged, $att, $in_equation, $out_equation);
+  my (%merged, $att, $in_equation, $out_equation, $fork_depth);
 
   %merged = %{ $inref };
   $merged{attributes} = {};
@@ -2970,6 +2970,7 @@ sub merge_fork_transition {
   }
   if (exists $outref->{attributes}) {
     foreach $att (keys %{ $outref->{attributes} }) {
+      next if (&preserve_incoming_fork_action($inref, $outref, $att));
       if (ref($outref->{attributes}{$att}) eq "HASH") {
         $merged{attributes}{$att} = { %{ $outref->{attributes}{$att} } };
       } else {
@@ -2981,25 +2982,46 @@ sub merge_fork_transition {
   $in_equation = $inref->{attributes}{equation}{value};
   $out_equation = $outref->{attributes}{equation}{value};
   $merged{attributes}{equation}{value} = &combine_fork_equations($in_equation, $out_equation);
+  $fork_depth = ($inref->{_fork_depth} || 0) + 1;
+  $merged{_fork_depth} = $fork_depth;
   $merged{attributes}{priority}{value} = &combine_fork_priorities(
     $inref->{attributes}{priority}{value},
     $outref->{attributes}{priority}{value},
     $out_index,
-    $out_count
+    $out_count,
+    $fork_depth
   );
 
   return %merged;
 }
 
+sub preserve_incoming_fork_action {
+  my ($inref, $outref, $att) = @_;
+  my ($in_value, $out_value);
+
+  return 0 unless exists $inref->{attributes}{$att};
+  return 0 unless exists $outref->{attributes}{$att};
+
+  $in_value = $inref->{attributes}{$att}{value};
+  $out_value = $outref->{attributes}{$att}{value};
+  $in_value =~ s/^\s+|\s+$//g if defined $in_value;
+  $out_value =~ s/^\s+|\s+$//g if defined $out_value;
+
+  return (defined $in_value && $in_value ne "" && (!defined $out_value || $out_value eq ""));
+}
+
 sub combine_fork_priorities {
-  my ($in_priority, $out_priority, $out_index, $out_count) = @_;
+  my ($in_priority, $out_priority, $out_index, $out_count, $fork_depth) = @_;
+  my ($scale);
 
   $in_priority =~ s/^\s+|\s+$//g if defined $in_priority;
   $out_priority =~ s/^\s+|\s+$//g if defined $out_priority;
+  $fork_depth = 1 if (!defined $fork_depth || $fork_depth < 1);
 
   if (defined $in_priority && ($in_priority ne "")) {
     return $in_priority if (!defined $out_count || $out_count <= 1);
-    return sprintf("%.9f", $in_priority + (($out_index + 1) / 1000000000));
+    $scale = 1000 ** $fork_depth;
+    return sprintf("%.9f", $in_priority + (($out_index + 1) / $scale));
   }
   return $out_priority if (defined $out_priority);
   return "";

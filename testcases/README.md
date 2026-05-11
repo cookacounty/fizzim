@@ -15,8 +15,10 @@ https://github.com/cookacounty/fizzim/wiki/Backend-and-Regression-Testing
 | `generic_project.fzp` | Minimal project file listing the generic diagrams for testing `File > Project > Build All` and project-level `Lint All`. |
 | `generic_state_machine_lint_issues.fzm` | Copy of the generic diagram with intentional lint issues for GUI validation demos. |
 | `generate_fizzim1_compat.js` | Generates a Fizzim 1.0-compatible golden diagram from the source diagram. |
+| `tools/generate_fork_stategroup_stress.js` | Generates an intentionally non-human-readable stress diagram, independent reference RTL, and testbench for multi-level forks mixed with state groups. |
 | `tools/fuzz_backend_compare.js` | Creates randomized non-human-readable variants of the generic diagram and compares direct Perl generation against Java-launched generation. |
 | `tb_generic_state_action_equiv.sv` | Drives the generated golden RTL and feature RTL with identical inputs. |
+| `tb_fork_stategroup_stress_equiv.sv` | Drives the generated fork/state-group stress RTL against independent handwritten reference RTL. |
 | `generated/` | Generated diagrams, RTL, simulator outputs, and Yosys scripts. Ignored by Git. |
 
 ## Run

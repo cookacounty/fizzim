@@ -10,6 +10,11 @@ COMPAT_FZM="$GENERATED_DIR/generic_state_machine_fizzim1.fzm"
 FEATURE_SV="$GENERATED_DIR/generic_state_action.sv"
 COMPAT_SV="$GENERATED_DIR/generic_state_action_fizzim.sv"
 TESTBENCH="$SCRIPT_DIR/tb_generic_state_action_equiv.sv"
+STRESS_GENERATOR="$SCRIPT_DIR/tools/generate_fork_stategroup_stress.js"
+STRESS_FZM="$SCRIPT_DIR/fork_stategroup_stress.fzm"
+STRESS_REF_SV="$SCRIPT_DIR/fork_stategroup_stress_ref.sv"
+STRESS_SV="$GENERATED_DIR/fork_stategroup_stress.sv"
+STRESS_TESTBENCH="$SCRIPT_DIR/tb_fork_stategroup_stress_equiv.sv"
 LEGACY_BACKEND="$SCRIPT_DIR/tb/legacy/fizzim_5_20.pl"
 
 BACKEND="${BACKEND:-$REPO_ROOT/fizzim.pl}"
@@ -67,6 +72,12 @@ fi
 echo "Generating Fizzim 2.0 feature RTL"
 "$PERL_BIN" "$BACKEND" -noaddversion "$SOURCE_FZM" > "$FEATURE_SV"
 
+echo "Generating fork/state-group stress diagram and reference RTL"
+node "$STRESS_GENERATOR"
+
+echo "Generating fork/state-group stress RTL"
+"$PERL_BIN" "$BACKEND" -noaddversion "$STRESS_FZM" > "$STRESS_SV"
+
 echo "Generating Fizzim 1.0-compatible golden RTL"
 "$PERL_BIN" "$FIZZIM1_BACKEND" -noaddversion "$COMPAT_FZM" > "$COMPAT_SV"
 
@@ -87,10 +98,15 @@ echo "Compiling and simulating generic FSM equivalence"
 if [[ "$SIM" == "xrun" ]] && command -v xrun >/dev/null 2>&1; then
   xrun -64bit -sv -clean -access +rwc -top tb_generic_state_action_equiv \
     "$COMPAT_SV" "$FEATURE_SV" "$TESTBENCH"
+  xrun -64bit -sv -clean -access +rwc -top tb_fork_stategroup_stress_equiv \
+    "$STRESS_REF_SV" "$STRESS_SV" "$STRESS_TESTBENCH"
 elif command -v iverilog >/dev/null 2>&1 && command -v vvp >/dev/null 2>&1; then
   iverilog -g2012 -Wall -o "$GENERATED_DIR/generic_state_action_equiv.vvp" \
     "$COMPAT_SV" "$FEATURE_SV" "$TESTBENCH"
   vvp "$GENERATED_DIR/generic_state_action_equiv.vvp"
+  iverilog -g2012 -Wall -s tb_fork_stategroup_stress_equiv -o "$GENERATED_DIR/fork_stategroup_stress_equiv.vvp" \
+    "$STRESS_REF_SV" "$STRESS_SV" "$STRESS_TESTBENCH"
+  vvp "$GENERATED_DIR/fork_stategroup_stress_equiv.vvp"
 else
   echo "Could not find xrun or iverilog/vvp for simulation." >&2
   exit 1
@@ -112,8 +128,16 @@ proc
 opt
 check
 YOSYS
+  cat > "$GENERATED_DIR/yosys_check_fork_stategroup_stress.ys" <<YOSYS
+read_verilog -sv "testcases/generated/fork_stategroup_stress.sv"
+hierarchy -check -top fork_stategroup_stress
+proc
+opt
+check
+YOSYS
   yosys -q -s "$GENERATED_DIR/yosys_check_generic_state_action.ys"
   yosys -q -s "$GENERATED_DIR/yosys_check_generic_state_action_fizzim.ys"
+  yosys -q -s "$GENERATED_DIR/yosys_check_fork_stategroup_stress.ys"
 fi
 
 echo "PASS generic Fizzim 1.0 compatibility backend flow"

@@ -94,6 +94,9 @@ part of the current codebase.
 - Backend fork expansion now walks multi-level fork decision trees until each
   route reaches a concrete state or state group, preserving route priority,
   combined conditions, and transition actions along the flattened path.
+- Added a generated fork/state-group stress regression that compares Fizzim RTL
+  against independent reference RTL across nested forks, state-group entry and
+  exit paths, priorities, and transition actions.
 - Added reset reachability linting for real states, including paths through
   state-group exits, group default entries, and forks.
 - Added state coverage linting for states with no outgoing transition when
