@@ -284,6 +284,11 @@ public abstract class GeneralObj implements Cloneable {
 		paintComponent(g);
 		if(attrib != null)
 		{
+			if(getType() == 0 || getType() == 5)
+			{
+				paintStateLikeAttributes(g);
+				return;
+			}
 			int step = -1;
 			for (int j = 0; j < attrib.size(); j++)
 			{
@@ -293,6 +298,38 @@ public abstract class GeneralObj implements Cloneable {
 				obj.paintComponent(g,currPage,getCenter(currPage),getSelectStatus(),step);
 			}
 		}  
+	}
+
+	private void paintStateLikeAttributes(Graphics g)
+	{
+		if(!(this instanceof StateObj))
+			return;
+		StateObj state = (StateObj)this;
+		int[] coords = state.getCoords();
+		Rectangle shape = new Rectangle(Math.min(coords[0], coords[2]), Math.min(coords[1], coords[3]),
+				Math.abs(coords[2] - coords[0]), Math.abs(coords[3] - coords[1]));
+		ObjAttribute nameAttr = null;
+		for(int j = 0; j < attrib.size(); j++)
+		{
+			ObjAttribute obj = attrib.get(j);
+			if(obj.getName().equals("name"))
+			{
+				nameAttr = obj;
+				break;
+			}
+		}
+		if(nameAttr != null)
+			nameAttr.paintStateComponent(g, currPage, shape, 0);
+
+		int row = 1;
+		for(int j = 0; j < attrib.size(); j++)
+		{
+			ObjAttribute obj = attrib.get(j);
+			if(obj == nameAttr || !obj.isCanvasVisible())
+				continue;
+			obj.paintStateComponent(g, currPage, shape, row);
+			row++;
+		}
 	}
 	
 	public int getPage()

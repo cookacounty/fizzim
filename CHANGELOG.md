@@ -155,6 +155,13 @@ part of the current codebase.
   highlighting.
 - Added blue hover affordances for states, state groups, forks, transitions, and
   loopbacks so editable canvas targets are easier to discover before clicking.
+- Changed state and state-group internal text to a deterministic HDL-friendly
+  layout: bold top-centered names with left-aligned visible values underneath.
+  Existing diagrams automatically use the new visual style when opened, while
+  saved attributes and backend generation remain unchanged.
+- Kept state and transition variable/action display order synchronized with the
+  global Outputs/Internals order, so reordering interface variables immediately
+  changes the deterministic canvas display order.
 - Added selected-object cleanup commands for selected-route cleanup, selected
   horizontal/vertical alignment, and selected horizontal/vertical distribution.
 - Added automatic transition priority normalization for sources with multiple
@@ -183,6 +190,29 @@ part of the current codebase.
 
 - Included the Perl backend script `fizzim.pl` in the repository so generated
   Verilog is reproducible from the checked-in source tree.
+- Added GUI-driven HDL generation using the checked-in Perl backend. The main
+  window now has a Generate button, `Tools > Generate HDL`, and
+  `Settings > HDL Generation` for backend command, backend script, output
+  directory, filename behavior, and backend options. By default HDL is emitted
+  next to the `.fzm` file as `<module_name>.v`.
+- Added a power-user HDL comparison mode that can run a second configurable
+  backend, emit sidecar comparison HDL, and report a generated diff file when
+  the two outputs do not match.
+- Added an HDL generation status indicator. The main toolbar shows yellow when
+  HDL is stale or not yet generated, and green after successful generation until
+  the diagram changes again.
+- Added a conventional unsaved-change marker in the window title. Modified
+  diagrams now show `*Fizzim 2.0 - filename.fzm` until saved.
+- Persisted HDL generation state into the diagram file. After successful GUI
+  generation, the `.fzm` records that the HDL is in sync and remembers the
+  generated HDL path, so reopening the diagram restores the green status when
+  the generated file is still present.
+- HDL generation metadata now marks the diagram as unsaved instead of silently
+  saving the `.fzm`, so the title-bar `*` reflects that the XML changed.
+- Added a Java HDL backend entry point, `FizzimJavaBackend`, plus Windows and
+  Linux launcher scripts. The entry point currently delegates to the checked-in
+  Perl backend so Java-launched generation is line-for-line compatible while the
+  backend is ported incrementally.
 - Updated the backend for forked transitions, state groups, state group default
   entry behavior, transition actions, and widened debug `statename` output.
 - Pruned lower-priority transitions that become unreachable behind an
@@ -209,6 +239,11 @@ part of the current codebase.
   Suite tools such as Icarus Verilog and Yosys when present.
 - Added documentation for the test environment and how to rerun backend
   regressions.
+- Added `testcases/tools/fuzz_backend_compare.js` and `make test-fuzz` /
+  `make.cmd test-fuzz` for randomized non-human-readable FSM backend fuzzing.
+  The fuzz flow mutates the generic feature diagram, exercises forks, state
+  groups, transition actions, priorities, internals, and equations, then checks
+  direct Perl generation against Java-launched generation line-for-line.
 
 ### Build And Packaging
 

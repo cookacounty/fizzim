@@ -1,6 +1,8 @@
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.io.BufferedWriter;
@@ -398,6 +400,60 @@ public class ObjAttribute implements Cloneable {
 		}
 	}
 
+	public void paintStateComponent(Graphics g, int curr, Rectangle shape, int row) {
+		currPage = curr;
+		if(myPage != currPage || !isCanvasVisible())
+			return;
+
+		Graphics2D g2D = (Graphics2D)g;
+		Font oldFont = g2D.getFont();
+		Color oldColor = g2D.getColor();
+		g2D.setColor(currColor);
+
+		String text = getDrawText();
+		boolean title = name.equals("name");
+		if(title)
+			g2D.setFont(oldFont.deriveFont(Font.BOLD));
+		FontMetrics fm = g2D.getFontMetrics();
+		int inset = 10;
+		int y = shape.y + inset + fm.getAscent();
+		int x;
+		if(title)
+			x = shape.x + (shape.width - fm.stringWidth(text)) / 2;
+		else
+		{
+			y += fm.getHeight() * row;
+			x = shape.x + inset;
+		}
+
+		drawMultilineText(g2D, text, x, y, fm);
+		g2D.setFont(oldFont);
+		g2D.setColor(oldColor);
+	}
+
+	public Rectangle getStateDrawBounds(FontMetrics normalMetrics, Font normalFont, Rectangle shape, int page, int row) {
+		if(myPage != page || !isCanvasVisible())
+			return null;
+
+		String text = getDrawText();
+		boolean title = name.equals("name");
+		FontMetrics fm = normalMetrics;
+		int inset = 10;
+		int height = fm.getHeight();
+		int width = multilineWidth(fm, text);
+		int y = shape.y + inset + fm.getAscent();
+		int x;
+		if(title)
+			x = shape.x + (shape.width - width) / 2;
+		else
+		{
+			y += height * row;
+			x = shape.x + inset;
+		}
+		int lines = multilineLineCount(text);
+		return new Rectangle(x - 4, y - height + 2, width + 8, height * lines + 6);
+	}
+
 	public Rectangle getDrawBounds(FontMetrics fm, Point point, int page, int step) {
 		if(myPage != page || !isCanvasVisible())
 			return null;
@@ -432,6 +488,49 @@ public class ObjAttribute implements Cloneable {
 		if(outputTypeReg || outputTypeFlag)
 			return name + " <= " + value;
 		return name + " = " + value;
+	}
+
+	private void drawMultilineText(Graphics g, String text, int x, int y, FontMetrics fm) {
+		if(text.indexOf("\\n") == -1)
+		{
+			g.drawString(text, x, y);
+			return;
+		}
+		int yoffset = 0;
+		String tempText = text;
+		while(tempText.indexOf("\\n") > -1)
+		{
+			String line = tempText.substring(0, tempText.indexOf("\\n"));
+			g.drawString(line, x, y + yoffset);
+			tempText = tempText.substring(tempText.indexOf("\\n") + 2);
+			yoffset += fm.getHeight();
+		}
+		g.drawString(tempText, x, y + yoffset);
+	}
+
+	private int multilineWidth(FontMetrics fm, String text) {
+		if(text.indexOf("\\n") == -1)
+			return fm.stringWidth(text);
+		int width = 0;
+		String tempText = text;
+		while(tempText.indexOf("\\n") > -1)
+		{
+			String line = tempText.substring(0, tempText.indexOf("\\n"));
+			width = Math.max(width, fm.stringWidth(line));
+			tempText = tempText.substring(tempText.indexOf("\\n") + 2);
+		}
+		return Math.max(width, fm.stringWidth(tempText));
+	}
+
+	private int multilineLineCount(String text) {
+		int count = 1;
+		int index = text.indexOf("\\n");
+		while(index != -1)
+		{
+			count++;
+			index = text.indexOf("\\n", index + 2);
+		}
+		return count;
 	}
 
 	public boolean isCanvasVisible() {
