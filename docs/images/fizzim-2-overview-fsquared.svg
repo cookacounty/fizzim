@@ -30,7 +30,7 @@
   <rect class="canvas" x="462" y="42" width="474" height="276" rx="28"/>
 
   <text class="title" x="56" y="116">
-    <tspan>F</tspan><tspan class="titleSuper" baseline-shift="super">2</tspan><tspan>izzim 2.0</tspan>
+    <tspan>F</tspan><tspan class="titleSuper" baseline-shift="super">2</tspan><tspan>izz||m 2.0</tspan>
   </text>
   <text class="subtitle" x="58" y="154">Readable FSM diagrams. Cleaner shared logic. Verilog you can trust.</text>
 

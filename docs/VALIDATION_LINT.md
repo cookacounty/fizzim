@@ -20,20 +20,18 @@ state-machine RTL.
   - priority must be an integer from 0 to 1000,
   - duplicate priorities from the same source are errors,
   - an always-true/default transition above lower-priority transitions is an
-    error because those lower-priority transitions cannot be reached,
-  - multiple prioritized transitions without a default branch are warnings.
+    error because those lower-priority transitions cannot be reached.
 - Checks fork structure:
   - no incoming transition is an error,
   - no outgoing transition is an error,
   - pass-through, fan-in, fan-out, and partial-branch forks are allowed.
 - Checks transition equations for references to names that are not declared in
-  the global input/output lists or as built-in FSM signals.
+  the global input/output lists, machine parameters/defines, or as built-in FSM
+  signals. Verilog constants and macro references are ignored.
 - Checks reachability from `reset_state` through normal transitions, state-group
   exits, group default entries, and fork branches.
 - Checks state coverage:
-  - states with no outgoing transition are warned when implied loopback is off,
-  - states with multiple effective outgoing transitions are warned when no
-    default branch exists.
+  - states with no outgoing transition are warned when implied loopback is off.
 - Checks transition actions for blank RHS values and likely full-assignment text
   entered where only an expression should be used.
 - Checks registered outputs for missing reset values.
@@ -56,7 +54,6 @@ that means:
 - every reset path lands in a known reachable state,
 - every state has a clearly defined next-state behavior,
 - priority logic is intentional and ordered,
-- default/else behavior is explicit when conditions do not cover every case,
 - forked control flow resolves to concrete destination states,
 - transition actions are RHS expressions that the backend can place safely into
   generated assignment statements.

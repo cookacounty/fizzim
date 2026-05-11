@@ -3989,7 +3989,6 @@ public void updateTransitions()
 			if(transitions.size() <= 1)
 				continue;
 			TreeMap<Integer, String> seen = new TreeMap<Integer, String>();
-			boolean hasDefault = false;
 			for(int i = 0; i < transitions.size(); i++)
 			{
 				TransitionObj trans = transitions.get(i);
@@ -4012,14 +4011,6 @@ public void updateTransitions()
 				{
 					seen.put(new Integer(priority), transitionLabel(trans));
 				}
-				if(isDefaultEquation(getTransitionEquation(trans)))
-					hasDefault = true;
-			}
-			if(source.getType() != 4 && !hasDefault)
-			{
-				wroteHeader = appendLintHeader(report, wroteHeader, "Priority And Ordering");
-				appendLint(report, "WARN", "Source " + source.getName() + " has " + transitions.size()
-						+ " prioritized outgoing transitions but no default/else branch. ASIC RTL should make uncovered conditions intentional.", source);
 			}
 			sortTransitionsByPriority(transitions);
 			for(int i = 0; i < transitions.size() - 1; i++)
@@ -4099,6 +4090,13 @@ public void updateTransitions()
 			names.add(baseIdentifier(globalList.get(1).get(i).getName()));
 		for(int i = 0; i < globalList.get(2).size(); i++)
 			names.add(baseIdentifier(globalList.get(2).get(i).getName()));
+		for(int i = 0; i < globalList.get(0).size(); i++)
+		{
+			ObjAttribute attr = globalList.get(0).get(i);
+			String type = attr.getType() == null ? "" : attr.getType().trim().toLowerCase();
+			if(type.equals("parameter") || type.equals("define") || type.equals("`define"))
+				names.add(baseIdentifier(stripVerilogMacroPrefix(attr.getName())));
+		}
 		names.add("state");
 		names.add("nextstate");
 		names.add("statename");
@@ -4121,7 +4119,7 @@ public void updateTransitions()
 		LinkedList<String> ids = new LinkedList<String>();
 		if(expression == null)
 			return ids;
-		String stripped = expression.replaceAll("\\d+'[bBoOdDhH][0-9a-fA-F_xXzZ?]+", " ");
+		String stripped = stripExpressionIgnoredTokens(expression);
 		java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("[A-Za-z_][A-Za-z0-9_$]*").matcher(stripped);
 		while(matcher.find())
 		{
@@ -4132,6 +4130,24 @@ public void updateTransitions()
 			ids.add(base);
 		}
 		return ids;
+	}
+
+	private String stripExpressionIgnoredTokens(String expression)
+	{
+		String stripped = expression;
+		stripped = stripped.replaceAll("(?i)(?:\\d+\\s*)?'\\s*[bBoOdDhH]\\s*[0-9a-f_xz?]+", " ");
+		stripped = stripped.replaceAll("`[A-Za-z_][A-Za-z0-9_$]*", " ");
+		return stripped;
+	}
+
+	private String stripVerilogMacroPrefix(String name)
+	{
+		if(name == null)
+			return "";
+		String stripped = name.trim();
+		if(stripped.startsWith("`"))
+			stripped = stripped.substring(1);
+		return stripped;
 	}
 
 	private boolean isExpressionKeyword(String id)
@@ -4198,12 +4214,6 @@ public void updateTransitions()
 				wroteHeader = appendLintHeader(report, wroteHeader, "State Coverage");
 				appendLint(report, "WARN", "State " + state.getName()
 						+ " has no explicit outgoing transition and implied_loopback is disabled.", state);
-			}
-			else if(outgoing.size() > 1 && !hasDefaultTransition(outgoing))
-			{
-				wroteHeader = appendLintHeader(report, wroteHeader, "State Coverage");
-				appendLint(report, "WARN", "State " + state.getName()
-						+ " has multiple effective outgoing transitions with no default/else branch.", state);
 			}
 		}
 		if(wroteHeader)
@@ -4317,16 +4327,6 @@ public void updateTransitions()
 		String normalized = equation == null ? "" : equation.trim().toLowerCase();
 		return normalized.equals("1") || normalized.equals("1'b1") || normalized.equals("1'b01")
 				|| normalized.equals("true") || normalized.equals("default");
-	}
-
-	private boolean hasDefaultTransition(LinkedList<TransitionObj> transitions)
-	{
-		for(int i = 0; i < transitions.size(); i++)
-		{
-			if(isDefaultEquation(getTransitionEquation(transitions.get(i))))
-				return true;
-		}
-		return false;
 	}
 
 	private LinkedHashMap<StateObj, LinkedList<TransitionObj>> getTransitionsByDestination()

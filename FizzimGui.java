@@ -1112,8 +1112,14 @@ public class FizzimGui extends javax.swing.JFrame {
 		String report = drawArea1.lintDiagram();
 		final java.util.LinkedList<DrawArea.LintIssue> issues = drawArea1.getLastLintIssues();
 		lintIssueModel.clear();
-		for(int i = 0; i < issues.size(); i++)
-			lintIssueModel.addElement(issues.get(i));
+		if(issues.size() == 0)
+			lintIssueModel.addElement(new DrawArea.LintIssue("PASS",
+					"No lint issues found. The FSM structure looks ready for backend generation.", null));
+		else
+		{
+			for(int i = 0; i < issues.size(); i++)
+				lintIssueModel.addElement(issues.get(i));
+		}
 		lintReportText.setText(report);
 		lintReportText.setCaretPosition(0);
 		drawArea1.highlightAllLintIssues();
