@@ -38,11 +38,15 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InvalidObjectException;
+import java.io.InputStream;
 import java.io.ObjectStreamException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.net.URL;
 import java.text.DateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
@@ -101,6 +105,12 @@ public class FizzimGui extends javax.swing.JFrame {
 	private static final String PREF_DEFAULT_RESET = "defaultReset";
 	private static final String PREF_DEFAULT_RESET_EDGE = "defaultResetEdge";
 	private static final String PREF_DEFAULT_IMPLIED_LOOPBACK = "defaultImpliedLoopback";
+	private static final String PREF_HDL_PERL = "hdlPerlCommand";
+	private static final String PREF_HDL_BACKEND = "hdlBackendPath";
+	private static final String PREF_HDL_OUTPUT_DIR = "hdlOutputDir";
+	private static final String PREF_HDL_USE_MODULE_FILENAME = "hdlUseModuleFilename";
+	private static final String PREF_HDL_OUTPUT_FILENAME = "hdlOutputFilename";
+	private static final String PREF_HDL_EXTRA_ARGS = "hdlExtraArgs";
 	private static final Preferences USER_PREFS = Preferences.userNodeForPackage(FizzimGui.class);
 	private static int openWindowCount = 0;
 
@@ -219,6 +229,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		zoomOutButton = new javax.swing.JButton();
 		zoomInButton = new javax.swing.JButton();
 		zoomFitButton = new javax.swing.JButton();
+		generateHdlButton = new javax.swing.JButton();
 		zoomPercentLabel = new javax.swing.JLabel();
 		selectionStatusLabel = new javax.swing.JLabel();
 		propertyInspectorPanel = new javax.swing.JPanel();
@@ -401,6 +412,14 @@ public class FizzimGui extends javax.swing.JFrame {
 			}
 		});
 		zoomPanel.add(zoomFitButton);
+		generateHdlButton.setText("Generate");
+		generateHdlButton.setToolTipText("Generate HDL using the configured backend");
+		generateHdlButton.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ToolsGenerateHdlActionPerformed(evt);
+			}
+		});
+		zoomPanel.add(generateHdlButton);
 		getContentPane().add(zoomPanel, java.awt.BorderLayout.NORTH);
 
 		buildLintPanel();
@@ -587,6 +606,13 @@ public class FizzimGui extends javax.swing.JFrame {
 			}
 		});
 		settingsMenu.add(defaultsItem);
+		JMenuItem hdlSettingsItem = new JMenuItem("HDL Generation");
+		hdlSettingsItem.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ToolsHdlGenerationSettingsActionPerformed(evt);
+			}
+		});
+		settingsMenu.add(hdlSettingsItem);
 		MenuBar.add(settingsMenu);
 
 		JMenu toolsMenu = new JMenu();
@@ -600,6 +626,14 @@ public class FizzimGui extends javax.swing.JFrame {
 			}
 		});
 		toolsMenu.add(lintItem);
+
+		JMenuItem generateHdlItem = new JMenuItem("Generate HDL");
+		generateHdlItem.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ToolsGenerateHdlActionPerformed(evt);
+			}
+		});
+		toolsMenu.add(generateHdlItem);
 
 		JMenu cleanupMenu = new JMenu("Clean Up Diagram");
 		JMenuItem resetLabelsItem = new JMenuItem("Reset Transition Labels");
@@ -949,6 +983,224 @@ public class FizzimGui extends javax.swing.JFrame {
 			USER_PREFS.put(PREF_DEFAULT_RESET, resetField.getText().trim().equals("") ? "rst_l" : resetField.getText().trim());
 			USER_PREFS.put(PREF_DEFAULT_RESET_EDGE, (String)resetEdge.getSelectedItem());
 			USER_PREFS.putBoolean(PREF_DEFAULT_IMPLIED_LOOPBACK, impliedLoopback.isSelected());
+		}
+	}
+
+	private void ToolsHdlGenerationSettingsActionPerformed(ActionEvent evt) {
+		showHdlGenerationSettingsDialog(false);
+	}
+
+	private void ToolsGenerateHdlActionPerformed(ActionEvent evt) {
+		generateHdlFromGui();
+	}
+
+	private boolean showHdlGenerationSettingsDialog(boolean generationContext) {
+		JTextField perlField = new JTextField(getHdlPerlCommand(), 24);
+		JTextField backendField = new JTextField(getHdlBackendPath(), 24);
+		JTextField outputDirField = new JTextField(getHdlOutputDir(), 24);
+		JCheckBox useModuleName = new JCheckBox("Use module name for filename", getHdlUseModuleFilename());
+		JTextField outputFileField = new JTextField(getHdlOutputFilename(), 24);
+		JTextField extraArgsField = new JTextField(getHdlExtraArgs(), 24);
+		outputFileField.setEnabled(!useModuleName.isSelected());
+		useModuleName.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				outputFileField.setEnabled(!useModuleName.isSelected());
+			}
+		});
+
+		JPanel panel = new JPanel(new java.awt.GridLayout(0, 2, 6, 6));
+		panel.add(new JLabel("Perl command:"));
+		panel.add(perlField);
+		panel.add(new JLabel("Backend script:"));
+		panel.add(backendField);
+		panel.add(new JLabel("Output directory:"));
+		panel.add(outputDirField);
+		panel.add(new JLabel(""));
+		panel.add(useModuleName);
+		panel.add(new JLabel("Output filename:"));
+		panel.add(outputFileField);
+		panel.add(new JLabel("Backend options:"));
+		panel.add(extraArgsField);
+		int result = JOptionPane.showConfirmDialog(this, panel,
+				generationContext ? "HDL Generation Settings" : "Configure HDL Generation",
+				JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+		if(result != JOptionPane.OK_OPTION)
+			return false;
+		USER_PREFS.put(PREF_HDL_PERL, blankDefault(perlField.getText(), "perl"));
+		USER_PREFS.put(PREF_HDL_BACKEND, blankDefault(backendField.getText(), "fizzim.pl"));
+		USER_PREFS.put(PREF_HDL_OUTPUT_DIR, blankDefault(outputDirField.getText(), "."));
+		USER_PREFS.putBoolean(PREF_HDL_USE_MODULE_FILENAME, useModuleName.isSelected());
+		USER_PREFS.put(PREF_HDL_OUTPUT_FILENAME, blankDefault(outputFileField.getText(), ""));
+		USER_PREFS.put(PREF_HDL_EXTRA_ARGS, extraArgsField.getText().trim());
+		return true;
+	}
+
+	private void generateHdlFromGui() {
+		if(currFile == null)
+		{
+			JOptionPane.showMessageDialog(this, "Save the diagram before generating HDL.", "Generate HDL", JOptionPane.INFORMATION_MESSAGE);
+			FileItemSaveAsActionPerformed(null);
+			if(currFile == null)
+				return;
+		}
+		if(drawArea1.getFileModifed())
+		{
+			int result = JOptionPane.showConfirmDialog(this,
+					"Save changes before generating HDL?",
+					"Generate HDL", JOptionPane.OK_CANCEL_OPTION);
+			if(result != JOptionPane.OK_OPTION)
+				return;
+			if(!saveFile(currFile))
+				return;
+		}
+		try {
+			File output = resolveHdlOutputFile();
+			File parent = output.getParentFile();
+			if(parent != null && !parent.exists() && !parent.mkdirs())
+			{
+				JOptionPane.showMessageDialog(this, "Could not create output directory:\n" + parent.getAbsolutePath(),
+						"Generate HDL", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+			HdlGenerationResult result = runHdlBackend(output);
+			if(result.exitCode == 0)
+			{
+				JOptionPane.showMessageDialog(this,
+						"Generated HDL:\n" + output.getAbsolutePath(),
+						"Generate HDL", JOptionPane.INFORMATION_MESSAGE);
+			}
+			else
+			{
+				JOptionPane.showMessageDialog(this,
+						"HDL generation failed with exit code " + result.exitCode + "\n\n" + result.stderr,
+						"Generate HDL", JOptionPane.ERROR_MESSAGE);
+			}
+		} catch (Exception ex) {
+			JOptionPane.showMessageDialog(this,
+					"HDL generation failed:\n" + ex.getMessage(),
+					"Generate HDL", JOptionPane.ERROR_MESSAGE);
+			ex.printStackTrace();
+		}
+	}
+
+	private HdlGenerationResult runHdlBackend(File output) throws IOException, InterruptedException {
+		File fzmDir = currFile.getAbsoluteFile().getParentFile();
+		File backend = resolveRelativeToApp(getHdlBackendPath());
+		if(!backend.exists())
+			throw new IOException("Backend script not found: " + backend.getAbsolutePath());
+		File errorFile = File.createTempFile("fizzim-hdl-generation", ".log");
+		ArrayList<String> command = new ArrayList<String>();
+		command.add(getHdlPerlCommand());
+		command.add(backend.getAbsolutePath());
+		command.addAll(splitCommandArgs(getHdlExtraArgs()));
+		command.add(currFile.getName());
+		ProcessBuilder builder = new ProcessBuilder(command);
+		builder.directory(fzmDir);
+		builder.redirectOutput(output);
+		builder.redirectError(errorFile);
+		Process process = builder.start();
+		int exit = process.waitFor();
+		String stderr = new String(Files.readAllBytes(errorFile.toPath()), StandardCharsets.UTF_8);
+		errorFile.delete();
+		return new HdlGenerationResult(exit, stderr);
+	}
+
+	private File resolveHdlOutputFile() {
+		File fzmDir = currFile.getAbsoluteFile().getParentFile();
+		File outputDir = resolveRelativeToFzm(getHdlOutputDir());
+		String filename;
+		if(getHdlUseModuleFilename())
+			filename = sanitizeHdlFilename(getMachineName()) + ".v";
+		else
+			filename = getHdlOutputFilename();
+		if(filename == null || filename.trim().equals(""))
+			filename = sanitizeHdlFilename(getMachineName()) + ".v";
+		if(!filename.toLowerCase().endsWith(".v"))
+			filename += ".v";
+		File output = new File(filename);
+		if(output.isAbsolute())
+			return output;
+		return new File(outputDir == null ? fzmDir : outputDir, filename);
+	}
+
+	private File resolveRelativeToFzm(String path) {
+		File candidate = new File(path);
+		if(candidate.isAbsolute())
+			return candidate;
+		File fzmDir = currFile == null ? new File(System.getProperty("user.dir")) : currFile.getAbsoluteFile().getParentFile();
+		return new File(fzmDir, path);
+	}
+
+	private File resolveRelativeToApp(String path) {
+		File candidate = new File(path);
+		if(candidate.isAbsolute())
+			return candidate;
+		return new File(System.getProperty("user.dir"), path);
+	}
+
+	private String getMachineName() {
+		for(int i = 0; i < globalList.get(0).size(); i++)
+		{
+			ObjAttribute attr = globalList.get(0).get(i);
+			if(attr.getName().equals("name"))
+				return attr.getValue();
+		}
+		return "fsm";
+	}
+
+	private String sanitizeHdlFilename(String name) {
+		if(name == null || name.trim().equals(""))
+			return "fsm";
+		return name.trim().replaceAll("[^A-Za-z0-9_.$-]", "_");
+	}
+
+	private ArrayList<String> splitCommandArgs(String args) {
+		ArrayList<String> parts = new ArrayList<String>();
+		if(args == null || args.trim().equals(""))
+			return parts;
+		StringTokenizer tokenizer = new StringTokenizer(args);
+		while(tokenizer.hasMoreTokens())
+			parts.add(tokenizer.nextToken());
+		return parts;
+	}
+
+	private String blankDefault(String value, String defaultValue) {
+		if(value == null || value.trim().equals(""))
+			return defaultValue;
+		return value.trim();
+	}
+
+	private static String getHdlPerlCommand() {
+		return USER_PREFS.get(PREF_HDL_PERL, "perl");
+	}
+
+	private static String getHdlBackendPath() {
+		return USER_PREFS.get(PREF_HDL_BACKEND, "fizzim.pl");
+	}
+
+	private static String getHdlOutputDir() {
+		return USER_PREFS.get(PREF_HDL_OUTPUT_DIR, ".");
+	}
+
+	private static boolean getHdlUseModuleFilename() {
+		return USER_PREFS.getBoolean(PREF_HDL_USE_MODULE_FILENAME, true);
+	}
+
+	private static String getHdlOutputFilename() {
+		return USER_PREFS.get(PREF_HDL_OUTPUT_FILENAME, "");
+	}
+
+	private static String getHdlExtraArgs() {
+		return USER_PREFS.get(PREF_HDL_EXTRA_ARGS, "-noaddversion");
+	}
+
+	private static class HdlGenerationResult {
+		int exitCode;
+		String stderr;
+
+		HdlGenerationResult(int code, String err) {
+			exitCode = code;
+			stderr = err == null ? "" : err;
 		}
 	}
 
@@ -2062,6 +2314,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JButton zoomOutButton;
 	private javax.swing.JButton zoomInButton;
 	private javax.swing.JButton zoomFitButton;
+	private javax.swing.JButton generateHdlButton;
 	private javax.swing.JLabel zoomPercentLabel;
 	private javax.swing.JLabel selectionStatusLabel;
 	private javax.swing.JPanel propertyInspectorPanel;

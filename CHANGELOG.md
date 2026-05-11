@@ -190,6 +190,11 @@ part of the current codebase.
 
 - Included the Perl backend script `fizzim.pl` in the repository so generated
   Verilog is reproducible from the checked-in source tree.
+- Added GUI-driven HDL generation using the checked-in Perl backend. The main
+  window now has a Generate button, `Tools > Generate HDL`, and
+  `Settings > HDL Generation` for backend command, backend script, output
+  directory, filename behavior, and backend options. By default HDL is emitted
+  next to the `.fzm` file as `<module_name>.v`.
 - Updated the backend for forked transitions, state groups, state group default
   entry behavior, transition actions, and widened debug `statename` output.
 - Pruned lower-priority transitions that become unreachable behind an
