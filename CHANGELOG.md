@@ -56,6 +56,8 @@ part of the current codebase.
   did not already carry the built-in priority attribute.
 - Normalized transition priority so the property row appears immediately after
   `equation`, and default/implied priority labels stay hidden on the canvas.
+- Normalized older transition priority edit flags so the priority value can be
+  edited from transition property dialogs and the property inspector.
 - Added parent-qualified debug state names for grouped states, so simulation
   debug can display names like `GROUP.CHILD`.
 - Increased the generated debug `statename` width to 256 characters by default.

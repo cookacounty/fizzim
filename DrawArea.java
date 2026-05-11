@@ -3309,6 +3309,7 @@ public void updateTransitions()
 			{
 				TransitionObj s = (TransitionObj) o;
 				s.updateAttrib(globalList,4);
+				normalizeTransitionPriorityAttribute(s);
 			}
 		}
 		
@@ -3335,9 +3336,23 @@ public void updateTransitions()
 				ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR };
 		if(priority == null)
 			priority = new ObjAttribute("priority", "1000", ObjAttribute.NONDEFAULT, "", "", Color.black, "", "", editable);
-		priority.setVisibility(ObjAttribute.NONDEFAULT);
+		normalizePriorityAttribute(priority);
 		int insertIndex = transitionAttributeInsertIndexAfter("equation", transGlobals);
 		transGlobals.add(insertIndex, priority);
+	}
+
+	private void normalizeTransitionPriorityAttribute(TransitionObj trans)
+	{
+		ObjAttribute priority = getTransitionPriorityAttribute(trans);
+		if(priority != null)
+			normalizePriorityAttribute(priority);
+	}
+
+	private void normalizePriorityAttribute(ObjAttribute priority)
+	{
+		priority.setVisibility(ObjAttribute.NONDEFAULT);
+		if(priority.getEditable(1) != ObjAttribute.LOCAL)
+			priority.setEditable(1, ObjAttribute.GLOBAL_VAR);
 	}
 
 	private int transitionAttributeInsertIndexAfter(String name, LinkedList<ObjAttribute> attrs)
