@@ -2882,38 +2882,31 @@ sub get_stategroup_entry_state {
 }
 
 sub apply_forks {
-  my ($trans, $start, $end, $fork, $intrans, $outtrans, $newtrans);
-  my (%incoming, %outgoing, %new_transition);
+  my ($trans, $start, $end);
+  my (%outgoing, %expanded_transitions, @routes);
 
   foreach $trans (keys %transitions) {
     $start = $transitions{$trans}{startState};
     $end = $transitions{$trans}{endState};
-    push(@{ $incoming{$end} }, $trans) if ($end && !exists $states{$end} && !exists $stategroups{$end});
     push(@{ $outgoing{$start} }, $trans) if ($start && !exists $states{$start} && !exists $stategroups{$start});
   }
 
-  foreach $fork (keys %incoming) {
-    next unless exists $outgoing{$fork};
+  foreach $trans (keys %transitions) {
+    $start = $transitions{$trans}{startState};
+    $end = $transitions{$trans}{endState};
+    next if ($start && !exists $states{$start} && !exists $stategroups{$start});
 
-    foreach $intrans (sort sort_by_priority_then_equation_equal_1 @{ $incoming{$fork} }) {
-      my @sorted_outgoing = sort sort_by_priority_then_equation_equal_1 @{ $outgoing{$fork} };
-      for (my $out_index = 0; $out_index <= $#sorted_outgoing; $out_index++) {
-        $outtrans = $sorted_outgoing[$out_index];
-        $newtrans = "${intrans}__${outtrans}";
-        %new_transition = &merge_fork_transition($transitions{$intrans}, $transitions{$outtrans}, $out_index, $#sorted_outgoing + 1);
-        $new_transition{startState} = $transitions{$intrans}{startState};
-        $new_transition{endState} = $transitions{$outtrans}{endState};
-        $transitions{$newtrans} = { %new_transition };
+    if ($end && !exists $states{$end} && !exists $stategroups{$end}) {
+      @routes = &expand_fork_routes($trans, $transitions{$trans}, $end, \%outgoing, {});
+      foreach my $route (@routes) {
+        $expanded_transitions{$route->{name}} = $route->{transition};
       }
-    }
-
-    foreach $intrans (@{ $incoming{$fork} }) {
-      delete $transitions{$intrans};
-    }
-    foreach $outtrans (@{ $outgoing{$fork} }) {
-      delete $transitions{$outtrans};
+    } else {
+      $expanded_transitions{$trans} = $transitions{$trans};
     }
   }
+
+  %transitions = %expanded_transitions;
 
   foreach $trans (keys %transitions) {
     $start = $transitions{$trans}{startState};
@@ -2923,6 +2916,41 @@ sub apply_forks {
       &warning($indent,"Transition $trans references unresolved fork endpoint $start -> $end");
     }
   }
+}
+
+sub expand_fork_routes {
+  my ($path_name, $path_ref, $fork, $outgoing_ref, $visited_ref) = @_;
+  my (@routes, @sorted_outgoing, $out_index, $outtrans, %new_transition, $newtrans, $end);
+
+  if (exists $visited_ref->{$fork}) {
+    &warning($indent,"Fork route $path_name contains a cycle at fork $fork");
+    return @routes;
+  }
+
+  if (!exists $outgoing_ref->{$fork}) {
+    &warning($indent,"Transition $path_name enters fork $fork, but that fork has no outgoing transition");
+    return @routes;
+  }
+
+  $visited_ref->{$fork} = 1;
+  @sorted_outgoing = sort sort_by_priority_then_equation_equal_1 @{ $outgoing_ref->{$fork} };
+  for ($out_index = 0; $out_index <= $#sorted_outgoing; $out_index++) {
+    $outtrans = $sorted_outgoing[$out_index];
+    $newtrans = "${path_name}__${outtrans}";
+    %new_transition = &merge_fork_transition($path_ref, $transitions{$outtrans}, $out_index, $#sorted_outgoing + 1);
+    $new_transition{startState} = $path_ref->{startState};
+    $new_transition{endState} = $transitions{$outtrans}{endState};
+    $end = $new_transition{endState};
+
+    if ($end && !exists $states{$end} && !exists $stategroups{$end}) {
+      my %next_visited = %{ $visited_ref };
+      push(@routes, &expand_fork_routes($newtrans, \%new_transition, $end, $outgoing_ref, \%next_visited));
+    } else {
+      push(@routes, { name => $newtrans, transition => { %new_transition } });
+    }
+  }
+
+  return @routes;
 }
 
 sub merge_fork_transition {

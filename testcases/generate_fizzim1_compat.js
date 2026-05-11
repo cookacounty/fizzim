@@ -240,25 +240,45 @@ function mergeFork(inObj, outObj, index, count, states) {
   return merged;
 }
 
-function expandForks(transitions, forkNames, states) {
-  let changed = true;
-  while (changed) {
-    changed = false;
-    const added = [], removed = new Set();
-    for (const fork of [...forkNames].sort()) {
-      const incoming = transitions.filter((t) => tinfo(t).end === fork).sort((a, b) => compareInfo(tinfo(a), tinfo(b)));
-      const outgoing = transitions.filter((t) => tinfo(t).start === fork).sort((a, b) => compareInfo(tinfo(a), tinfo(b)));
-      if (!incoming.length || !outgoing.length) continue;
-      changed = true;
-      for (const tin of incoming) {
-        outgoing.forEach((tout, idx) => added.push(mergeFork(tin, tout, idx, outgoing.length, states)));
-        removed.add(tin);
-      }
-      outgoing.forEach((t) => removed.add(t));
+function expandForkRoutes(pathObj, fork, outgoing, forkNames, states, visited = new Set()) {
+  const routes = [];
+  if (visited.has(fork)) return routes;
+  const branches = (outgoing.get(fork) || []).slice().sort((a, b) => compareInfo(tinfo(a), tinfo(b)));
+  if (!branches.length) return routes;
+  const nextVisited = new Set(visited);
+  nextVisited.add(fork);
+  branches.forEach((tout, idx) => {
+    const merged = mergeFork(pathObj, tout, idx, branches.length, states);
+    const end = tinfo(merged).end;
+    if (forkNames.has(end)) {
+      routes.push(...expandForkRoutes(merged, end, outgoing, forkNames, states, nextVisited));
+    } else {
+      routes.push(merged);
     }
-    if (changed) transitions = transitions.filter((t) => !removed.has(t)).concat(added);
+  });
+  return routes;
+}
+
+function expandForks(transitions, forkNames, states) {
+  const outgoing = new Map();
+  for (const transition of transitions) {
+    const start = tinfo(transition).start;
+    if (!forkNames.has(start)) continue;
+    if (!outgoing.has(start)) outgoing.set(start, []);
+    outgoing.get(start).push(transition);
   }
-  return transitions;
+
+  const expanded = [];
+  for (const transition of transitions) {
+    const info = tinfo(transition);
+    if (forkNames.has(info.start)) continue;
+    if (forkNames.has(info.end)) {
+      expanded.push(...expandForkRoutes(transition, info.end, outgoing, forkNames, states));
+    } else {
+      expanded.push(transition);
+    }
+  }
+  return expanded;
 }
 
 function expandGroups(transitions, groups, states) {
