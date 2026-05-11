@@ -257,6 +257,13 @@ part of the current codebase.
 - Made project creation explicit. New Project now prompts for a `.fzp` path,
   adding diagrams requires a saved project file, and add/remove changes
   auto-save the project so relative paths stay predictable.
+- Added recent projects under `File > Open Recent Project`, keeping a separate
+  quick-open list for `.fzp` project files.
+- Recent file and project menus now prune entries whose target files have been
+  moved or deleted, avoiding stale-path errors.
+- Project create/save dialogs now explicitly show that project files use the
+  enforced `.fzp` extension and confirm the final path when the extension is
+  added automatically.
 
 ### Build And Packaging
 

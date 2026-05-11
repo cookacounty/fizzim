@@ -104,6 +104,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private static final String APP_TITLE = "Fizzim 2.0";
 	private static final int RECENT_FILE_LIMIT = 10;
 	private static final String RECENT_FILE_PREFIX = "recentFile.";
+	private static final String RECENT_PROJECT_PREFIX = "recentProject.";
 	private static final String PREF_DEFAULT_CLOCK = "defaultClock";
 	private static final String PREF_DEFAULT_CLOCK_EDGE = "defaultClockEdge";
 	private static final String PREF_DEFAULT_RESET = "defaultReset";
@@ -280,6 +281,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		FileProjectMenu = new javax.swing.JMenu();
 		FileProjectNew = new javax.swing.JMenuItem();
 		FileProjectOpen = new javax.swing.JMenuItem();
+		FileProjectOpenRecent = new javax.swing.JMenu();
 		FileProjectSave = new javax.swing.JMenuItem();
 		FileProjectSaveAs = new javax.swing.JMenuItem();
 		FileProjectAddCurrent = new javax.swing.JMenuItem();
@@ -519,6 +521,16 @@ public class FizzimGui extends javax.swing.JFrame {
 		});
 		rebuildRecentFilesMenu();
 		FileMenu.add(FileOpenRecent);
+		FileProjectOpenRecent.setText("Open Recent Project");
+		FileProjectOpenRecent.addMenuListener(new MenuListener() {
+			public void menuSelected(MenuEvent evt) {
+				rebuildRecentProjectsMenu();
+			}
+			public void menuDeselected(MenuEvent evt) {}
+			public void menuCanceled(MenuEvent evt) {}
+		});
+		rebuildRecentProjectsMenu();
+		FileMenu.add(FileProjectOpenRecent);
 		FileProjectMenu.setText("Project");
 		FileProjectNew.setText("New Project");
 		FileProjectNew.addActionListener(new java.awt.event.ActionListener() {
@@ -2403,6 +2415,18 @@ public class FizzimGui extends javax.swing.JFrame {
 	private void rebuildRecentFilesMenu() {
 		FileOpenRecent.removeAll();
 		LinkedList<File> recentFiles = getRecentFiles();
+		boolean pruned = false;
+		for(int i = recentFiles.size() - 1; i >= 0; i--)
+		{
+			File recentFile = recentFiles.get(i);
+			if(!isFizzimFile(recentFile) || !recentFile.exists())
+			{
+				recentFiles.remove(i);
+				pruned = true;
+			}
+		}
+		if(pruned)
+			storeRecentFiles(recentFiles);
 		if(recentFiles.size() == 0)
 		{
 			JMenuItem emptyItem = new JMenuItem("(No Recent Files)");
@@ -2482,6 +2506,100 @@ public class FizzimGui extends javax.swing.JFrame {
 		rebuildRecentFilesMenu();
 	}
 
+	private void rebuildRecentProjectsMenu() {
+		FileProjectOpenRecent.removeAll();
+		LinkedList<File> recentProjects = getRecentProjects();
+		boolean pruned = false;
+		for(int i = recentProjects.size() - 1; i >= 0; i--)
+		{
+			File recentProject = recentProjects.get(i);
+			if(!isProjectFile(recentProject) || !recentProject.exists())
+			{
+				recentProjects.remove(i);
+				pruned = true;
+			}
+		}
+		if(pruned)
+			storeRecentProjects(recentProjects);
+		if(recentProjects.size() == 0)
+		{
+			JMenuItem emptyItem = new JMenuItem("(No Recent Projects)");
+			emptyItem.setEnabled(false);
+			FileProjectOpenRecent.add(emptyItem);
+			return;
+		}
+
+		for(int i = 0; i < recentProjects.size(); i++)
+		{
+			final File recentProject = recentProjects.get(i);
+			JMenuItem item = new JMenuItem((i + 1) + " " + recentProject.getName());
+			item.setToolTipText(recentProject.getAbsolutePath());
+			item.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent evt) {
+					openRecentProject(recentProject);
+				}
+			});
+			FileProjectOpenRecent.add(item);
+		}
+
+		FileProjectOpenRecent.addSeparator();
+		JMenuItem clearItem = new JMenuItem("Clear Recent Projects");
+		clearItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				clearRecentProjects();
+			}
+		});
+		FileProjectOpenRecent.add(clearItem);
+	}
+
+	private LinkedList<File> getRecentProjects() {
+		LinkedList<File> recentProjects = new LinkedList<File>();
+		for(int i = 0; i < RECENT_FILE_LIMIT; i++)
+		{
+			String path = USER_PREFS.get(RECENT_PROJECT_PREFIX + i, "");
+			if(path != null && !path.equals(""))
+				recentProjects.add(new File(path));
+		}
+		return recentProjects;
+	}
+
+	private void rememberRecentProject(File file) {
+		if(file == null)
+			return;
+
+		File absoluteFile = file.getAbsoluteFile();
+		LinkedList<File> recentProjects = getRecentProjects();
+		for(int i = recentProjects.size() - 1; i >= 0; i--)
+		{
+			if(recentProjects.get(i).getAbsolutePath().equals(absoluteFile.getAbsolutePath()))
+				recentProjects.remove(i);
+		}
+		recentProjects.addFirst(absoluteFile);
+		while(recentProjects.size() > RECENT_FILE_LIMIT)
+			recentProjects.removeLast();
+		storeRecentProjects(recentProjects);
+		rebuildRecentProjectsMenu();
+	}
+
+	private void forgetRecentProject(File file) {
+		if(file == null)
+			return;
+
+		LinkedList<File> recentProjects = getRecentProjects();
+		for(int i = recentProjects.size() - 1; i >= 0; i--)
+		{
+			if(recentProjects.get(i).getAbsolutePath().equals(file.getAbsolutePath()))
+				recentProjects.remove(i);
+		}
+		storeRecentProjects(recentProjects);
+		rebuildRecentProjectsMenu();
+	}
+
+	private void clearRecentProjects() {
+		storeRecentProjects(new LinkedList<File>());
+		rebuildRecentProjectsMenu();
+	}
+
 	private void ProjectNewActionPerformed(java.awt.event.ActionEvent evt) {
 		createNewProjectWithPrompt(true);
 	}
@@ -2509,6 +2627,8 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	private void ProjectSaveAsActionPerformed(java.awt.event.ActionEvent evt) {
 		try {
+			ProjectSaveAction.setDialogTitle("Save Project As (.fzp)");
+			ProjectSaveAction.setApproveButtonText("Save Project");
 			if(currProjectFile == null)
 				ProjectSaveAction.setCurrentDirectory(new java.io.File(System.getProperty("user.dir")).getAbsoluteFile());
 			else
@@ -2518,7 +2638,20 @@ public class FizzimGui extends javax.swing.JFrame {
 			e1.printStackTrace();
 		}
 		if(ProjectSaveAction.getSelected())
-			saveProject(ensureProjectExtension(ProjectSaveAction.getSelectedFile()), true);
+		{
+			File selectedFile = ProjectSaveAction.getSelectedFile();
+			File file = ensureProjectExtension(selectedFile);
+			if(projectExtensionWasAdded(selectedFile))
+			{
+				int choice = JOptionPane.showConfirmDialog(this,
+						"Project files use the .fzp extension.\n\nFizzim will save this project as:\n"
+						+ file.getAbsolutePath(),
+						"Project Extension", JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE);
+				if(choice != JOptionPane.OK_OPTION)
+					return;
+			}
+			saveProject(file, true);
+		}
 	}
 
 	private void ProjectAddCurrentActionPerformed(java.awt.event.ActionEvent evt) {
@@ -2582,6 +2715,8 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	private boolean createNewProjectWithPrompt(boolean showMessage) {
 		try {
+			ProjectSaveAction.setDialogTitle("New Project (.fzp)");
+			ProjectSaveAction.setApproveButtonText("Create Project");
 			if(currProjectFile == null)
 			{
 				if(currFile != null)
@@ -2597,7 +2732,17 @@ public class FizzimGui extends javax.swing.JFrame {
 		}
 		if(!ProjectSaveAction.getSelected())
 			return false;
-		File file = ensureProjectExtension(ProjectSaveAction.getSelectedFile());
+		File selectedFile = ProjectSaveAction.getSelectedFile();
+		File file = ensureProjectExtension(selectedFile);
+		if(projectExtensionWasAdded(selectedFile))
+		{
+			int choice = JOptionPane.showConfirmDialog(this,
+					"Project files use the .fzp extension.\n\nFizzim will save this project as:\n"
+					+ file.getAbsolutePath(),
+					"Project Extension", JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE);
+			if(choice != JOptionPane.OK_OPTION)
+				return false;
+		}
 		if(file.exists())
 		{
 			int choice = JOptionPane.showConfirmDialog(this,
@@ -2643,6 +2788,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			projectDiagramFiles = diagrams;
 			currProjectFile = file;
 			updateProjectPanel();
+			rememberRecentProject(currProjectFile);
 			JOptionPane.showMessageDialog(this, "Opened project:\n" + file.getAbsolutePath()
 					+ "\n\nDiagrams: " + projectDiagramFiles.size(), "Project", JOptionPane.INFORMATION_MESSAGE);
 		} catch (IOException ex) {
@@ -2673,6 +2819,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			Files.write(file.toPath(), text.toString().getBytes(StandardCharsets.UTF_8));
 			currProjectFile = file;
 			updateProjectPanel();
+			rememberRecentProject(currProjectFile);
 			if(showMessage)
 				JOptionPane.showMessageDialog(this, "Saved project:\n" + file.getAbsolutePath()
 						+ "\n\nDiagrams: " + projectDiagramFiles.size(), "Project", JOptionPane.INFORMATION_MESSAGE);
@@ -3121,6 +3268,10 @@ public class FizzimGui extends javax.swing.JFrame {
 		return new File(file.getAbsolutePath() + ".fzp");
 	}
 
+	private boolean projectExtensionWasAdded(File file) {
+		return file != null && !file.getName().toLowerCase().endsWith(".fzp");
+	}
+
 	private String pathRelativeToProject(File projectFile, File file) {
 		return pathRelativeToDirectory(projectFile.getParentFile(), file);
 	}
@@ -3186,6 +3337,19 @@ public class FizzimGui extends javax.swing.JFrame {
 		} catch (Exception e) { }
 	}
 
+	private void storeRecentProjects(LinkedList<File> recentProjects) {
+		for(int i = 0; i < RECENT_FILE_LIMIT; i++)
+		{
+			if(i < recentProjects.size())
+				USER_PREFS.put(RECENT_PROJECT_PREFIX + i, recentProjects.get(i).getAbsolutePath());
+			else
+				USER_PREFS.remove(RECENT_PROJECT_PREFIX + i);
+		}
+		try {
+			USER_PREFS.flush();
+		} catch (Exception e) { }
+	}
+
 	private void openRecentFile(File selectedFile) {
 		if(!isFizzimFile(selectedFile) || !selectedFile.exists())
 		{
@@ -3199,6 +3363,23 @@ public class FizzimGui extends javax.swing.JFrame {
 			openFile(selectedFile);
 		else
 			openFileInNewWindow(selectedFile);
+	}
+
+	private void openRecentProject(File selectedFile) {
+		if(!isProjectFile(selectedFile) || !selectedFile.exists())
+		{
+			String path = selectedFile == null ? "(unknown)" : selectedFile.getAbsolutePath();
+			JOptionPane.showMessageDialog(this, "Recent project could not be opened:\n" + path,
+					"Project", JOptionPane.ERROR_MESSAGE);
+			forgetRecentProject(selectedFile);
+			return;
+		}
+
+		openProject(selectedFile);
+	}
+
+	private boolean isProjectFile(File file) {
+		return file != null && !file.isDirectory() && file.getName().toLowerCase().endsWith(".fzp");
 	}
 
 	private void openFileInNewWindow(File selectedFile) {
@@ -3452,6 +3633,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JMenu FileProjectMenu;
 	private javax.swing.JMenuItem FileProjectNew;
 	private javax.swing.JMenuItem FileProjectOpen;
+	private javax.swing.JMenu FileProjectOpenRecent;
 	private javax.swing.JMenuItem FileProjectSave;
 	private javax.swing.JMenuItem FileProjectSaveAs;
 	private javax.swing.JMenuItem FileProjectAddCurrent;
