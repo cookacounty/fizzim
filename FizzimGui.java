@@ -118,6 +118,8 @@ public class FizzimGui extends javax.swing.JFrame {
 	private static final String RECENT_PROJECT_PREFIX = "recentProject.";
 	private static final String PREF_LAST_OPEN_TYPE = "lastOpenType";
 	private static final String PREF_LAST_OPEN_PATH = "lastOpenPath";
+	private static final String PREF_LAST_PROJECT_PATH = "lastProjectPath";
+	private static final String PREF_LAST_PROJECT_DIAGRAM_PATH = "lastProjectDiagramPath";
 	private static final String PREF_DEFAULT_CLOCK = "defaultClock";
 	private static final String PREF_DEFAULT_CLOCK_EDGE = "defaultClockEdge";
 	private static final String PREF_DEFAULT_RESET = "defaultReset";
@@ -2755,7 +2757,11 @@ public class FizzimGui extends javax.swing.JFrame {
 			return;
 		closed = true;
 		if(currProjectFile != null)
+		{
 			rememberLastOpened("project", currProjectFile);
+			if(currFile != null && projectContainsFile(currFile))
+				rememberLastProjectDiagram(currFile);
+		}
 		saveWindowBounds();
 		if(spaceFitDispatcher != null)
 		{
@@ -3033,6 +3039,18 @@ public class FizzimGui extends javax.swing.JFrame {
 			return;
 		USER_PREFS.put(PREF_LAST_OPEN_TYPE, type);
 		USER_PREFS.put(PREF_LAST_OPEN_PATH, file.getAbsoluteFile().getAbsolutePath());
+		if(type.equals("project"))
+			USER_PREFS.put(PREF_LAST_PROJECT_PATH, file.getAbsoluteFile().getAbsolutePath());
+		try {
+			USER_PREFS.flush();
+		} catch (Exception e) { }
+	}
+
+	private void rememberLastProjectDiagram(File diagram) {
+		if(currProjectFile == null || diagram == null || !projectContainsFile(diagram))
+			return;
+		USER_PREFS.put(PREF_LAST_PROJECT_PATH, currProjectFile.getAbsoluteFile().getAbsolutePath());
+		USER_PREFS.put(PREF_LAST_PROJECT_DIAGRAM_PATH, diagram.getAbsoluteFile().getAbsolutePath());
 		try {
 			USER_PREFS.flush();
 		} catch (Exception e) { }
@@ -3052,6 +3070,19 @@ public class FizzimGui extends javax.swing.JFrame {
 		}
 	}
 
+	private void clearLastProjectDiagramIfMatches(File file) {
+		if(file == null)
+			return;
+		String path = USER_PREFS.get(PREF_LAST_PROJECT_DIAGRAM_PATH, "");
+		if(path.equals(file.getAbsoluteFile().getAbsolutePath()))
+		{
+			USER_PREFS.remove(PREF_LAST_PROJECT_DIAGRAM_PATH);
+			try {
+				USER_PREFS.flush();
+			} catch (Exception e) { }
+		}
+	}
+
 	private void reopenLastOpenedItem() {
 		String type = USER_PREFS.get(PREF_LAST_OPEN_TYPE, "");
 		String path = USER_PREFS.get(PREF_LAST_OPEN_PATH, "");
@@ -3061,7 +3092,10 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(type.equals("project"))
 		{
 			if(isProjectFile(file) && file.exists())
+			{
 				openProject(file, false);
+				reopenLastProjectDiagram(file);
+			}
 			else
 				clearLastOpenedIfMatches(file);
 		}
@@ -3072,6 +3106,26 @@ public class FizzimGui extends javax.swing.JFrame {
 			else
 				clearLastOpenedIfMatches(file);
 		}
+	}
+
+	private void reopenLastProjectDiagram(File projectFile) {
+		String projectPath = USER_PREFS.get(PREF_LAST_PROJECT_PATH, "");
+		String diagramPath = USER_PREFS.get(PREF_LAST_PROJECT_DIAGRAM_PATH, "");
+		if(projectFile == null || diagramPath.equals(""))
+			return;
+		if(!projectPath.equals("") && !projectPath.equals(projectFile.getAbsoluteFile().getAbsolutePath()))
+			return;
+		File diagram = new File(diagramPath);
+		if(!isFizzimFile(diagram) || !diagram.exists())
+		{
+			clearLastProjectDiagramIfMatches(diagram);
+			return;
+		}
+		if(!projectContainsFile(diagram))
+			return;
+		openFile(diagram, false);
+		rememberLastOpened("project", currProjectFile);
+		rememberLastProjectDiagram(diagram);
 	}
 
 	private boolean canReuseThisWindowForOpen() {
@@ -3667,6 +3721,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		{
 			openFile(file, false);
 			rememberLastOpened("project", currProjectFile);
+			rememberLastProjectDiagram(file);
 		}
 	}
 
@@ -3682,6 +3737,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		}
 		openFileInNewWindow(file, false);
 		rememberLastOpened("project", currProjectFile);
+		rememberLastProjectDiagram(file);
 	}
 
 	private void setSelectedProjectDiagramHdlPath() {
@@ -4347,7 +4403,13 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(rememberFile)
 		{
 			rememberRecentFile(currFile);
-			rememberLastOpened("diagram", currFile);
+			if(currProjectFile != null && projectContainsFile(currFile))
+			{
+				rememberLastOpened("project", currProjectFile);
+				rememberLastProjectDiagram(currFile);
+			}
+			else
+				rememberLastOpened("diagram", currFile);
 		}
 		loading = false;
 		restorePersistedHdlStatus();

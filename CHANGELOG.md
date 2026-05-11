@@ -376,6 +376,9 @@ part of the current codebase.
   while safely ignoring missing files.
 - Opening a diagram from the Project pane no longer replaces the startup restore
   target; Fizzim will restore the project on the next launch.
+- Startup restore now also remembers the last opened FSM inside the restored
+  project. If no project was active, Fizzim still restores the last standalone
+  FSM diagram.
 - Closing Fizzim with a project open refreshes the startup restore target to the
   project, making restore more robust after mixed project and diagram activity.
 
