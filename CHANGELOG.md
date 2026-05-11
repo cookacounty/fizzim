@@ -43,6 +43,8 @@ part of the current codebase.
   should be generated internally but omitted from the module port list. These
   remain stored as outputs with `suppress_portlist` for parser and backend
   compatibility.
+- Added one-click conversion between Outputs and Internals in the global
+  property editor while preserving the existing HDL-compatible storage.
 - Added parent-qualified debug state names for grouped states, so simulation
   debug can display names like `GROUP.CHILD`.
 - Increased the generated debug `statename` width to 256 characters by default.

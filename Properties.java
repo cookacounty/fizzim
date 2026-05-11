@@ -2357,7 +2357,9 @@ class GlobalProperties extends javax.swing.JDialog {
 				GPOption4.setVisible(true);
 				GPOption4.setText("Multibit Output");
 				GPOption5.setVisible(false);
-				GPOption6.setVisible(false);
+				GPOption6.setVisible(true);
+				GPOption6.setEnabled(true);
+				GPOption6.setText("Make Internal");
 			}
 			if(tab == TAB_INTERNALS)
 			{
@@ -2369,7 +2371,9 @@ class GlobalProperties extends javax.swing.JDialog {
 				GPOption4.setText("Multibit Internal");
 				GPOption5.setVisible(true);
 				GPOption5.setText("Flag");
-				GPOption6.setVisible(false);
+				GPOption6.setVisible(true);
+				GPOption6.setEnabled(true);
+				GPOption6.setText("Make Output");
 			}
 			if(tab == TAB_STATES)
 			{
@@ -2742,8 +2746,50 @@ class GlobalProperties extends javax.swing.JDialog {
 		}
 
 		private void GPOption6ActionPerformed(java.awt.event.ActionEvent evt) {
-			
-			
+			if(currTab == TAB_OUTPUTS)
+				moveSelectedOutputsBetweenPortListModes(true);
+			else if(currTab == TAB_INTERNALS)
+				moveSelectedOutputsBetweenPortListModes(false);
+		}
+
+		private void moveSelectedOutputsBetweenPortListModes(boolean makeInternal) {
+			if(!(currTable.getModel() instanceof FilteredOutputTableModel))
+				return;
+			if(currTable.isEditing())
+				currTable.getCellEditor().stopCellEditing();
+			int[] rows = currTable.getSelectedRows();
+			if(rows.length == 0)
+				return;
+
+			FilteredOutputTableModel model = (FilteredOutputTableModel)currTable.getModel();
+			LinkedList<ObjAttribute> moved = new LinkedList<ObjAttribute>();
+			for(int i = 0; i < rows.length; i++)
+			{
+				int actualRow = model.actualRow(rows[i]);
+				ObjAttribute attr = globalLists.get(2).get(actualRow);
+				OutputAttributeFilter.setInternal(attr, makeInternal);
+				moved.add(attr);
+			}
+
+			refreshOutputViews();
+			GPTabbedPane.setSelectedIndex(makeInternal ? TAB_INTERNALS : TAB_OUTPUTS);
+			currTable = makeInternal ? GPTableInternals : GPTableOutputs;
+			currTab = makeInternal ? TAB_INTERNALS : TAB_OUTPUTS;
+			setTable(currTab);
+			selectMovedOutputRows(moved);
+		}
+
+		private void selectMovedOutputRows(LinkedList<ObjAttribute> moved) {
+			if(!(currTable.getModel() instanceof FilteredOutputTableModel))
+				return;
+			FilteredOutputTableModel model = (FilteredOutputTableModel)currTable.getModel();
+			currTable.clearSelection();
+			for(int i = 0; i < model.getRowCount(); i++)
+			{
+				ObjAttribute attr = globalLists.get(2).get(model.actualRow(i));
+				if(moved.contains(attr))
+					currTable.addRowSelectionInterval(i, i);
+			}
 		}
 
 		private void GPUpActionPerformed(java.awt.event.ActionEvent evt) {
