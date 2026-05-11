@@ -38,6 +38,7 @@ part of the current codebase.
 - Added lint checks for transition priority ranges, duplicate source-local
   priorities, unreachable lower-priority branches behind default transitions,
   and missing default branches on prioritized transition sets.
+- Increased the valid transition-priority lint range to 0 through 10000.
 - Added fork linting for missing incoming or outgoing transitions while allowing
   forks to be pass-through, fan-in, fan-out, or partial branch points.
 - Added interactive lint results: selecting an issue selects/highlights the
@@ -265,6 +266,8 @@ part of the current codebase.
   enforced `.fzp` extension and confirm the final path when the extension is
   added automatically.
 - Opening a project now automatically switches the side panel to the Project tab.
+- Fizzim now attempts to reopen the last opened project or diagram at startup,
+  while safely ignoring missing files.
 
 ### Build And Packaging
 

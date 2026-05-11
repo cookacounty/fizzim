@@ -105,6 +105,8 @@ public class FizzimGui extends javax.swing.JFrame {
 	private static final int RECENT_FILE_LIMIT = 10;
 	private static final String RECENT_FILE_PREFIX = "recentFile.";
 	private static final String RECENT_PROJECT_PREFIX = "recentProject.";
+	private static final String PREF_LAST_OPEN_TYPE = "lastOpenType";
+	private static final String PREF_LAST_OPEN_PATH = "lastOpenPath";
 	private static final String PREF_DEFAULT_CLOCK = "defaultClock";
 	private static final String PREF_DEFAULT_CLOCK_EDGE = "defaultClockEdge";
 	private static final String PREF_DEFAULT_RESET = "defaultReset";
@@ -2419,6 +2421,52 @@ public class FizzimGui extends javax.swing.JFrame {
 		return file.getName().toLowerCase().endsWith(".fzm");
 	}
 
+	private void rememberLastOpened(String type, File file) {
+		if(type == null || file == null)
+			return;
+		USER_PREFS.put(PREF_LAST_OPEN_TYPE, type);
+		USER_PREFS.put(PREF_LAST_OPEN_PATH, file.getAbsoluteFile().getAbsolutePath());
+		try {
+			USER_PREFS.flush();
+		} catch (Exception e) { }
+	}
+
+	private void clearLastOpenedIfMatches(File file) {
+		if(file == null)
+			return;
+		String path = USER_PREFS.get(PREF_LAST_OPEN_PATH, "");
+		if(path.equals(file.getAbsoluteFile().getAbsolutePath()))
+		{
+			USER_PREFS.remove(PREF_LAST_OPEN_TYPE);
+			USER_PREFS.remove(PREF_LAST_OPEN_PATH);
+			try {
+				USER_PREFS.flush();
+			} catch (Exception e) { }
+		}
+	}
+
+	private void reopenLastOpenedItem() {
+		String type = USER_PREFS.get(PREF_LAST_OPEN_TYPE, "");
+		String path = USER_PREFS.get(PREF_LAST_OPEN_PATH, "");
+		if(path == null || path.equals(""))
+			return;
+		File file = new File(path);
+		if(type.equals("project"))
+		{
+			if(isProjectFile(file) && file.exists())
+				openProject(file, false);
+			else
+				clearLastOpenedIfMatches(file);
+		}
+		else if(type.equals("diagram"))
+		{
+			if(isFizzimFile(file) && file.exists())
+				openFile(file);
+			else
+				clearLastOpenedIfMatches(file);
+		}
+	}
+
 	private boolean canReuseThisWindowForOpen() {
 		return currFile == null && !drawArea1.getFileModifed();
 	}
@@ -2781,6 +2829,10 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	private void openProject(File projectFile) {
+		openProject(projectFile, true);
+	}
+
+	private void openProject(File projectFile, boolean showMessage) {
 		try {
 			File file = ensureProjectExtension(projectFile).getAbsoluteFile();
 			LinkedList<File> diagrams = new LinkedList<File>();
@@ -2801,11 +2853,16 @@ public class FizzimGui extends javax.swing.JFrame {
 			updateProjectPanel();
 			showProjectPane();
 			rememberRecentProject(currProjectFile);
-			JOptionPane.showMessageDialog(this, "Opened project:\n" + file.getAbsolutePath()
-					+ "\n\nDiagrams: " + projectDiagramFiles.size(), "Project", JOptionPane.INFORMATION_MESSAGE);
+			rememberLastOpened("project", currProjectFile);
+			if(showMessage)
+				JOptionPane.showMessageDialog(this, "Opened project:\n" + file.getAbsolutePath()
+						+ "\n\nDiagrams: " + projectDiagramFiles.size(), "Project", JOptionPane.INFORMATION_MESSAGE);
 		} catch (IOException ex) {
-			JOptionPane.showMessageDialog(this, "Could not open project:\n" + ex.getMessage(),
-					"Project", JOptionPane.ERROR_MESSAGE);
+			if(showMessage)
+				JOptionPane.showMessageDialog(this, "Could not open project:\n" + ex.getMessage(),
+						"Project", JOptionPane.ERROR_MESSAGE);
+			else
+				clearLastOpenedIfMatches(projectFile);
 		}
 	}
 
@@ -2832,6 +2889,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			currProjectFile = file;
 			updateProjectPanel();
 			rememberRecentProject(currProjectFile);
+			rememberLastOpened("project", currProjectFile);
 			if(showMessage)
 				JOptionPane.showMessageDialog(this, "Saved project:\n" + file.getAbsolutePath()
 						+ "\n\nDiagrams: " + projectDiagramFiles.size(), "Project", JOptionPane.INFORMATION_MESSAGE);
@@ -3368,6 +3426,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			JOptionPane.showMessageDialog(this, "Recent file could not be opened:\n" + selectedFile.getAbsolutePath(),
 					"error", JOptionPane.ERROR_MESSAGE);
 			forgetRecentFile(selectedFile);
+			clearLastOpenedIfMatches(selectedFile);
 			return;
 		}
 
@@ -3384,6 +3443,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			JOptionPane.showMessageDialog(this, "Recent project could not be opened:\n" + path,
 					"Project", JOptionPane.ERROR_MESSAGE);
 			forgetRecentProject(selectedFile);
+			clearLastOpenedIfMatches(selectedFile);
 			return;
 		}
 
@@ -3415,7 +3475,10 @@ public class FizzimGui extends javax.swing.JFrame {
 		drawArea1.setCurrPage(1);
 		updateWindowTitle();
 		if(rememberFile)
+		{
 			rememberRecentFile(currFile);
+			rememberLastOpened("diagram", currFile);
+		}
 		loading = false;
 		restorePersistedHdlStatus();
 		enterZoomFitMode();
@@ -3554,10 +3617,11 @@ public class FizzimGui extends javax.swing.JFrame {
 	static boolean clbatch_rewrite = false; // command-line -batch_rewrite switch
 
 	public static void main(String args[]) {
-		// If one of the args is ends with .fzm, assume it is the file
+		// If one of the args ends with .fzm or .fzp, assume it is the file
 		// to open.
 		for (String s: args) {
-			if (s.endsWith(".fzm")) {
+			String lower = s.toLowerCase();
+			if (lower.endsWith(".fzm") || lower.endsWith(".fzp")) {
 				clfilename = s;
 			}
 			if (s.equals("-exit")) {
@@ -3611,14 +3675,22 @@ public class FizzimGui extends javax.swing.JFrame {
 				// this file.
 				if (clfilename != "") {
 					System.err.println("Opening file " + clfilename);
-					fzim.openFile(new File(clfilename));
-					if (clbatch_rewrite) {
+					File clfile = new File(clfilename);
+					String lowerClfilename = clfilename.toLowerCase();
+					if(lowerClfilename.endsWith(".fzp"))
+						fzim.openProject(clfile);
+					else
+						fzim.openFile(clfile);
+					if (clbatch_rewrite && lowerClfilename.endsWith(".fzm")) {
 						System.err.println("Saving file " + clfilename);
 						if (fzim.tryToSave(new File(clfilename), "fzm", false)) {
 							System.err.println("Exiting");
 							fzim.formWindowClosing();
 						}
 					}
+				}
+				else if(!clexit) {
+					fzim.reopenLastOpenedItem();
 				}
 				if (clexit) {
 					fzim.formWindowClosing();

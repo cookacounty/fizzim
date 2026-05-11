@@ -17,7 +17,7 @@ state-machine RTL.
 - Runs the existing structural validator and includes those errors in the lint
   report.
 - Checks source-local transition priorities:
-  - priority must be an integer from 0 to 1000,
+  - priority must be an integer from 0 to 10000,
   - duplicate priorities from the same source are errors,
   - an always-true/default transition above lower-priority transitions is an
     error because those lower-priority transitions cannot be reached.

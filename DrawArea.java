@@ -31,6 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 public class DrawArea extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener, ActionListener,Printable {
+	private static final int PRIORITY_MAX = 10000;
 
 	public static class LintIssue {
 		public String severity;
@@ -3290,7 +3291,7 @@ public void updateTransitions()
 			}
 			sortTransitionsByPriority(transitions);
 			for(int i = 0; i < transitions.size(); i++)
-				setTransitionPriority(transitions.get(i), Math.min(i, 1000));
+				setTransitionPriority(transitions.get(i), Math.min(i, PRIORITY_MAX));
 		}
 	}
 
@@ -3995,11 +3996,11 @@ public void updateTransitions()
 				ObjAttribute priorityAttr = getTransitionPriorityAttribute(trans);
 				String priorityText = priorityAttr == null ? "" : priorityAttr.getValue().trim();
 				int priority = parsePriority(priorityText);
-				if(priority < 0 || priority > 1000)
+				if(priority < 0 || priority > PRIORITY_MAX)
 				{
 					wroteHeader = appendLintHeader(report, wroteHeader, "Priority And Ordering");
 					appendLint(report, "ERROR", transitionLabel(trans) + " from " + source.getName()
-							+ " has priority \"" + priorityText + "\". Use an integer from 0 to 1000.", trans);
+							+ " has priority \"" + priorityText + "\". Use an integer from 0 to " + PRIORITY_MAX + ".", trans);
 				}
 				else if(seen.containsKey(new Integer(priority)))
 				{
