@@ -2536,13 +2536,14 @@ class GlobalProperties extends javax.swing.JDialog {
 
 		private int tableRowToGlobalRow(JTable table, int row)
 		{
+			int modelRow = table.convertRowIndexToModel(row);
 			if(table.getModel() instanceof FilteredOutputTableModel)
-				return ((FilteredOutputTableModel)table.getModel()).actualRow(row);
+				return ((FilteredOutputTableModel)table.getModel()).actualRow(modelRow);
 			if(table.getModel() instanceof FilteredParameterTableModel)
-				return ((FilteredParameterTableModel)table.getModel()).actualRow(row);
+				return ((FilteredParameterTableModel)table.getModel()).actualRow(modelRow);
 			if(table.getModel() instanceof FilteredMachineTableModel)
-				return ((FilteredMachineTableModel)table.getModel()).actualRow(row);
-			return row;
+				return ((FilteredMachineTableModel)table.getModel()).actualRow(modelRow);
+			return modelRow;
 		}
 
 		private void refreshOutputViews()
@@ -2629,7 +2630,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			for(int i = globalRows.length - 1; i > -1; i--)
 			{
 				ObjAttribute obj = list.get(globalRows[i]);
-				if(obj.getEditable(0) != ObjAttribute.ABS)
+				if(isOutputEditorTab(currTab) || obj.getEditable(0) != ObjAttribute.ABS)
 				{
 					if((obj.getName().equals("reset_signal") || obj.getName().equals("reset_state")) && currTab == TAB_MACHINE)
 						GPOption3.setEnabled(true);

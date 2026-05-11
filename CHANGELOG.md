@@ -71,6 +71,9 @@ part of the current codebase.
 - Deleting an output or internal now removes the matching per-state,
   per-state-group, and per-transition attributes as well as the global
   definition, so stale local assignments cannot survive the delete.
+- Output/internal deletion now ignores legacy name-column edit flags, so
+  signals from older diagrams can still be deleted from the Outputs or
+  Internals tab.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in
