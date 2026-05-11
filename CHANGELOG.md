@@ -262,6 +262,9 @@ part of the current codebase.
 - Added a power-user HDL comparison mode that can run a second configurable
   backend, emit sidecar comparison HDL, and report a generated diff file when
   the two outputs do not match.
+- Clean HDL comparison runs now delete the temporary comparison Verilog output
+  after confirming the diff is empty, while mismatches keep the comparison file
+  for debug.
 - Added an HDL generation status indicator. The main toolbar shows yellow when
   HDL is stale or not yet generated, and green after successful generation until
   the diagram changes again.

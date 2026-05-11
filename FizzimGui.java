@@ -1867,9 +1867,10 @@ public class FizzimGui extends javax.swing.JFrame {
 		{
 			if(diffFile.exists())
 				diffFile.delete();
+			deleteComparisonOutput(compareOutput);
 			JOptionPane.showMessageDialog(this,
 					"Generated HDL matched comparison output.\n\nPrimary:\n" + primaryOutput.getAbsolutePath()
-					+ "\n\nComparison:\n" + compareOutput.getAbsolutePath(),
+					+ "\n\nCleaned comparison output:\n" + compareOutput.getAbsolutePath(),
 					"Generate HDL", JOptionPane.INFORMATION_MESSAGE);
 			return true;
 		}
@@ -4056,12 +4057,18 @@ public class FizzimGui extends javax.swing.JFrame {
 		{
 			if(diffFile.exists())
 				diffFile.delete();
+			deleteComparisonOutput(compareOutput);
 			return true;
 		}
 		Files.write(diffFile.toPath(), diff.getBytes(StandardCharsets.UTF_8));
 		report.append("FAIL ").append(fzmFile.getName()).append("\n  Comparison mismatch: ")
 				.append(diffFile.getAbsolutePath()).append("\n");
 		return false;
+	}
+
+	private void deleteComparisonOutput(File compareOutput) {
+		if(compareOutput != null && compareOutput.exists())
+			compareOutput.delete();
 	}
 
 	private File ensureProjectExtension(File file) {
