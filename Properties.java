@@ -551,6 +551,16 @@ class FilteredOutputTableModel extends MyTableModel {
 		return visibleRows().get(visibleRow).intValue();
 	}
 
+	ObjAttribute attributeAt(int visibleRow) {
+		ArrayList<Integer> rows = visibleRows();
+		if(visibleRow < 0 || visibleRow >= rows.size())
+			return null;
+		int actualRow = rows.get(visibleRow).intValue();
+		if(actualRow < 0 || actualRow >= attrib.size())
+			return null;
+		return attrib.get(actualRow);
+	}
+
 	public int getRowCount() {
 		return visibleRows().size();
 	}
@@ -595,6 +605,16 @@ class FilteredParameterTableModel extends MyTableModel {
 		return visibleRows().get(visibleRow).intValue();
 	}
 
+	ObjAttribute attributeAt(int visibleRow) {
+		ArrayList<Integer> rows = visibleRows();
+		if(visibleRow < 0 || visibleRow >= rows.size())
+			return null;
+		int actualRow = rows.get(visibleRow).intValue();
+		if(actualRow < 0 || actualRow >= attrib.size())
+			return null;
+		return attrib.get(actualRow);
+	}
+
 	public int getRowCount() {
 		return visibleRows().size();
 	}
@@ -634,6 +654,16 @@ class FilteredMachineTableModel extends MyTableModel {
 
 	int actualRow(int visibleRow) {
 		return visibleRows().get(visibleRow).intValue();
+	}
+
+	ObjAttribute attributeAt(int visibleRow) {
+		ArrayList<Integer> rows = visibleRows();
+		if(visibleRow < 0 || visibleRow >= rows.size())
+			return null;
+		int actualRow = rows.get(visibleRow).intValue();
+		if(actualRow < 0 || actualRow >= attrib.size())
+			return null;
+		return attrib.get(actualRow);
 	}
 
 	public int getRowCount() {
@@ -2546,6 +2576,20 @@ class GlobalProperties extends javax.swing.JDialog {
 			return modelRow;
 		}
 
+		private ObjAttribute tableRowToAttribute(JTable table, int row, LinkedList<ObjAttribute> list)
+		{
+			int modelRow = table.convertRowIndexToModel(row);
+			if(table.getModel() instanceof FilteredOutputTableModel)
+				return ((FilteredOutputTableModel)table.getModel()).attributeAt(modelRow);
+			if(table.getModel() instanceof FilteredParameterTableModel)
+				return ((FilteredParameterTableModel)table.getModel()).attributeAt(modelRow);
+			if(table.getModel() instanceof FilteredMachineTableModel)
+				return ((FilteredMachineTableModel)table.getModel()).attributeAt(modelRow);
+			if(modelRow < 0 || modelRow >= list.size())
+				return null;
+			return list.get(modelRow);
+		}
+
 		private void refreshOutputViews()
 		{
 			if(outputTableModel != null)
@@ -2626,9 +2670,9 @@ class GlobalProperties extends javax.swing.JDialog {
 			LinkedList<ObjAttribute> selectedAttributes = new LinkedList<ObjAttribute>();
 			for(int i = 0; i < rows.length; i++)
 			{
-				int globalRow = tableRowToGlobalRow(currTable, rows[i]);
-				if(globalRow >= 0 && globalRow < list.size())
-					selectedAttributes.add(list.get(globalRow));
+				ObjAttribute attr = tableRowToAttribute(currTable, rows[i], list);
+				if(attr != null)
+					selectedAttributes.add(attr);
 			}
 			for(int i = selectedAttributes.size() - 1; i > -1; i--)
 			{

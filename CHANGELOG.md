@@ -74,6 +74,9 @@ part of the current codebase.
 - Output/internal deletion now ignores legacy name-column edit flags, so
   signals from older diagrams can still be deleted from the Outputs or
   Internals tab.
+- Global property deletion now resolves selected rows to attribute objects
+  before removing anything, avoiding stale-index crashes in filtered tabs such
+  as Outputs, Internals, and Parameters.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in
