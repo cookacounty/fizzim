@@ -1416,6 +1416,15 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		repaint();
 	}
 
+	private void clearHoverObject()
+	{
+		if(hoverObj != null)
+		{
+			hoverObj.setHoverHighlighted(false);
+			hoverObj = null;
+		}
+	}
+
 	private boolean sameCycleObjects(LinkedList<HitCandidate> hits)
 	{
 		if(hits.size() != lastCycleObjects.size())
@@ -1544,6 +1553,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			if(i != keepIndex)
 				((GeneralObj)objList.get(i)).unselect();
 		}
+		if(hoverObj != null && objList.indexOf(hoverObj) != keepIndex)
+			clearHoverObject();
 		refreshSelectedIndicesFromObjects();
 		syncSelectionState();
 	}
@@ -2179,6 +2190,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	public void mousePressed(MouseEvent e) {
 		
 		//System.out.println("mousePressed:" + " Button:" + e.getButton() + " Modifiers:" + e.getModifiers() + " Popup Trigger:" + e.isPopupTrigger() + " ControlDown:" + e.isControlDown());
+		clearHoverObject();
 		stateGroupDragChildren.clear();
 		boolean popupMouse = isPopupMouse(e);
 		if(popupMouse)
@@ -5208,6 +5220,7 @@ public void updateTransitions()
 			GeneralObj s = (GeneralObj) objList.elementAt(i);
 			s.unselect();				
 		}
+		clearHoverObject();
 		selectedIndices.clear();
 		objsSelected = false;
 		multipleSelect = false;

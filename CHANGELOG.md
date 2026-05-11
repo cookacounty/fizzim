@@ -220,6 +220,9 @@ part of the current codebase.
   highlighting.
 - Added blue hover affordances for states, state groups, forks, transitions, and
   loopbacks so editable canvas targets are easier to discover before clicking.
+- Cleared stale transition hover highlighting during click-selection changes so
+  a previously selected/hovered transition cannot remain blue after another
+  transition is selected.
 - Changed state and state-group internal text to a deterministic HDL-friendly
   layout: bold top-centered names with left-aligned visible values underneath.
   Existing diagrams automatically use the new visual style when opened, while
