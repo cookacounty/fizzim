@@ -1132,7 +1132,7 @@ public class FizzimGui extends javax.swing.JFrame {
 				Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
 				if(focusOwner == null || SwingUtilities.getWindowAncestor(focusOwner) != FizzimGui.this)
 					return false;
-				if(shouldLetFocusedComponentUseSpace(focusOwner))
+				if(!isCanvasFocusOwner(focusOwner) || shouldLetFocusedComponentUseSpace(focusOwner))
 					return false;
 				fitDiagramShortcut();
 				event.consume();
@@ -1140,6 +1140,13 @@ public class FizzimGui extends javax.swing.JFrame {
 			}
 		};
 		KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(spaceFitDispatcher);
+	}
+
+	private boolean isCanvasFocusOwner(Component focusOwner) {
+		return focusOwner == drawArea1
+				|| SwingUtilities.isDescendingFrom(focusOwner, drawArea1)
+				|| focusOwner == jScrollPane1
+				|| SwingUtilities.isDescendingFrom(focusOwner, jScrollPane1.getViewport());
 	}
 
 	private boolean shouldLetFocusedComponentUseSpace(Component focusOwner) {

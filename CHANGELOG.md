@@ -290,6 +290,8 @@ part of the current codebase.
   reducing the diagram extents no longer zooms in automatically.
 - The Space shortcut for zoom-to-fit now works even after clicking a toolbar
   button, while still leaving text/table editing alone.
+- Scoped the Space zoom-to-fit shortcut to the main canvas/viewport so it does
+  not fire from side panes, toolbar controls, or dialogs.
 - Improved project navigation. Opening a project diagram now reuses the current
   window by default, prompts before unsaved edits are discarded, marks the active
   dirty project file in the tree, and offers right-click Open in New Window and
