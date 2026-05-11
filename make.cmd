@@ -34,7 +34,7 @@ echo Compiling Java sources for Java %JAVA_RELEASE%
 "%JAVAC%" --release %JAVA_RELEASE% *.java
 if errorlevel 1 exit /b %errorlevel%
 echo Creating fizzim.jar
-"%JAR%" cfm fizzim.jar manifest.txt *.class splash.png icon.png org
+"%JAR%" cfm fizzim.jar manifest.txt *.class splash.png icon.png org *.properties
 exit /b %errorlevel%
 
 :clean

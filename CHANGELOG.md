@@ -187,6 +187,13 @@ part of the current codebase.
   under `Tools > Clean Up Diagram`, view/default settings moved under
   `Settings`, the old print menu item was removed, and `Global Attributes` was
   renamed to `FSM Interface`.
+- Added GUI language support under `Settings > Language`, with English,
+  Japanese, Simplified Chinese, Traditional Chinese, Korean, German, French,
+  Spanish, Portuguese, Hindi, and Russian translations for main-window chrome
+  such as menus, toolbar buttons, status indicators, the Project pane, the Lint
+  pane, and the quick property inspector. HDL-facing names, attributes, diagram
+  content, and generated code remain unchanged for backend compatibility.
+- Updated the Help menu to open the Fizzim GitHub wiki in the system browser.
 - Added `docs/GUI_WISHLIST.md` to track future GUI modernization ideas.
 
 ### Verilog Backend

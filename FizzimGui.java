@@ -3,6 +3,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
+import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -44,9 +45,11 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.net.URI;
 import java.net.URL;
 import java.net.URISyntaxException;
 import java.text.DateFormat;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -143,6 +146,9 @@ public class FizzimGui extends javax.swing.JFrame {
 	boolean loading = false;
 	private boolean zoomFitMode = false;
 	private boolean hdlGeneratedInSync = false;
+	private String lintStatusMode = "stale";
+	private int lintErrorCount = 0;
+	private int lintWarningCount = 0;
 	
 
 
@@ -150,6 +156,7 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	public FizzimGui() {
 		openWindowCount++;
+		FizzimLocalizer.load(USER_PREFS);
 
 		ImageIcon icon = new ImageIcon("icon.png");
 		this.setIconImage(icon.getImage());
@@ -273,6 +280,9 @@ public class FizzimGui extends javax.swing.JFrame {
 		lintIssueModel = new javax.swing.DefaultListModel();
 		lintIssueList = new javax.swing.JList(lintIssueModel);
 		lintReportText = new javax.swing.JTextArea();
+		lintTabs = new javax.swing.JTabbedPane();
+		lintRerunButton = new javax.swing.JButton();
+		lintCloseButton = new javax.swing.JButton();
 		jTabbedPane1 = new MyJTabbedPane();
 		jScrollPane1 = new javax.swing.JScrollPane();
 		jPanel1 = new javax.swing.JPanel();
@@ -305,6 +315,32 @@ public class FizzimGui extends javax.swing.JFrame {
 		EditItemUndo = new javax.swing.JMenuItem();
 		EditItemRedo = new javax.swing.JMenuItem();
 		EditItemDelete = new javax.swing.JMenuItem();
+		settingsMenu = new javax.swing.JMenu();
+		defaultsItem = new javax.swing.JMenuItem();
+		hdlSettingsItem = new javax.swing.JMenuItem();
+		languageMenu = new javax.swing.JMenu();
+		languageEnglishItem = new javax.swing.JRadioButtonMenuItem();
+		languageJapaneseItem = new javax.swing.JRadioButtonMenuItem();
+		languageChineseSimplifiedItem = new javax.swing.JRadioButtonMenuItem();
+		languageChineseTraditionalItem = new javax.swing.JRadioButtonMenuItem();
+		languageKoreanItem = new javax.swing.JRadioButtonMenuItem();
+		languageGermanItem = new javax.swing.JRadioButtonMenuItem();
+		languageFrenchItem = new javax.swing.JRadioButtonMenuItem();
+		languageSpanishItem = new javax.swing.JRadioButtonMenuItem();
+		languagePortugueseItem = new javax.swing.JRadioButtonMenuItem();
+		languageHindiItem = new javax.swing.JRadioButtonMenuItem();
+		languageRussianItem = new javax.swing.JRadioButtonMenuItem();
+		toolsMenu = new javax.swing.JMenu();
+		lintItem = new javax.swing.JMenuItem();
+		generateHdlItem = new javax.swing.JMenuItem();
+		cleanupMenu = new javax.swing.JMenu();
+		resetLabelsItem = new javax.swing.JMenuItem();
+		cleanRoutesItem = new javax.swing.JMenuItem();
+		cleanSelectedRoutesItem = new javax.swing.JMenuItem();
+		alignHorizontalItem = new javax.swing.JMenuItem();
+		alignVerticalItem = new javax.swing.JMenuItem();
+		distributeHorizontalItem = new javax.swing.JMenuItem();
+		distributeVerticalItem = new javax.swing.JMenuItem();
 		GlobalMenu = new javax.swing.JMenu();
 		GlobalItemMachine = new javax.swing.JMenuItem();
 		GlobalItemStates = new javax.swing.JMenuItem();
@@ -731,32 +767,44 @@ public class FizzimGui extends javax.swing.JFrame {
 
 		MenuBar.add(EditMenu);
 
-		JMenu settingsMenu = new JMenu();
 		settingsMenu.setText("Settings");
 		settingsMenu.setMnemonic(java.awt.event.KeyEvent.VK_S);
 		settingsMenu.add(FilePref);
 
-		JMenuItem defaultsItem = new JMenuItem("Diagram Defaults");
+		defaultsItem.setText("Diagram Defaults");
 		defaultsItem.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				ToolsNewFsmDefaultsActionPerformed(evt);
 			}
 		});
 		settingsMenu.add(defaultsItem);
-		JMenuItem hdlSettingsItem = new JMenuItem("HDL Generation");
+		hdlSettingsItem.setText("HDL Generation");
 		hdlSettingsItem.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				ToolsHdlGenerationSettingsActionPerformed(evt);
 			}
 		});
 		settingsMenu.add(hdlSettingsItem);
+		languageMenu.setText("Language");
+		ButtonGroup languageGroup = new ButtonGroup();
+		addLanguageMenuItem(languageGroup, languageEnglishItem, "en");
+		addLanguageMenuItem(languageGroup, languageJapaneseItem, "ja");
+		addLanguageMenuItem(languageGroup, languageChineseSimplifiedItem, "zh_CN");
+		addLanguageMenuItem(languageGroup, languageChineseTraditionalItem, "zh_TW");
+		addLanguageMenuItem(languageGroup, languageKoreanItem, "ko");
+		addLanguageMenuItem(languageGroup, languageGermanItem, "de");
+		addLanguageMenuItem(languageGroup, languageFrenchItem, "fr");
+		addLanguageMenuItem(languageGroup, languageSpanishItem, "es");
+		addLanguageMenuItem(languageGroup, languagePortugueseItem, "pt");
+		addLanguageMenuItem(languageGroup, languageHindiItem, "hi");
+		addLanguageMenuItem(languageGroup, languageRussianItem, "ru");
+		settingsMenu.add(languageMenu);
 		MenuBar.add(settingsMenu);
 
-		JMenu toolsMenu = new JMenu();
 		toolsMenu.setText("Tools");
 		toolsMenu.setMnemonic(java.awt.event.KeyEvent.VK_T);
 
-		JMenuItem lintItem = new JMenuItem("Validate / Lint Diagram");
+		lintItem.setText("Validate / Lint Diagram");
 		lintItem.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				ToolsLintActionPerformed(evt);
@@ -764,7 +812,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		});
 		toolsMenu.add(lintItem);
 
-		JMenuItem generateHdlItem = new JMenuItem("Generate HDL");
+		generateHdlItem.setText("Generate HDL");
 		generateHdlItem.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				ToolsGenerateHdlActionPerformed(evt);
@@ -772,8 +820,8 @@ public class FizzimGui extends javax.swing.JFrame {
 		});
 		toolsMenu.add(generateHdlItem);
 
-		JMenu cleanupMenu = new JMenu("Clean Up Diagram");
-		JMenuItem resetLabelsItem = new JMenuItem("Reset Transition Labels");
+		cleanupMenu.setText("Clean Up Diagram");
+		resetLabelsItem.setText("Reset Transition Labels");
 		resetLabelsItem.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				ToolsResetTransitionLabelsActionPerformed(evt);
@@ -781,14 +829,14 @@ public class FizzimGui extends javax.swing.JFrame {
 		});
 		cleanupMenu.add(resetLabelsItem);
 
-		JMenuItem cleanRoutesItem = new JMenuItem("Clean Transition Routes");
+		cleanRoutesItem.setText("Clean Transition Routes");
 		cleanRoutesItem.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				ToolsCleanTransitionRoutesActionPerformed(evt);
 			}
 		});
 		cleanupMenu.add(cleanRoutesItem);
-		JMenuItem cleanSelectedRoutesItem = new JMenuItem("Clean Selected Routes");
+		cleanSelectedRoutesItem.setText("Clean Selected Routes");
 		cleanSelectedRoutesItem.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				ToolsCleanSelectedRoutesActionPerformed(evt);
@@ -796,28 +844,28 @@ public class FizzimGui extends javax.swing.JFrame {
 		});
 		cleanupMenu.add(cleanSelectedRoutesItem);
 		cleanupMenu.addSeparator();
-		JMenuItem alignHorizontalItem = new JMenuItem("Align Selected Horizontally");
+		alignHorizontalItem.setText("Align Selected Horizontally");
 		alignHorizontalItem.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				ToolsAlignSelectedHorizontalActionPerformed(evt);
 			}
 		});
 		cleanupMenu.add(alignHorizontalItem);
-		JMenuItem alignVerticalItem = new JMenuItem("Align Selected Vertically");
+		alignVerticalItem.setText("Align Selected Vertically");
 		alignVerticalItem.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				ToolsAlignSelectedVerticalActionPerformed(evt);
 			}
 		});
 		cleanupMenu.add(alignVerticalItem);
-		JMenuItem distributeHorizontalItem = new JMenuItem("Distribute Selected Horizontally");
+		distributeHorizontalItem.setText("Distribute Selected Horizontally");
 		distributeHorizontalItem.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				ToolsDistributeSelectedHorizontalActionPerformed(evt);
 			}
 		});
 		cleanupMenu.add(distributeHorizontalItem);
-		JMenuItem distributeVerticalItem = new JMenuItem("Distribute Selected Vertically");
+		distributeVerticalItem.setText("Distribute Selected Vertically");
 		distributeVerticalItem.addActionListener(new java.awt.event.ActionListener() {
 			public void actionPerformed(java.awt.event.ActionEvent evt) {
 				ToolsDistributeSelectedVerticalActionPerformed(evt);
@@ -935,6 +983,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		MenuBar.add(HelpMenu);
 
 		setJMenuBar(MenuBar);
+		applyLocalization();
 
 		pack();
 	}// </editor-fold>//GEN-END:initComponents
@@ -947,6 +996,136 @@ public class FizzimGui extends javax.swing.JFrame {
 		sideTabbedPane.addTab("Project", projectPanel);
 	}
 
+	private String t(String key) {
+		return FizzimLocalizer.t(key);
+	}
+
+	private String tf(String key, Object... args) {
+		return MessageFormat.format(t(key), args);
+	}
+
+	private void setGuiLanguage(String language) {
+		FizzimLocalizer.setLanguage(language, USER_PREFS);
+		applyLocalization();
+	}
+
+	private void addLanguageMenuItem(ButtonGroup group, JRadioButtonMenuItem item, final String language) {
+		group.add(item);
+		item.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				setGuiLanguage(language);
+			}
+		});
+		languageMenu.add(item);
+	}
+
+	private void applyLocalization() {
+		FileMenu.setText(t("menu.file"));
+		FileItemNew.setText(t("menu.file.new"));
+		FileItemOpen.setText(t("menu.file.open"));
+		FileOpenRecent.setText(t("menu.file.openRecent"));
+		FileProjectOpenRecent.setText(t("menu.file.openRecentProject"));
+		FileProjectMenu.setText(t("menu.project"));
+		FileProjectNew.setText(t("menu.project.new"));
+		FileProjectOpen.setText(t("menu.project.open"));
+		FileProjectSave.setText(t("menu.project.save"));
+		FileProjectSaveAs.setText(t("menu.project.saveAs"));
+		FileProjectAddCurrent.setText(t("menu.project.addCurrent"));
+		FileProjectAddDiagrams.setText(t("menu.project.addDiagrams"));
+		FileProjectBuildAll.setText(t("menu.project.buildAll"));
+		FileProjectLintAll.setText(t("menu.project.lintAll"));
+		FileItemSave.setText(t("menu.file.save"));
+		FileItemSaveAs.setText(t("menu.file.saveAs"));
+		FileExport.setText(t("menu.file.export"));
+		FileExportClipboard.setText(t("menu.file.export.clipboard"));
+		FileExportPNG.setText(t("menu.file.export.png"));
+		FileExportJPEG.setText(t("menu.file.export.jpeg"));
+		FilePref.setText(t("menu.settings.view"));
+		FileItemExit.setText(t("menu.file.exit"));
+		EditMenu.setText(t("menu.edit"));
+		EditItemUndo.setText(t("menu.edit.undo"));
+		EditItemRedo.setText(t("menu.edit.redo"));
+		EditItemDelete.setText(t("menu.edit.delete"));
+		settingsMenu.setText(t("menu.settings"));
+		defaultsItem.setText(t("menu.settings.diagramDefaults"));
+		hdlSettingsItem.setText(t("menu.settings.hdl"));
+		languageMenu.setText(t("menu.settings.language"));
+		languageEnglishItem.setText(t("menu.settings.language.english"));
+		languageJapaneseItem.setText(t("menu.settings.language.japanese"));
+		languageChineseSimplifiedItem.setText(t("menu.settings.language.chineseSimplified"));
+		languageChineseTraditionalItem.setText(t("menu.settings.language.chineseTraditional"));
+		languageKoreanItem.setText(t("menu.settings.language.korean"));
+		languageGermanItem.setText(t("menu.settings.language.german"));
+		languageFrenchItem.setText(t("menu.settings.language.french"));
+		languageSpanishItem.setText(t("menu.settings.language.spanish"));
+		languagePortugueseItem.setText(t("menu.settings.language.portuguese"));
+		languageHindiItem.setText(t("menu.settings.language.hindi"));
+		languageRussianItem.setText(t("menu.settings.language.russian"));
+		String language = FizzimLocalizer.getLanguage();
+		languageEnglishItem.setSelected(language.equals("en"));
+		languageJapaneseItem.setSelected(language.equals("ja"));
+		languageChineseSimplifiedItem.setSelected(language.equals("zh_CN"));
+		languageChineseTraditionalItem.setSelected(language.equals("zh_TW"));
+		languageKoreanItem.setSelected(language.equals("ko"));
+		languageGermanItem.setSelected(language.equals("de"));
+		languageFrenchItem.setSelected(language.equals("fr"));
+		languageSpanishItem.setSelected(language.equals("es"));
+		languagePortugueseItem.setSelected(language.equals("pt"));
+		languageHindiItem.setSelected(language.equals("hi"));
+		languageRussianItem.setSelected(language.equals("ru"));
+		toolsMenu.setText(t("menu.tools"));
+		lintItem.setText(t("menu.tools.lint"));
+		generateHdlItem.setText(t("menu.tools.generate"));
+		cleanupMenu.setText(t("menu.tools.cleanup"));
+		resetLabelsItem.setText(t("menu.tools.cleanup.resetLabels"));
+		cleanRoutesItem.setText(t("menu.tools.cleanup.cleanRoutes"));
+		cleanSelectedRoutesItem.setText(t("menu.tools.cleanup.cleanSelectedRoutes"));
+		alignHorizontalItem.setText(t("menu.tools.alignH"));
+		alignVerticalItem.setText(t("menu.tools.alignV"));
+		distributeHorizontalItem.setText(t("menu.tools.distributeH"));
+		distributeVerticalItem.setText(t("menu.tools.distributeV"));
+		GlobalMenu.setText(t("menu.interface"));
+		GlobalItemMachine.setText(t("menu.interface.machine"));
+		GlobalItemInputs.setText(t("menu.interface.inputs"));
+		GlobalItemOutputs.setText(t("menu.interface.outputs"));
+		GlobalItemInternals.setText(t("menu.interface.internals"));
+		GlobalItemStates.setText(t("menu.interface.states"));
+		GlobalItemTransitions.setText(t("menu.interface.transitions"));
+		HelpMenu.setText(t("menu.help"));
+		HelpItemHelp.setText(t("menu.help.wiki"));
+		HelpItemAbout.setText(t("menu.help.about"));
+
+		zoomOutButton.setText(t("toolbar.zoomOut"));
+		zoomOutButton.setToolTipText(t("toolbar.zoomOut.tip"));
+		zoomInButton.setText(t("toolbar.zoomIn"));
+		zoomInButton.setToolTipText(t("toolbar.zoomIn.tip"));
+		zoomFitButton.setText(t("toolbar.zoomFit"));
+		zoomFitButton.setToolTipText(t("toolbar.zoomFit.tip"));
+		lintButton.setText(t("toolbar.lint"));
+		lintButton.setToolTipText(t("toolbar.lint.tip"));
+		generateHdlButton.setText(t("toolbar.generate"));
+		generateHdlButton.setToolTipText(t("toolbar.generate.tip"));
+
+		if(inspectorSelectedObjects == null || inspectorSelectedObjects.size() == 0)
+			selectionStatusLabel.setText(t("status.selection.none"));
+		sideTabbedPane.setTitleAt(0, t("tabs.properties"));
+		sideTabbedPane.setTitleAt(1, t("tabs.project"));
+		propertyInspectorEditButton.setText(t("properties.openFullEditor"));
+		updatePropertyInspector(inspectorSelectedObjects);
+		projectOpenButton.setText(t("project.open"));
+		projectAddButton.setText(t("project.addDiagrams"));
+		projectBuildButton.setText(t("project.buildAll"));
+		projectLintButton.setText(t("project.lintAll"));
+		lintTabs.setTitleAt(0, t("lint.issues"));
+		lintTabs.setTitleAt(1, t("lint.report"));
+		lintRerunButton.setText(t("lint.rerun"));
+		lintCloseButton.setText(t("lint.close"));
+		updateHdlStatusIndicator();
+		applyLintStatusText();
+		rebuildRecentFilesMenu();
+		rebuildRecentProjectsMenu();
+	}
+
 	private void showProjectPane() {
 		if(sideTabbedPane != null && projectPanel != null)
 			sideTabbedPane.setSelectedComponent(projectPanel);
@@ -955,7 +1134,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private void buildPropertyInspectorPanel() {
 		propertyInspectorPanel.setLayout(new BorderLayout(4, 4));
 		propertyInspectorPanel.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
-		propertyInspectorTitle.setText("Properties");
+		propertyInspectorTitle.setText(t("properties.title"));
 		propertyInspectorTitle.setFont(propertyInspectorTitle.getFont().deriveFont(Font.BOLD));
 		propertyInspectorPanel.add(propertyInspectorTitle, BorderLayout.NORTH);
 		propertyInspectorTable.setFont(FizzimFonts.tableFont());
@@ -1052,27 +1231,26 @@ public class FizzimGui extends javax.swing.JFrame {
 		lintReportText.setEditable(false);
 		lintReportText.setLineWrap(true);
 		lintReportText.setWrapStyleWord(true);
-		javax.swing.JTabbedPane lintTabs = new javax.swing.JTabbedPane();
 		lintTabs.addTab("Issues", new JScrollPane(lintIssueList));
 		lintTabs.addTab("Report", new JScrollPane(lintReportText));
 		lintPanel.add(lintTabs, BorderLayout.CENTER);
 		JPanel lintButtons = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
-		JButton rerunButton = new JButton("Rerun");
-		rerunButton.addActionListener(new ActionListener() {
+		lintRerunButton.setText("Rerun");
+		lintRerunButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				showLintPanel();
 			}
 		});
-		JButton closeButton = new JButton("Close");
-		closeButton.addActionListener(new ActionListener() {
+		lintCloseButton.setText("Close");
+		lintCloseButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				lintPanel.setVisible(false);
 				drawArea1.clearLintHighlights();
 				revalidateForPaneChange();
 			}
 		});
-		lintButtons.add(rerunButton);
-		lintButtons.add(closeButton);
+		lintButtons.add(lintRerunButton);
+		lintButtons.add(lintCloseButton);
 		lintPanel.add(lintButtons, BorderLayout.SOUTH);
 	}
 
@@ -1083,39 +1261,21 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	protected void HelpItemHelpActionPerformed(ActionEvent evt) {
-	
-		String url = "http://www.docs.fizzim.com/fizzim_tutorial_092511.htm";
-		JDialog helpWindow = new JDialog(this,"Help - " + url,false);
-		JEditorPane htmlPane = null;
-		boolean load = true;
-
+		String url = "https://github.com/cookacounty/fizzim/wiki";
 		try {
-			htmlPane = new JEditorPane(url);
-			
-		} catch(IOException ioe) {
-			//if URL is unaccessible, try to load local copy of help
-			try {		
-				htmlPane = new JEditorPane(FizzimGui.class.getResource("help.html"));				
-			} catch (IOException e) {
-				// if error occurs loading local copy
-				load = false;
+			if(Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE))
+				Desktop.getDesktop().browse(new URI(url));
+			else
 				JOptionPane.showMessageDialog(this,
-						"Could not load help.  Try http://www.fizzim.com/help.html", "Error",
-						JOptionPane.ERROR_MESSAGE);
-			}
+						t("help.wiki.unavailable") + "\n" + url,
+						t("menu.help.wiki"),
+						JOptionPane.INFORMATION_MESSAGE);
+		} catch (Exception e) {
+			JOptionPane.showMessageDialog(this,
+					t("help.wiki.unavailable") + "\n" + url,
+					t("menu.help.wiki"),
+					JOptionPane.INFORMATION_MESSAGE);
 		}
-		htmlPane.addHyperlinkListener(new MyHyperlinkListener(htmlPane));
-		
-		if(load)
-		{
-			htmlPane.setPreferredSize(new Dimension(800,600)); // dimensions of help page
-			JScrollPane scroll = new JScrollPane(htmlPane);
-			htmlPane.setEditable(false);
-			helpWindow.add(scroll);
-			helpWindow.pack();
-			helpWindow.setVisible(true);
-		}
-		
 	}
 
 	protected void FilePrefActionPerformed(ActionEvent evt) {
@@ -1370,16 +1530,16 @@ public class FizzimGui extends javax.swing.JFrame {
 			return;
 		if(hdlGeneratedInSync)
 		{
-			hdlStatusLabel.setText("HDL in sync");
-			hdlStatusLabel.setToolTipText("HDL has been generated since the last diagram change.");
+			hdlStatusLabel.setText(t("status.hdl.sync"));
+			hdlStatusLabel.setToolTipText(t("status.hdl.sync.tip"));
 			hdlStatusLabel.setBackground(new Color(190, 235, 190));
 			hdlStatusLabel.setForeground(new Color(20, 85, 20));
 			hdlStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(80, 145, 80)));
 		}
 		else
 		{
-			hdlStatusLabel.setText("HDL stale");
-			hdlStatusLabel.setToolTipText("Generate HDL to synchronize output with the current diagram.");
+			hdlStatusLabel.setText(t("status.hdl.stale"));
+			hdlStatusLabel.setToolTipText(t("status.hdl.stale.tip"));
 			hdlStatusLabel.setBackground(new Color(255, 235, 150));
 			hdlStatusLabel.setForeground(new Color(100, 75, 0));
 			hdlStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(170, 135, 30)));
@@ -1389,11 +1549,10 @@ public class FizzimGui extends javax.swing.JFrame {
 	private void markLintStale() {
 		if(lintStatusLabel == null)
 			return;
-		lintStatusLabel.setText("Lint stale");
-		lintStatusLabel.setToolTipText("Save the diagram to refresh lint status. Click to run lint now.");
-		lintStatusLabel.setBackground(new Color(225, 230, 235));
-		lintStatusLabel.setForeground(new Color(75, 85, 99));
-		lintStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(150, 160, 170)));
+		lintStatusMode = "stale";
+		lintErrorCount = 0;
+		lintWarningCount = 0;
+		applyLintStatusText();
 	}
 
 	private void updateLintStatus() {
@@ -1413,26 +1572,56 @@ public class FizzimGui extends javax.swing.JFrame {
 		}
 		if(errors > 0)
 		{
-			lintStatusLabel.setText("Lint errors");
-			lintStatusLabel.setBackground(new Color(255, 205, 205));
-			lintStatusLabel.setForeground(new Color(120, 20, 20));
-			lintStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(185, 70, 70)));
+			lintStatusMode = "errors";
 		}
 		else if(warnings > 0)
 		{
-			lintStatusLabel.setText("Lint warn");
-			lintStatusLabel.setBackground(new Color(255, 235, 150));
-			lintStatusLabel.setForeground(new Color(100, 75, 0));
-			lintStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(170, 135, 30)));
+			lintStatusMode = "warn";
 		}
 		else
 		{
-			lintStatusLabel.setText("Lint clean");
+			lintStatusMode = "clean";
+		}
+		lintErrorCount = errors;
+		lintWarningCount = warnings;
+		applyLintStatusText();
+	}
+
+	private void applyLintStatusText() {
+		if(lintStatusLabel == null)
+			return;
+		if(lintStatusMode.equals("errors"))
+		{
+			lintStatusLabel.setText(t("status.lint.errors"));
+			lintStatusLabel.setBackground(new Color(255, 205, 205));
+			lintStatusLabel.setForeground(new Color(120, 20, 20));
+			lintStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(185, 70, 70)));
+			lintStatusLabel.setToolTipText(tf("status.lint.tip", new Integer(lintErrorCount), new Integer(lintWarningCount)));
+		}
+		else if(lintStatusMode.equals("warn"))
+		{
+			lintStatusLabel.setText(t("status.lint.warn"));
+			lintStatusLabel.setBackground(new Color(255, 235, 150));
+			lintStatusLabel.setForeground(new Color(100, 75, 0));
+			lintStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(170, 135, 30)));
+			lintStatusLabel.setToolTipText(tf("status.lint.tip", new Integer(lintErrorCount), new Integer(lintWarningCount)));
+		}
+		else if(lintStatusMode.equals("clean"))
+		{
+			lintStatusLabel.setText(t("status.lint.clean"));
 			lintStatusLabel.setBackground(new Color(190, 235, 190));
 			lintStatusLabel.setForeground(new Color(20, 85, 20));
 			lintStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(80, 145, 80)));
+			lintStatusLabel.setToolTipText(tf("status.lint.tip", new Integer(lintErrorCount), new Integer(lintWarningCount)));
 		}
-		lintStatusLabel.setToolTipText(errors + " errors, " + warnings + " warnings. Click to open lint results.");
+		else
+		{
+			lintStatusLabel.setText(t("status.lint.stale"));
+			lintStatusLabel.setToolTipText(t("status.lint.stale.tip"));
+			lintStatusLabel.setBackground(new Color(225, 230, 235));
+			lintStatusLabel.setForeground(new Color(75, 85, 99));
+			lintStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(150, 160, 170)));
+		}
 	}
 
 	private boolean runHdlComparison(File fzmFile, File primaryOutput) throws IOException, InterruptedException {
@@ -1828,16 +2017,16 @@ public class FizzimGui extends javax.swing.JFrame {
 		inspectorSelectedObjects = selected;
 		if(selected == null || selected.size() == 0)
 		{
-			propertyInspectorTitle.setText("Properties");
+			propertyInspectorTitle.setText(t("properties.title"));
 			propertyInspectorTable.setModel(new ReadOnlyInspectorTableModel(
-					new Object[][] {{"No selection", ""}},
-					new Object[] {"Field", "Value"}));
+					new Object[][] {{t("properties.noSelection"), ""}},
+					new Object[] {t("properties.field"), t("properties.value")}));
 			propertyInspectorEditButton.setEnabled(false);
 			return;
 		}
 		if(selected.size() > 1)
 		{
-			propertyInspectorTitle.setText("Properties - " + selected.size() + " objects");
+			propertyInspectorTitle.setText(t("properties.title") + " - " + selected.size() + " " + t("properties.objects"));
 			if(canBatchEditInInspector(selected))
 			{
 				propertyInspectorTable.setModel(new BatchInspectorTableModel(drawArea1, selected, globalList));
@@ -1845,14 +2034,14 @@ public class FizzimGui extends javax.swing.JFrame {
 				return;
 			}
 			propertyInspectorTable.setModel(new ReadOnlyInspectorTableModel(
-					new Object[][] {{"Selection", selected.size() + " objects"}},
-					new Object[] {"Field", "Value"}));
+					new Object[][] {{t("properties.selection"), selected.size() + " " + t("properties.objects")}},
+					new Object[] {t("properties.field"), t("properties.value")}));
 			propertyInspectorEditButton.setEnabled(false);
 			return;
 		}
 
 		GeneralObj obj = selected.getFirst();
-		propertyInspectorTitle.setText("Properties - " + objectTypeName(obj));
+		propertyInspectorTitle.setText(t("properties.title") + " - " + objectTypeName(obj));
 		propertyInspectorEditButton.setEnabled(true);
 		if(obj.getType() == 3)
 		{
@@ -2552,7 +2741,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			storeRecentFiles(recentFiles);
 		if(recentFiles.size() == 0)
 		{
-			JMenuItem emptyItem = new JMenuItem("(No Recent Files)");
+			JMenuItem emptyItem = new JMenuItem(t("menu.file.openRecent.empty"));
 			emptyItem.setEnabled(false);
 			FileOpenRecent.add(emptyItem);
 			return;
@@ -2572,7 +2761,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		}
 
 		FileOpenRecent.addSeparator();
-		JMenuItem clearItem = new JMenuItem("Clear Recent Files");
+		JMenuItem clearItem = new JMenuItem(t("menu.file.openRecent.clear"));
 		clearItem.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent evt) {
 				clearRecentFiles();
@@ -2646,7 +2835,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			storeRecentProjects(recentProjects);
 		if(recentProjects.size() == 0)
 		{
-			JMenuItem emptyItem = new JMenuItem("(No Recent Projects)");
+			JMenuItem emptyItem = new JMenuItem(t("menu.file.openRecentProject.empty"));
 			emptyItem.setEnabled(false);
 			FileProjectOpenRecent.add(emptyItem);
 			return;
@@ -2666,7 +2855,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		}
 
 		FileProjectOpenRecent.addSeparator();
-		JMenuItem clearItem = new JMenuItem("Clear Recent Projects");
+		JMenuItem clearItem = new JMenuItem(t("menu.file.openRecentProject.clear"));
 		clearItem.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent evt) {
 				clearRecentProjects();
@@ -3116,14 +3305,14 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(selectedProjectFile() == null)
 			return;
 		JPopupMenu menu = new JPopupMenu();
-		JMenuItem openItem = new JMenuItem("Open");
+		JMenuItem openItem = new JMenuItem(t("project.open"));
 		openItem.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent event) {
 				openSelectedProjectDiagram();
 			}
 		});
 		menu.add(openItem);
-		JMenuItem openNewItem = new JMenuItem("Open in New Window");
+		JMenuItem openNewItem = new JMenuItem(t("project.context.openNew"));
 		openNewItem.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent event) {
 				openSelectedProjectDiagramInNewWindow();
@@ -3131,7 +3320,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		});
 		menu.add(openNewItem);
 		menu.addSeparator();
-		JMenuItem removeItem = new JMenuItem("Remove from Project");
+		JMenuItem removeItem = new JMenuItem(t("project.context.remove"));
 		removeItem.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent event) {
 				removeSelectedProjectDiagram();
@@ -3776,6 +3965,32 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JMenuItem EditItemRedo;
 	private javax.swing.JMenuItem EditItemUndo;
 	private javax.swing.JMenu EditMenu;
+	private javax.swing.JMenu settingsMenu;
+	private javax.swing.JMenuItem defaultsItem;
+	private javax.swing.JMenuItem hdlSettingsItem;
+	private javax.swing.JMenu languageMenu;
+	private javax.swing.JRadioButtonMenuItem languageEnglishItem;
+	private javax.swing.JRadioButtonMenuItem languageJapaneseItem;
+	private javax.swing.JRadioButtonMenuItem languageChineseSimplifiedItem;
+	private javax.swing.JRadioButtonMenuItem languageChineseTraditionalItem;
+	private javax.swing.JRadioButtonMenuItem languageKoreanItem;
+	private javax.swing.JRadioButtonMenuItem languageGermanItem;
+	private javax.swing.JRadioButtonMenuItem languageFrenchItem;
+	private javax.swing.JRadioButtonMenuItem languageSpanishItem;
+	private javax.swing.JRadioButtonMenuItem languagePortugueseItem;
+	private javax.swing.JRadioButtonMenuItem languageHindiItem;
+	private javax.swing.JRadioButtonMenuItem languageRussianItem;
+	private javax.swing.JMenu toolsMenu;
+	private javax.swing.JMenuItem lintItem;
+	private javax.swing.JMenuItem generateHdlItem;
+	private javax.swing.JMenu cleanupMenu;
+	private javax.swing.JMenuItem resetLabelsItem;
+	private javax.swing.JMenuItem cleanRoutesItem;
+	private javax.swing.JMenuItem cleanSelectedRoutesItem;
+	private javax.swing.JMenuItem alignHorizontalItem;
+	private javax.swing.JMenuItem alignVerticalItem;
+	private javax.swing.JMenuItem distributeHorizontalItem;
+	private javax.swing.JMenuItem distributeVerticalItem;
 	private javax.swing.JMenuItem FileItemExit;
 	private javax.swing.JMenuItem FileItemNew;
 	private javax.swing.JMenuItem FileItemOpen;
@@ -3847,6 +4062,9 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.DefaultListModel lintIssueModel;
 	private javax.swing.JList lintIssueList;
 	private javax.swing.JTextArea lintReportText;
+	private javax.swing.JTabbedPane lintTabs;
+	private javax.swing.JButton lintRerunButton;
+	private javax.swing.JButton lintCloseButton;
 	private javax.swing.JScrollPane jScrollPane1;
 	private javax.swing.JSeparator jSeparator1;
 	private javax.swing.JSeparator jSeparator2;
