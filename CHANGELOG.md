@@ -264,6 +264,7 @@ part of the current codebase.
 - Project create/save dialogs now explicitly show that project files use the
   enforced `.fzp` extension and confirm the final path when the extension is
   added automatically.
+- Opening a project now automatically switches the side panel to the Project tab.
 
 ### Build And Packaging
 

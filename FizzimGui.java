@@ -933,6 +933,11 @@ public class FizzimGui extends javax.swing.JFrame {
 		sideTabbedPane.addTab("Project", projectPanel);
 	}
 
+	private void showProjectPane() {
+		if(sideTabbedPane != null && projectPanel != null)
+			sideTabbedPane.setSelectedComponent(projectPanel);
+	}
+
 	private void buildPropertyInspectorPanel() {
 		propertyInspectorPanel.setLayout(new BorderLayout(4, 4));
 		propertyInspectorPanel.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
@@ -2794,6 +2799,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			projectDiagramFiles = diagrams;
 			currProjectFile = file;
 			updateProjectPanel();
+			showProjectPane();
 			rememberRecentProject(currProjectFile);
 			JOptionPane.showMessageDialog(this, "Opened project:\n" + file.getAbsolutePath()
 					+ "\n\nDiagrams: " + projectDiagramFiles.size(), "Project", JOptionPane.INFORMATION_MESSAGE);
