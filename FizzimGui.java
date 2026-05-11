@@ -271,6 +271,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		zoomFitButton = new javax.swing.JButton();
 		lintButton = new javax.swing.JButton();
 		generateHdlButton = new javax.swing.JButton();
+		instantiateButton = new javax.swing.JButton();
 		hdlStatusLabel = new javax.swing.JLabel();
 		lintStatusLabel = new javax.swing.JLabel();
 		zoomPercentLabel = new javax.swing.JLabel();
@@ -539,6 +540,14 @@ public class FizzimGui extends javax.swing.JFrame {
 			}
 		});
 		zoomPanel.add(generateHdlButton);
+		instantiateButton.setText("Instantiate");
+		instantiateButton.setToolTipText("Show a copyable parent-module instantiation snippet");
+		instantiateButton.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ToolsInstantiateActionPerformed(evt);
+			}
+		});
+		zoomPanel.add(instantiateButton);
 		getContentPane().add(zoomPanel, java.awt.BorderLayout.NORTH);
 
 		buildLintPanel();
@@ -1104,6 +1113,8 @@ public class FizzimGui extends javax.swing.JFrame {
 		lintButton.setToolTipText(t("toolbar.lint.tip"));
 		generateHdlButton.setText(t("toolbar.generate"));
 		generateHdlButton.setToolTipText(t("toolbar.generate.tip"));
+		instantiateButton.setText(t("toolbar.instantiate"));
+		instantiateButton.setToolTipText(t("toolbar.instantiate.tip"));
 
 		if(inspectorSelectedObjects == null || inspectorSelectedObjects.size() == 0)
 			selectionStatusLabel.setText(t("status.selection.none"));
@@ -1403,6 +1414,161 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	private void ToolsGenerateHdlActionPerformed(ActionEvent evt) {
 		generateHdlFromGui();
+	}
+
+	private void ToolsInstantiateActionPerformed(ActionEvent evt) {
+		showInstantiationSnippet();
+	}
+
+	private void showInstantiationSnippet() {
+		JTextArea text = new JTextArea(buildInstantiationSnippet(), 28, 88);
+		text.setEditable(true);
+		text.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+		text.setCaretPosition(0);
+		text.selectAll();
+		JScrollPane scroll = new JScrollPane(text);
+		JOptionPane.showMessageDialog(this, scroll, "Instantiate " + getMachineName(), JOptionPane.INFORMATION_MESSAGE);
+	}
+
+	private String buildInstantiationSnippet() {
+		String moduleName = getMachineName();
+		String instanceName = "u_" + sanitizeInstanceName(moduleName);
+		LinkedList<ObjAttribute> parameters = getParameterAttributes();
+		LinkedList<ObjAttribute> ports = getPortAttributes();
+		StringBuffer snippet = new StringBuffer();
+
+		snippet.append("// Wire declarations for ").append(moduleName).append("\n");
+		for(int i = 0; i < ports.size(); i++)
+			appendWireDeclaration(snippet, ports.get(i));
+		snippet.append("\n");
+
+		if(parameters.size() > 0)
+		{
+			snippet.append("// Optional parent parameter/localparam declarations using current defaults\n");
+			for(int i = 0; i < parameters.size(); i++)
+			{
+				ObjAttribute param = parameters.get(i);
+				snippet.append("localparam ").append(param.getName()).append(" = ")
+						.append(blankDefault(param.getValue(), "0")).append(";\n");
+			}
+			snippet.append("\n");
+		}
+
+		snippet.append(moduleName);
+		if(parameters.size() > 0)
+		{
+			snippet.append(" #(\n");
+			for(int i = 0; i < parameters.size(); i++)
+			{
+				ObjAttribute param = parameters.get(i);
+				snippet.append("  .").append(param.getName()).append("(").append(param.getName()).append(")");
+				snippet.append(i == parameters.size() - 1 ? "\n" : ",\n");
+			}
+			snippet.append(") ");
+		}
+		else
+			snippet.append(" ");
+		snippet.append(instanceName).append(" (\n");
+		for(int i = 0; i < ports.size(); i++)
+		{
+			String portName = signalBaseName(ports.get(i).getName());
+			snippet.append("  .").append(portName).append("(").append(portName).append(")");
+			snippet.append(i == ports.size() - 1 ? "\n" : ",\n");
+		}
+		snippet.append(");\n");
+
+		return snippet.toString();
+	}
+
+	private LinkedList<ObjAttribute> getParameterAttributes() {
+		LinkedList<ObjAttribute> params = new LinkedList<ObjAttribute>();
+		if(globalList == null || globalList.size() == 0)
+			return params;
+		for(int i = 0; i < globalList.get(0).size(); i++)
+		{
+			ObjAttribute attr = globalList.get(0).get(i);
+			if(attr.getType() != null && attr.getType().trim().equals("parameter"))
+				params.add(attr);
+		}
+		return params;
+	}
+
+	private LinkedList<ObjAttribute> getPortAttributes() {
+		LinkedList<ObjAttribute> ports = new LinkedList<ObjAttribute>();
+		if(globalList == null || globalList.size() < 3)
+			return ports;
+		for(int i = 0; i < globalList.get(1).size(); i++)
+			addPortIfNeeded(ports, globalList.get(1).get(i));
+		for(int i = 0; i < globalList.get(2).size(); i++)
+		{
+			ObjAttribute attr = globalList.get(2).get(i);
+			if(!hasUserAttribute(attr, "suppress_portlist"))
+				addPortIfNeeded(ports, attr);
+		}
+		return ports;
+	}
+
+	private void addPortIfNeeded(LinkedList<ObjAttribute> ports, ObjAttribute attr) {
+		String name = signalBaseName(attr.getName());
+		if(name.equals(""))
+			return;
+		for(int i = 0; i < ports.size(); i++)
+		{
+			if(signalBaseName(ports.get(i).getName()).equals(name))
+				return;
+		}
+		ports.add(attr);
+	}
+
+	private void appendWireDeclaration(StringBuffer snippet, ObjAttribute attr) {
+		String name = signalBaseName(attr.getName());
+		String range = signalRange(attr.getName());
+		snippet.append("wire ");
+		if(!range.equals(""))
+			snippet.append(range).append(" ");
+		snippet.append(name).append(";\n");
+	}
+
+	private String signalBaseName(String declaration) {
+		if(declaration == null)
+			return "";
+		String name = declaration.trim();
+		int bracket = name.indexOf("[");
+		if(bracket >= 0)
+			name = name.substring(0, bracket).trim();
+		return name;
+	}
+
+	private String signalRange(String declaration) {
+		if(declaration == null)
+			return "";
+		int start = declaration.indexOf("[");
+		int end = declaration.indexOf("]", start);
+		if(start >= 0 && end > start)
+			return declaration.substring(start, end + 1).trim();
+		return "";
+	}
+
+	private boolean hasUserAttribute(ObjAttribute attr, String userAttribute) {
+		String userAtts = attr.getUserAtts();
+		if(userAtts == null || userAtts.trim().equals(""))
+			return false;
+		String[] tokens = userAtts.trim().split("[,;\\s]+");
+		for(int i = 0; i < tokens.length; i++)
+		{
+			if(tokens[i].equals(userAttribute))
+				return true;
+		}
+		return false;
+	}
+
+	private String sanitizeInstanceName(String moduleName) {
+		String sanitized = sanitizeHdlFilename(moduleName).replaceAll("[^A-Za-z0-9_$]", "_");
+		if(sanitized.equals(""))
+			return "fsm";
+		if(!Character.isLetter(sanitized.charAt(0)) && sanitized.charAt(0) != '_')
+			sanitized = "fsm_" + sanitized;
+		return sanitized;
 	}
 
 	private boolean showHdlGenerationSettingsDialog(boolean generationContext) {
@@ -4176,6 +4342,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JButton zoomFitButton;
 	private javax.swing.JButton lintButton;
 	private javax.swing.JButton generateHdlButton;
+	private javax.swing.JButton instantiateButton;
 	private javax.swing.JLabel hdlStatusLabel;
 	private javax.swing.JLabel lintStatusLabel;
 	private javax.swing.JLabel zoomPercentLabel;

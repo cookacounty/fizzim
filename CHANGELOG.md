@@ -94,6 +94,9 @@ part of the current codebase.
 - Backend fork expansion now walks multi-level fork decision trees until each
   route reaches a concrete state or state group, preserving route priority,
   combined conditions, and transition actions along the flattened path.
+- Added an `Instantiate` toolbar button that shows a copyable parent-module
+  Verilog snippet with IO wire declarations, optional parameter defaults, named
+  parameter overrides, and named port connections.
 - Added reset reachability linting for real states, including paths through
   state-group exits, group default entries, and forks.
 - Added state coverage linting for states with no outgoing transition when
