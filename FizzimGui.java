@@ -244,6 +244,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		zoomOutButton = new javax.swing.JButton();
 		zoomInButton = new javax.swing.JButton();
 		zoomFitButton = new javax.swing.JButton();
+		lintButton = new javax.swing.JButton();
 		generateHdlButton = new javax.swing.JButton();
 		hdlStatusLabel = new javax.swing.JLabel();
 		zoomPercentLabel = new javax.swing.JLabel();
@@ -454,6 +455,14 @@ public class FizzimGui extends javax.swing.JFrame {
 			}
 		});
 		zoomPanel.add(zoomFitButton);
+		lintButton.setText("Lint");
+		lintButton.setToolTipText("Validate and lint the current diagram");
+		lintButton.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				ToolsLintActionPerformed(evt);
+			}
+		});
+		zoomPanel.add(lintButton);
 		generateHdlButton.setText("Generate");
 		generateHdlButton.setToolTipText("Generate HDL using the configured backend");
 		generateHdlButton.addActionListener(new java.awt.event.ActionListener() {
@@ -3480,6 +3489,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JButton zoomOutButton;
 	private javax.swing.JButton zoomInButton;
 	private javax.swing.JButton zoomFitButton;
+	private javax.swing.JButton lintButton;
 	private javax.swing.JButton generateHdlButton;
 	private javax.swing.JLabel hdlStatusLabel;
 	private javax.swing.JLabel zoomPercentLabel;
