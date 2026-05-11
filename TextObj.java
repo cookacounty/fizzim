@@ -156,6 +156,12 @@ public class TextObj extends GeneralObj {
 			col2.add(" ");
 			col3.add(" ");
 			col4.add(" ");
+			if(i == 2)
+			{
+				addOutputSummaryRows(false);
+				addOutputSummaryRows(true);
+				continue;
+			}
 			for(int j = 0; j < globalList.get(i).size(); j++)
 			{
 				//skip "name" for state and transition
@@ -197,6 +203,48 @@ public class TextObj extends GeneralObj {
 		col2W += space;
 		col3W += space;
 		col4W += space;
+	}
+
+	private void addOutputSummaryRows(boolean internals)
+	{
+		boolean wroteHeader = !internals;
+		if(internals)
+		{
+			for(int j = 0; j < globalList.get(2).size(); j++)
+			{
+				if(isInternalOutput(globalList.get(2).get(j)))
+				{
+					addGlobalSummaryRow("INTERNALS", " ", " ", " ");
+					wroteHeader = true;
+					break;
+				}
+			}
+		}
+		if(!wroteHeader)
+			return;
+		for(int j = 0; j < globalList.get(2).size(); j++)
+		{
+			ObjAttribute obj = globalList.get(2).get(j);
+			if(isInternalOutput(obj) != internals)
+				continue;
+			String name = "   " + obj.getName();
+			String type = obj.getType();
+			if(type.equals("reg"))
+				type = "statebit";
+			addGlobalSummaryRow(name, obj.getValue(), type, obj.getComment());
+		}
+	}
+
+	private boolean isInternalOutput(ObjAttribute obj)
+	{
+		String userAtts = obj.getUserAtts();
+		if(userAtts == null)
+			return false;
+		String[] tokens = userAtts.split("[,;\\s]+");
+		for(int i = 0; i < tokens.length; i++)
+			if(tokens[i].equals("suppress_portlist"))
+				return true;
+		return false;
 	}
 
 	private boolean isHiddenSummaryAttribute(ObjAttribute obj)

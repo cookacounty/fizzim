@@ -1440,6 +1440,11 @@ public class FizzimGui extends javax.swing.JFrame {
 		snippet.append("// Wire declarations for ").append(moduleName).append("\n");
 		for(int i = 0; i < ports.size(); i++)
 			appendWireDeclaration(snippet, ports.get(i));
+		int internalCount = getInternalOutputCount();
+		if(internalCount > 0)
+			snippet.append("// ").append(internalCount).append(" internal-only output")
+					.append(internalCount == 1 ? " is" : "s are")
+					.append(" omitted from the module port list.\n");
 		snippet.append("\n");
 
 		if(parameters.size() > 0)
@@ -1507,6 +1512,16 @@ public class FizzimGui extends javax.swing.JFrame {
 				addPortIfNeeded(ports, attr);
 		}
 		return ports;
+	}
+
+	private int getInternalOutputCount() {
+		int count = 0;
+		if(globalList == null || globalList.size() < 3)
+			return count;
+		for(int i = 0; i < globalList.get(2).size(); i++)
+			if(hasUserAttribute(globalList.get(2).get(i), "suppress_portlist"))
+				count++;
+		return count;
 	}
 
 	private void addPortIfNeeded(LinkedList<ObjAttribute> ports, ObjAttribute attr) {

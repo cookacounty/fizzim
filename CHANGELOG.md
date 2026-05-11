@@ -104,6 +104,9 @@ part of the current codebase.
 - Added an `Instantiate` toolbar button that shows a copyable parent-module
   Verilog snippet with IO wire declarations, optional parameter defaults, named
   parameter overrides, and named port connections.
+- The instantiation helper now notes when internal-only outputs are omitted
+  from the module port list, and the canvas summary separates `OUTPUTS` from
+  `INTERNALS` so suppressed internal variables are less confusing.
 - Added reset reachability linting for real states, including paths through
   state-group exits, group default entries, and forks.
 - Added state coverage linting for states with no outgoing transition when
