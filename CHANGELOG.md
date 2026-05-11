@@ -299,6 +299,9 @@ part of the current codebase.
   Suite tools such as Icarus Verilog and Yosys when present.
 - Added documentation for the test environment and how to rerun backend
   regressions.
+- Added a generated fork/state-group stress regression with nested forks,
+  group-level output inheritance, transition actions through fork paths, a
+  self-checking equivalence testbench, and Yosys syntax/synthesis checks.
 - Added `testcases/tools/fuzz_backend_compare.js` and `make test-fuzz` /
   `make.cmd test-fuzz` for randomized non-human-readable FSM backend fuzzing.
   The fuzz flow mutates the generic feature diagram, exercises forks, state

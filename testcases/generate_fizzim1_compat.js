@@ -207,7 +207,12 @@ function combineEq(a, b) {
 function combinePriority(inPri, outPri, index, count) {
   inPri = (inPri || "").trim();
   outPri = (outPri || "").trim();
-  if (inPri) return count <= 1 ? inPri : (Number(inPri) + ((index + 1) / 1000000000)).toFixed(9);
+  if (inPri) {
+    if (count <= 1) return inPri;
+    const match = inPri.match(/^(-?\d+)(?:\.(\d+))?$/);
+    if (!match) return inPri;
+    return `${match[1]}.${match[2] || ""}${String(index + 1).padStart(3, "0")}`;
+  }
   return outPri;
 }
 
@@ -224,7 +229,14 @@ function compareInfo(a, b) {
 function overlayAttrs(base, overlay) {
   const result = clone(base);
   const ranges = attrRanges(overlay.block);
-  for (const [name, r] of Object.entries(ranges)) setAttrBlock(result.block, name, overlay.block.slice(r[0], r[1]));
+  for (const [name, r] of Object.entries(ranges)) {
+    const incoming = attrBlock(result.block, name);
+    const outgoing = overlay.block.slice(r[0], r[1]);
+    if (incoming && attrType(outgoing) === "output" && attrValue(incoming) !== "" && attrValue(outgoing) === "") {
+      continue;
+    }
+    setAttrBlock(result.block, name, outgoing);
+  }
   return result;
 }
 
