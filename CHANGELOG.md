@@ -23,10 +23,48 @@ part of the current codebase.
 - Added transition actions. Transitions can now assign `regdp` outputs directly,
   making one-cycle transition pulses easier to express without relying on
   `nextstate` expressions in destination states.
+- Changed transition-action defaults to blank, so an empty transition action
+  means "do not assign this variable on this transition" rather than inheriting
+  the state/output default.
+- Updated transition-action display in the GUI: conditions remain plain, while
+  transition actions are shown in bold `/ output <= value` notation and the
+  quick property inspector labels them as actions.
+- Grouped transition conditions and actions into one left-aligned transition
+  label block so users do not have to manage several independent floating text
+  labels on one transition.
+- New and reset loopback transitions now start as a conventional side loop
+  instead of snapping through odd border points on the state.
+- Added a Verilog Parameters pane to the FSM Interface/global property editor
+  and a matching `FSM Interface > Parameters` menu item. Parameters remain
+  stored as backend-compatible machine attributes with `type == "parameter"`.
+- Added Verilog parameters to the main FSM summary text under a separate
+  `PARAMETERS` section.
 - Added a user-facing `Internals` global-attribute pane for FSM variables that
   should be generated internally but omitted from the module port list. These
   remain stored as outputs with `suppress_portlist` for parser and backend
   compatibility.
+- Added one-click conversion between Outputs and Internals in the global
+  property editor while preserving the existing HDL-compatible storage.
+- Removed the exposed States and Transitions tabs/menu entries from the global
+  property editor; those derived backend attributes remain managed through the
+  object property editors and output/internal definitions.
+- Kept transition priority as a built-in transition property so it remains
+  editable from transition dialogs and the property inspector without needing
+  the old global Transitions editor.
+- Forced transition attribute synchronization before showing transition
+  property editors/inspector rows, restoring `priority` for older diagrams that
+  did not already carry the built-in priority attribute.
+- Normalized transition priority so the property row appears immediately after
+  `equation`, and default/implied priority labels stay hidden on the canvas.
+- Normalized older transition priority edit flags so the priority value can be
+  edited from transition property dialogs and the property inspector.
+- Transition priority edits now stop the active table edit before saving, and
+  automatic priority assignment preserves user-local priority values.
+- Transition property tables and the side property inspector now add visual
+  dividers between identity/condition, priority, and transition action rows.
+- The main window now remembers its last size, position, and maximized state in
+  per-user Java preferences, restoring only when the saved bounds intersect a
+  current screen.
 - Added parent-qualified debug state names for grouped states, so simulation
   debug can display names like `GROUP.CHILD`.
 - Increased the generated debug `statename` width to 256 characters by default.
@@ -47,6 +85,15 @@ part of the current codebase.
   runs lint silently and updates the indicator without opening the lint pane.
 - Added transition-equation linting for references that are not declared in the
   global input/output lists or as built-in FSM signals.
+- Transition-equation reference lint now treats parameters as declared
+  expression names and ignores identifiers used only inside bit-select or
+  part-select brackets.
+- Output/internal attribute editing now defaults new `regdp` entries to a
+  reset value of `0`, clears reset values when switching to non-resettable
+  `comb` style entries, and commits active table edits before deleting rows.
+- Backend fork expansion now walks multi-level fork decision trees until each
+  route reaches a concrete state or state group, preserving route priority,
+  combined conditions, and transition actions along the flattened path.
 - Added reset reachability linting for real states, including paths through
   state-group exits, group default entries, and forks.
 - Added state coverage linting for states with no outgoing transition when
@@ -258,6 +305,18 @@ part of the current codebase.
   lists of `.fzm` diagrams, support relative paths, and can be opened/saved from
   `File > Project`. `Build All` generates HDL for every diagram in the project
   using the configured backend settings.
+- Project diagrams are now sorted by project-relative path, so adding a new
+  diagram groups it with files in the same folder and keeps the Project tree
+  ordered A-Z.
+- Normal diagram edits now preserve the current zoom/pan. In fit mode, moving
+  objects can zoom out only when needed to keep the expanded diagram visible;
+  reducing the diagram extents no longer zooms in automatically.
+- The Space shortcut for zoom-to-fit now works even after clicking a toolbar
+  button, while still leaving text/table editing alone.
+- Scoped the Space zoom-to-fit shortcut to the main canvas/viewport so it does
+  not fire from side panes, toolbar controls, or dialogs.
+- Transition label groups now draw on a subtle light background so labels remain
+  readable when a transition line passes behind them.
 - Improved project navigation. Opening a project diagram now reuses the current
   window by default, prompts before unsaved edits are discarded, marks the active
   dirty project file in the tree, and offers right-click Open in New Window and
@@ -277,6 +336,8 @@ part of the current codebase.
 - Opening a project now automatically switches the side panel to the Project tab.
 - Fizzim now attempts to reopen the last opened project or diagram at startup,
   while safely ignoring missing files.
+- Opening a diagram from the Project pane no longer replaces the startup restore
+  target; Fizzim will restore the project on the next launch.
 
 ### Build And Packaging
 

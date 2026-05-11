@@ -228,38 +228,71 @@ private static final double BEND_ENDPOINT_PULL = 0.25;
 	
 	private void setEndPts(int x, int y)
 	{
-		//find start point on oval closest to click point
 		stateBorderPts = state.getBorderPts();
-		Point createPt = new Point(x,y);
-		startStateIndex = nearestBorderIndex(stateBorderPts, createPt);
-		
-		// store two points on oval
+		int side = preferredLoopSide(x, y);
+		Point startTarget = loopTarget(side, true);
+		Point endTarget = loopTarget(side, false);
+		startStateIndex = nearestBorderIndex(stateBorderPts, startTarget);
+		endStateIndex = nearestBorderIndex(stateBorderPts, endTarget);
+
 		startPt = stateBorderPts.get(startStateIndex);
-		Point center = state.getRealCenter(myPage);
-		Point oppositePt = new Point((int)(center.x - (startPt.x - center.x)), (int)(center.y - (startPt.y - center.y)));
-		endStateIndex = nearestBorderIndex(stateBorderPts, oppositePt);
 		endPt = stateBorderPts.get(endStateIndex);
-		
-		//angle control points are from points on oval
-		double angleStart = getBorderPointAngle(startPt);
-		double angleEnd = getBorderPointAngle(endPt);
-		
-		
-		//find distance from points on oval to control point
-		int dist = (int) Math.sqrt(state.getSize());
 
-		//scaling
-		dist = (int) (dist*.65);
+		int dist = Math.max(45, (int)(Math.sqrt(state.getSize()) * .65));
+		Point outward = loopOutwardVector(side, dist);
+		startCtrlPt = new Point(startPt.x + outward.x, startPt.y + outward.y);
+		endCtrlPt = new Point(endPt.x + outward.x, endPt.y + outward.y);
+	}
 
+	private int preferredLoopSide(int x, int y)
+	{
+		int[] coords = state.getCoords();
+		Point center = state.getRealCenter(myPage);
+		if(x >= coords[0] && x <= coords[2] && y >= coords[1] && y <= coords[3])
+			return 0;
 
-		
-		//set up control points
-		startCtrlPt = new Point();
-		endCtrlPt = new Point(); 
-		startCtrlPt.setLocation((int) (dist*Math.cos(angleStart)) + startPt.getX(), dist*Math.sin(angleStart) + startPt.getY());
-		endCtrlPt.setLocation((int) (dist*Math.cos(angleEnd)) + endPt.getX(), dist*Math.sin(angleEnd) + endPt.getY());
-		
-		
+		int dx = x - center.x;
+		int dy = y - center.y;
+		if(Math.abs(dx) > Math.abs(dy))
+			return dx > 0 ? 1 : 3;
+		return dy > 0 ? 2 : 0;
+	}
+
+	private Point loopTarget(int side, boolean start)
+	{
+		int[] coords = state.getCoords();
+		int x0 = coords[0];
+		int y0 = coords[1];
+		int x1 = coords[2];
+		int y1 = coords[3];
+		int w = Math.max(1, x1 - x0);
+		int h = Math.max(1, y1 - y0);
+		switch(side)
+		{
+			case 1:
+				return new Point(x1, y0 + (int)Math.round(h * (start ? .35 : .65)));
+			case 2:
+				return new Point(x0 + (int)Math.round(w * (start ? .35 : .65)), y1);
+			case 3:
+				return new Point(x0, y0 + (int)Math.round(h * (start ? .65 : .35)));
+			default:
+				return new Point(x0 + (int)Math.round(w * (start ? .65 : .35)), y0);
+		}
+	}
+
+	private Point loopOutwardVector(int side, int dist)
+	{
+		switch(side)
+		{
+			case 1:
+				return new Point(dist, 0);
+			case 2:
+				return new Point(0, dist);
+			case 3:
+				return new Point(-dist, 0);
+			default:
+				return new Point(0, -dist);
+		}
 	}
 	
 	public void paintComponent(Graphics g) {
@@ -451,14 +484,10 @@ private static final double BEND_ENDPOINT_PULL = 0.25;
 					ObjAttribute s = attrib.get(j);
 					s.unselect();
 				}
-	        	for (int i = 0; i < attrib.size(); i++)
+				ObjAttribute label = getTransitionLabelAnchor();
+				if(label != null && label.setSelectStatus(x,y))
 				{
-	        		ObjAttribute s = attrib.get(i);
-					if(s.setSelectStatus(x,y))
-					{
-						selectStatus = TXT;
-						break;
-					}
+					selectStatus = TXT;
 				}
 			}
 	        if(selectStatus != TXT)

@@ -6488,7 +6488,7 @@ fzm_globalTable
    fork44
    </startState>
    <endState>
-   S2
+   fork43
    </endState>
    <startPtX>
    524.0

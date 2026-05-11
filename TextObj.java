@@ -162,6 +162,8 @@ public class TextObj extends GeneralObj {
 				if((i == 3 || i == 4) && j == 0)
 					continue;
 				ObjAttribute obj = globalList.get(i).get(j);
+				if(i == 0 && obj.getType().equals("parameter"))
+					continue;
 				if(isHiddenSummaryAttribute(obj))
 					continue;
 				String name = "   " + obj.getName();
@@ -185,7 +187,10 @@ public class TextObj extends GeneralObj {
 				col4.add(comm);
 			}
 			if(i == 0)
+			{
 				addGlobalSummaryRow("   HDL output", resolveHdlOutputSummary(), "", "");
+				addParameterSummaryRows();
+			}
 		}
 
 		col1W += space;
@@ -197,6 +202,31 @@ public class TextObj extends GeneralObj {
 	private boolean isHiddenSummaryAttribute(ObjAttribute obj)
 	{
 		return obj.getName().equals(HDL_STATE_ATTR) || obj.getName().equals(HDL_OUTPUT_ATTR);
+	}
+
+	private void addParameterSummaryRows()
+	{
+		if(globalList == null || globalList.size() == 0)
+			return;
+		boolean wroteHeader = false;
+		LinkedList<ObjAttribute> machine = globalList.get(0);
+		for(int i = 0; i < machine.size(); i++)
+		{
+			ObjAttribute obj = machine.get(i);
+			if(!obj.getType().equals("parameter"))
+				continue;
+			if(!wroteHeader)
+			{
+				if(col1W < fm.stringWidth("PARAMETERS"))
+					col1W = fm.stringWidth("PARAMETERS");
+				col1.add("PARAMETERS");
+				col2.add(" ");
+				col3.add(" ");
+				col4.add(" ");
+				wroteHeader = true;
+			}
+			addGlobalSummaryRow("   " + obj.getName(), obj.getValue(), obj.getType(), obj.getComment());
+		}
 	}
 
 	private void addGlobalSummaryRow(String name, String value, String type, String comment)

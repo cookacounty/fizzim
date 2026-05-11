@@ -56,6 +56,7 @@ public class ObjAttribute implements Cloneable {
         private int selectboxLeft,selectboxRight,selectboxBottom,selectboxTop;
 	boolean outputTypeReg = false;
 	boolean outputTypeFlag = false;
+	private int drawParentType = -1;
 	
 	public boolean getVisible()
 	{
@@ -339,8 +340,12 @@ public class ObjAttribute implements Cloneable {
 
 		currPage = curr;
 		if (myPage == currPage && isCanvasVisible()) {
-                  g.setColor(currColor);
-                  FontMetrics fm1 = g.getFontMetrics();
+                  Graphics2D g2D = (Graphics2D)g;
+                  Font oldFont = g2D.getFont();
+                  if(isTransitionActionText())
+                    g2D.setFont(oldFont.deriveFont(Font.BOLD));
+                  g2D.setColor(currColor);
+                  FontMetrics fm1 = g2D.getFontMetrics();
                   
                   // dont show "name =" or "equation =", just show value
                   String text;
@@ -362,7 +367,7 @@ public class ObjAttribute implements Cloneable {
                   int yoffset = 0;
                   
                   if(text.indexOf("\\n")==-1) {
-                    g.drawString(text,txbase,tybase);
+                    g2D.drawString(text,txbase,tybase);
                   } else {
                     /* split lines on \n */
                     tW = 0;
@@ -370,13 +375,13 @@ public class ObjAttribute implements Cloneable {
                   
                     while(tempText.indexOf("\\n")>-1) {
                       String line = tempText.substring(0,tempText.indexOf("\\n"));
-                      g.drawString(line,txbase,tybase+yoffset);
+                      g2D.drawString(line,txbase,tybase+yoffset);
                       if(fm1.stringWidth(line)>tW)
                       tW = fm1.stringWidth(line);
                       tempText = tempText.substring(tempText.indexOf("\\n")+2);
                       yoffset += tH;
                     }
-                    g.drawString(tempText,txbase,tybase+yoffset);
+                    g2D.drawString(tempText,txbase,tybase+yoffset);
                     if(fm1.stringWidth(tempText)>tW)
                       tW = fm1.stringWidth(tempText);
                   }
@@ -389,14 +394,15 @@ public class ObjAttribute implements Cloneable {
                   selectboxTop = tybase-tH+2;
 
                   //if object is selected, draw red selection box around it
-                  if(selectStatus != 0 || parentSelectStatus != 0) {          
-                    g.setColor(Color.red);
+                  if(selectStatus != 0 || parentSelectStatus != 0) {
+                    g2D.setColor(Color.red);
 
-                    g.drawLine(selectboxLeft,selectboxTop,selectboxRight,selectboxTop);  // Top
-                    g.drawLine(selectboxLeft,selectboxBottom,selectboxRight,selectboxBottom);  // Bottom
-                    g.drawLine(selectboxLeft,selectboxTop,selectboxLeft,selectboxBottom);  // Left
-                    g.drawLine(selectboxRight,selectboxTop,selectboxRight,selectboxBottom);  // Right
+                    g2D.drawLine(selectboxLeft,selectboxTop,selectboxRight,selectboxTop);  // Top
+                    g2D.drawLine(selectboxLeft,selectboxBottom,selectboxRight,selectboxBottom);  // Bottom
+                    g2D.drawLine(selectboxLeft,selectboxTop,selectboxLeft,selectboxBottom);  // Left
+                    g2D.drawLine(selectboxRight,selectboxTop,selectboxRight,selectboxBottom);  // Right
                   }
+                  g2D.setFont(oldFont);
 		}
 	}
 
@@ -427,6 +433,83 @@ public class ObjAttribute implements Cloneable {
 		}
 
 		drawMultilineText(g2D, text, x, y, fm);
+		g2D.setFont(oldFont);
+		g2D.setColor(oldColor);
+	}
+
+	public void paintTransitionGroup(Graphics g, int curr, Point point, int parentSelectStatus,
+			java.util.LinkedList<ObjAttribute> attrs, int parentType) {
+		currPage = curr;
+		if(myPage != currPage || !isCanvasVisible())
+			return;
+
+		Graphics2D g2D = (Graphics2D)g;
+		Font oldFont = g2D.getFont();
+		Color oldColor = g2D.getColor();
+		Font actionFont = oldFont.deriveFont(Font.BOLD);
+		FontMetrics normalMetrics = g2D.getFontMetrics(oldFont);
+		FontMetrics actionMetrics = g2D.getFontMetrics(actionFont);
+		java.util.LinkedList<String> lines = new java.util.LinkedList<String>();
+		java.util.LinkedList<Boolean> actionLines = new java.util.LinkedList<Boolean>();
+
+		for(int i = 0; i < attrs.size(); i++)
+		{
+			ObjAttribute attr = attrs.get(i);
+			attr.setDrawParentType(parentType);
+			if(!attr.isCanvasVisible())
+				continue;
+			String line = transitionGroupDrawText(attr);
+			if(line.equals(""))
+				continue;
+			lines.add(line);
+			actionLines.add(new Boolean(attr.isTransitionActionText()));
+		}
+
+		if(lines.size() == 0)
+			return;
+
+		int lineHeight = Math.max(normalMetrics.getHeight(), actionMetrics.getHeight());
+		int width = 0;
+		for(int i = 0; i < lines.size(); i++)
+		{
+			FontMetrics metrics = actionLines.get(i).booleanValue() ? actionMetrics : normalMetrics;
+			width = Math.max(width, metrics.stringWidth(lines.get(i)));
+		}
+
+		tX = (int)point.getX();
+		tY = (int)point.getY();
+		int txbase = tX + x2Obj;
+		int tybase = tY + y2Obj;
+		tW = width;
+		tH = lineHeight * lines.size();
+
+		int padX = 4;
+		int padY = 3;
+		Color labelBackground = new Color(255, 255, 255, 230);
+		g2D.setColor(labelBackground);
+		g2D.fillRoundRect(txbase - padX, tybase - lineHeight + 2 - padY,
+				width + padX * 2, lineHeight * lines.size() + padY * 2, 6, 6);
+
+		for(int i = 0; i < lines.size(); i++)
+		{
+			boolean actionLine = actionLines.get(i).booleanValue();
+			g2D.setFont(actionLine ? actionFont : oldFont);
+			g2D.setColor(currColor);
+			g2D.drawString(lines.get(i), txbase, tybase + i * lineHeight);
+		}
+
+		selectboxLeft = txbase - 4;
+		selectboxRight = txbase + width + 4;
+		selectboxTop = tybase - lineHeight + 2;
+		selectboxBottom = tybase + (lines.size() - 1) * lineHeight + 5;
+
+		if(selectStatus != 0 || parentSelectStatus != 0)
+		{
+			g2D.setColor(Color.red);
+			g2D.drawRect(selectboxLeft, selectboxTop,
+					selectboxRight - selectboxLeft, selectboxBottom - selectboxTop);
+		}
+
 		g2D.setFont(oldFont);
 		g2D.setColor(oldColor);
 	}
@@ -485,9 +568,34 @@ public class ObjAttribute implements Cloneable {
 	private String getDrawText() {
 		if(name.equals("name") || name.equals("equation"))
 			return value;
+		if(isTransitionActionText())
+			return "/ " + name + " <= " + value;
 		if(outputTypeReg || outputTypeFlag)
 			return name + " <= " + value;
 		return name + " = " + value;
+	}
+
+	private boolean isTransitionActionText() {
+		return (drawParentType == 1 || drawParentType == 2) && type.equals("output");
+	}
+
+	private String transitionGroupDrawText(ObjAttribute attr) {
+		String attrValue = attr.value == null ? "" : attr.value.trim();
+		if(attr.name.equals("equation"))
+			return attrValue;
+		if(attr.isTransitionActionText())
+		{
+			if(attrValue.equals(""))
+				return "";
+			return "/ " + attr.name + " <= " + attr.value;
+		}
+		if(attrValue.equals(""))
+			return "";
+		return attr.getDrawText();
+	}
+
+	public void setDrawParentType(int parentType) {
+		drawParentType = parentType;
 	}
 
 	private void drawMultilineText(Graphics g, String text, int x, int y, FontMetrics fm) {
@@ -534,13 +642,19 @@ public class ObjAttribute implements Cloneable {
 	}
 
 	public boolean isCanvasVisible() {
-		return getVisible() && !isHiddenDefaultEquation();
+		return getVisible() && !isHiddenDefaultEquation() && !isHiddenDefaultPriority();
 	}
 
 	private boolean isHiddenDefaultEquation() {
 		if(!name.equals("equation") || value == null)
 			return false;
 		return value.trim().equals("1");
+	}
+
+	private boolean isHiddenDefaultPriority() {
+		if(!name.equals("priority") || value == null)
+			return false;
+		return value.trim().equals("1000") && editable[1] != LOCAL;
 	}
 
 	//unselects object

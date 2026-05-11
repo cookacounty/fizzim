@@ -10,6 +10,8 @@ import java.awt.FontMetrics;
 import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -23,6 +25,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.awt.event.KeyEvent;
+import java.awt.KeyEventDispatcher;
+import java.awt.KeyboardFocusManager;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -52,6 +57,8 @@ import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.StringTokenizer;
@@ -72,6 +79,7 @@ import javax.swing.event.HyperlinkListener;
 import javax.swing.event.MenuEvent;
 import javax.swing.event.MenuListener;
 import javax.swing.plaf.basic.BasicTabbedPaneUI;
+import javax.swing.text.JTextComponent;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
@@ -126,6 +134,11 @@ public class FizzimGui extends javax.swing.JFrame {
 	private static final String PREF_HDL_COMPARE_BACKEND = "hdlCompareBackendPath";
 	private static final String PREF_HDL_COMPARE_ARGS = "hdlCompareArgs";
 	private static final String PREF_HDL_COMPARE_SUFFIX = "hdlCompareSuffix";
+	private static final String PREF_WINDOW_X = "windowX";
+	private static final String PREF_WINDOW_Y = "windowY";
+	private static final String PREF_WINDOW_W = "windowW";
+	private static final String PREF_WINDOW_H = "windowH";
+	private static final String PREF_WINDOW_MAXIMIZED = "windowMaximized";
 	private static final String HDL_STATE_ATTR = "fizzim2_hdl_generated";
 	private static final String HDL_OUTPUT_ATTR = "fizzim2_hdl_output";
 	private static final Preferences USER_PREFS = Preferences.userNodeForPackage(FizzimGui.class);
@@ -149,6 +162,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private String lintStatusMode = "stale";
 	private int lintErrorCount = 0;
 	private int lintWarningCount = 0;
+	private KeyEventDispatcher spaceFitDispatcher = null;
 	
 
 
@@ -181,6 +195,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		drawArea1.setLogicalSize(maxW, maxH);
 
 		initComponents();
+		installSpaceFitShortcut();
 
 		//custom initComponents
 
@@ -225,8 +240,8 @@ public class FizzimGui extends javax.swing.JFrame {
 		globalList.get(4).add(new ObjAttribute("equation", "1", 1,
 				"def_type","",Color.black,"","",editable));
 
-		
-		
+		globalList.get(4).add(new ObjAttribute("priority", "1000", ObjAttribute.NONDEFAULT,
+				"","",Color.black,"","",editable));
 	}
 
 	/** This method is called from within the constructor to
@@ -347,6 +362,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		GlobalItemTransitions = new javax.swing.JMenuItem();
 		jSeparator3 = new javax.swing.JSeparator();
 		GlobalItemInputs = new javax.swing.JMenuItem();
+		GlobalItemParameters = new javax.swing.JMenuItem();
 		GlobalItemOutputs = new javax.swing.JMenuItem();
 		GlobalItemInternals = new javax.swing.JMenuItem();
 		HelpMenu = new javax.swing.JMenu();
@@ -900,6 +916,16 @@ public class FizzimGui extends javax.swing.JFrame {
 
 		GlobalMenu.add(GlobalItemInputs);
 
+		GlobalItemParameters.setMnemonic(java.awt.event.KeyEvent.VK_P);
+		GlobalItemParameters.setText("Parameters");
+		GlobalItemParameters.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				GlobalItemParametersActionPerformed(evt);
+			}
+		});
+
+		GlobalMenu.add(GlobalItemParameters);
+
 		GlobalItemOutputs.setMnemonic(java.awt.event.KeyEvent.VK_O);
 		GlobalItemOutputs.setText("Outputs");
 		GlobalItemOutputs
@@ -921,32 +947,6 @@ public class FizzimGui extends javax.swing.JFrame {
 				});
 
 		GlobalMenu.add(GlobalItemInternals);
-
-		GlobalMenu.add(jSeparator3);
-
-
-		
-		GlobalItemStates.setText("States");
-		GlobalItemStates.setMnemonic(java.awt.event.KeyEvent.VK_S);
-		GlobalItemStates.addActionListener(new java.awt.event.ActionListener() {
-			public void actionPerformed(java.awt.event.ActionEvent evt) {
-				GlobalItemStatesActionPerformed(evt);
-			}
-		});
-
-		GlobalMenu.add(GlobalItemStates);
-
-		GlobalItemTransitions.setText("Transitions");
-		GlobalItemTransitions.setMnemonic(java.awt.event.KeyEvent.VK_T);
-		GlobalItemTransitions
-				.addActionListener(new java.awt.event.ActionListener() {
-					public void actionPerformed(java.awt.event.ActionEvent evt) {
-						GlobalItemTransitionsActionPerformed(evt);
-					}
-				});
-
-		GlobalMenu.add(GlobalItemTransitions);
-		
 
 		MenuBar.add(GlobalMenu);
 
@@ -1086,11 +1086,10 @@ public class FizzimGui extends javax.swing.JFrame {
 		distributeVerticalItem.setText(t("menu.tools.distributeV"));
 		GlobalMenu.setText(t("menu.interface"));
 		GlobalItemMachine.setText(t("menu.interface.machine"));
+		GlobalItemParameters.setText(t("menu.interface.parameters"));
 		GlobalItemInputs.setText(t("menu.interface.inputs"));
 		GlobalItemOutputs.setText(t("menu.interface.outputs"));
 		GlobalItemInternals.setText(t("menu.interface.internals"));
-		GlobalItemStates.setText(t("menu.interface.states"));
-		GlobalItemTransitions.setText(t("menu.interface.transitions"));
 		HelpMenu.setText(t("menu.help"));
 		HelpItemHelp.setText(t("menu.help.wiki"));
 		HelpItemAbout.setText(t("menu.help.about"));
@@ -1131,6 +1130,39 @@ public class FizzimGui extends javax.swing.JFrame {
 			sideTabbedPane.setSelectedComponent(projectPanel);
 	}
 
+	private void installSpaceFitShortcut() {
+		spaceFitDispatcher = new KeyEventDispatcher() {
+			public boolean dispatchKeyEvent(KeyEvent event) {
+				if(event.getID() != KeyEvent.KEY_PRESSED || event.getKeyCode() != KeyEvent.VK_SPACE
+						|| event.getModifiersEx() != 0)
+					return false;
+				Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+				if(focusOwner == null || SwingUtilities.getWindowAncestor(focusOwner) != FizzimGui.this)
+					return false;
+				if(!isCanvasFocusOwner(focusOwner) || shouldLetFocusedComponentUseSpace(focusOwner))
+					return false;
+				fitDiagramShortcut();
+				event.consume();
+				return true;
+			}
+		};
+		KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(spaceFitDispatcher);
+	}
+
+	private boolean isCanvasFocusOwner(Component focusOwner) {
+		return focusOwner == drawArea1
+				|| SwingUtilities.isDescendingFrom(focusOwner, drawArea1)
+				|| focusOwner == jScrollPane1
+				|| SwingUtilities.isDescendingFrom(focusOwner, jScrollPane1.getViewport());
+	}
+
+	private boolean shouldLetFocusedComponentUseSpace(Component focusOwner) {
+		return focusOwner instanceof JTextComponent
+				|| focusOwner instanceof JTable
+				|| focusOwner instanceof JComboBox
+				|| focusOwner instanceof JMenuItem;
+	}
+
 	private void buildPropertyInspectorPanel() {
 		propertyInspectorPanel.setLayout(new BorderLayout(4, 4));
 		propertyInspectorPanel.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
@@ -1139,6 +1171,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		propertyInspectorPanel.add(propertyInspectorTitle, BorderLayout.NORTH);
 		propertyInspectorTable.setFont(FizzimFonts.tableFont());
 		propertyInspectorTable.setRowHeight(propertyInspectorTable.getRowHeight() + 3);
+		propertyInspectorTable.setDefaultRenderer(Object.class, new TransitionSectionRenderer());
 		propertyInspectorScroll.setViewportView(propertyInspectorTable);
 		propertyInspectorPanel.add(propertyInspectorScroll, BorderLayout.CENTER);
 		propertyInspectorEditButton.setText("Open Full Editor");
@@ -1958,24 +1991,42 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	private void ZoomFitActionPerformed(ActionEvent evt) {
 		enterZoomFitMode();
-		scheduleFitDiagramToViewport();
+		scheduleFitDiagramToViewport(true);
 	}
 
-	private void fitDiagramToViewport() {
+	public void fitDiagramShortcut() {
+		enterZoomFitMode();
+		scheduleFitDiagramToViewport(true);
+	}
+
+	private void fitDiagramToViewport(boolean allowZoomIn) {
 		getContentPane().doLayout();
 		jPanel3.doLayout();
 		jTabbedPane1.doLayout();
 		jScrollPane1.doLayout();
 		Dimension viewport = jScrollPane1.getViewport().getExtentSize();
-		drawArea1.fitDiagramToViewport(viewport);
+		drawArea1.fitDiagramToViewport(viewport, allowZoomIn);
 	}
 
 	private void scheduleFitDiagramToViewport() {
+		scheduleFitDiagramToViewport(true);
+	}
+
+	private void scheduleFitDiagramToViewport(final boolean allowZoomIn) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
-				fitDiagramToViewport();
+				fitDiagramToViewport(allowZoomIn);
 			}
 		});
+	}
+
+	public void fitDiagramOnlyIfZoomOutNeeded() {
+		if(!zoomFitMode || jScrollPane1 == null || drawArea1 == null)
+			return;
+		Dimension viewport = jScrollPane1.getViewport().getExtentSize();
+		Dimension diagram = drawArea1.getPreferredSize();
+		if(diagram.width > viewport.width || diagram.height > viewport.height)
+			scheduleFitDiagramToViewport(false);
 	}
 
 	private void revalidateForPaneChange() {
@@ -2024,6 +2075,8 @@ public class FizzimGui extends javax.swing.JFrame {
 			propertyInspectorEditButton.setEnabled(false);
 			return;
 		}
+		if(selectionContainsTransition(selected))
+			drawArea1.updateTrans();
 		if(selected.size() > 1)
 		{
 			propertyInspectorTitle.setText(t("properties.title") + " - " + selected.size() + " " + t("properties.objects"));
@@ -2070,6 +2123,18 @@ public class FizzimGui extends javax.swing.JFrame {
 				return false;
 		}
 		return true;
+	}
+
+	private boolean selectionContainsTransition(LinkedList<GeneralObj> selected) {
+		if(selected == null)
+			return false;
+		for(int i = 0; i < selected.size(); i++)
+		{
+			GeneralObj obj = selected.get(i);
+			if(obj.getType() == 1 || obj.getType() == 2)
+				return true;
+		}
+		return false;
 	}
 
 	private String objectTypeName(GeneralObj obj) {
@@ -2456,10 +2521,58 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(closed)
 			return;
 		closed = true;
+		saveWindowBounds();
+		if(spaceFitDispatcher != null)
+		{
+			KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(spaceFitDispatcher);
+			spaceFitDispatcher = null;
+		}
 		openWindowCount--;
 		dispose();
 		if(openWindowCount <= 0)
 			System.exit(0);
+	}
+
+	public boolean restoreWindowBounds() {
+		int w = USER_PREFS.getInt(PREF_WINDOW_W, -1);
+		int h = USER_PREFS.getInt(PREF_WINDOW_H, -1);
+		if(w < 300 || h < 250)
+			return false;
+		Rectangle bounds = new Rectangle(USER_PREFS.getInt(PREF_WINDOW_X, 50),
+				USER_PREFS.getInt(PREF_WINDOW_Y, 50), w, h);
+		if(!intersectsAnyScreen(bounds))
+			return false;
+		setBounds(bounds);
+		if(USER_PREFS.getBoolean(PREF_WINDOW_MAXIMIZED, false))
+			setExtendedState(getExtendedState() | Frame.MAXIMIZED_BOTH);
+		return true;
+	}
+
+	private void saveWindowBounds() {
+		boolean maximized = (getExtendedState() & Frame.MAXIMIZED_BOTH) == Frame.MAXIMIZED_BOTH;
+		Rectangle bounds = getBounds();
+		if(bounds.width >= 300 && bounds.height >= 250)
+		{
+			USER_PREFS.putInt(PREF_WINDOW_X, bounds.x);
+			USER_PREFS.putInt(PREF_WINDOW_Y, bounds.y);
+			USER_PREFS.putInt(PREF_WINDOW_W, bounds.width);
+			USER_PREFS.putInt(PREF_WINDOW_H, bounds.height);
+		}
+		USER_PREFS.putBoolean(PREF_WINDOW_MAXIMIZED, maximized);
+		try {
+			USER_PREFS.flush();
+		} catch (Exception e) { }
+	}
+
+	private boolean intersectsAnyScreen(Rectangle bounds) {
+		GraphicsDevice[] screens = GraphicsEnvironment.getLocalGraphicsEnvironment().getScreenDevices();
+		for(int i = 0; i < screens.length; i++)
+		{
+			Rectangle screenBounds = screens[i].getDefaultConfiguration().getBounds();
+			if(screenBounds.intersects(bounds))
+				return true;
+		}
+		return false;
 	}
 
 	//GEN-FIRST:event_EditItemDeleteActionPerformed
@@ -2575,6 +2688,12 @@ public class FizzimGui extends javax.swing.JFrame {
 		new GlobalProperties(drawArea1, this, true, globalList, 1)
 				.setVisible(true);
 	}//GEN-LAST:event_GlobalItemsInputsActionPerformed
+
+	private void GlobalItemParametersActionPerformed(java.awt.event.ActionEvent evt) {
+		globalList = drawArea1.setUndoPoint();
+		new GlobalProperties(drawArea1, this, true, globalList, 6)
+				.setVisible(true);
+	}
 
 	private void GlobalItemOutputsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_GlobalItemOutputsActionPerformed
 		globalList = drawArea1.setUndoPoint();
@@ -3166,8 +3285,17 @@ public class FizzimGui extends javax.swing.JFrame {
 			if(projectDiagramFiles.get(i).getAbsolutePath().equals(absolute.getAbsolutePath()))
 				return false;
 		projectDiagramFiles.add(absolute);
+		sortProjectDiagramFiles();
 		updateProjectPanel();
 		return true;
+	}
+
+	private void sortProjectDiagramFiles() {
+		Collections.sort(projectDiagramFiles, new Comparator<File>() {
+			public int compare(File a, File b) {
+				return projectDisplayPath(a).replace('\\', '/').compareToIgnoreCase(projectDisplayPath(b).replace('\\', '/'));
+			}
+		});
 	}
 
 	private void updateProjectPanel() {
@@ -3254,7 +3382,10 @@ public class FizzimGui extends javax.swing.JFrame {
 			return;
 		}
 		if(confirmSaveCurrentDiagramBeforeSwitch())
-			openFile(file);
+		{
+			openFile(file, false);
+			rememberLastOpened("project", currProjectFile);
+		}
 	}
 
 	private void openSelectedProjectDiagramInNewWindow() {
@@ -3267,7 +3398,8 @@ public class FizzimGui extends javax.swing.JFrame {
 					"Project", JOptionPane.ERROR_MESSAGE);
 			return;
 		}
-		openFileInNewWindow(file);
+		openFileInNewWindow(file, false);
+		rememberLastOpened("project", currProjectFile);
 	}
 
 	private File selectedProjectFile() {
@@ -3708,11 +3840,15 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	private void openFileInNewWindow(File selectedFile) {
+		openFileInNewWindow(selectedFile, true);
+	}
+
+	private void openFileInNewWindow(File selectedFile, boolean rememberFile) {
 		FizzimGui newWindow = new FizzimGui();
 		newWindow.setSize(getSize());
 		newWindow.setLocation(getX() + 30, getY() + 30);
 		newWindow.setVisible(true);
-		newWindow.openFile(selectedFile);
+		newWindow.openFile(selectedFile, rememberFile);
 	}
 
 	private void openFile(File selectedFile) {
@@ -3923,8 +4059,9 @@ public class FizzimGui extends javax.swing.JFrame {
 				System.setErr ( new PrintStream (fout));
 
 				FizzimGui fzim = new FizzimGui();
+				if(!fzim.restoreWindowBounds())
+					fzim.setSize(new java.awt.Dimension(1000, 685));
 				fzim.setVisible(true);
-				fzim.setSize(new java.awt.Dimension(1000, 685));
 				fzim.new SplashWindow("splash.png",fzim,3500);
 				// If command line filename is not null, open
 				// this file.
@@ -4023,6 +4160,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JMenuItem GlobalItemInternals;
 	private javax.swing.JMenuItem GlobalItemMachine;
 	private javax.swing.JMenuItem GlobalItemOutputs;
+	private javax.swing.JMenuItem GlobalItemParameters;
 	private javax.swing.JMenuItem GlobalItemStates;
 	private javax.swing.JMenuItem GlobalItemTransitions;
 	private javax.swing.JMenu GlobalMenu;
@@ -4226,7 +4364,7 @@ public class FizzimGui extends javax.swing.JFrame {
 
 		public Object getValueAt(int row, int col) {
 			if(col == 0)
-				return attrib.get(rowToAttribute[row]).getName();
+				return inspectorDisplayName(currentObj, attrib.get(rowToAttribute[row]));
 			return super.getValueAt(rowToAttribute[row], rowToColumn[row]);
 		}
 
@@ -4328,7 +4466,7 @@ public class FizzimGui extends javax.swing.JFrame {
 				if(findAttribute(objects.get(i), attrName) == null)
 					return;
 			}
-			rows.add(new InspectorRow(attrName, col));
+			rows.add(new InspectorRow(attrName, inspectorDisplayName(objects.getFirst(), findAttribute(objects.getFirst(), attrName)), col));
 		}
 
 		public int getColumnCount() {
@@ -4346,7 +4484,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		public Object getValueAt(int row, int col) {
 			InspectorRow inspectorRow = rows.get(row);
 			if(col == 0)
-				return inspectorRow.name;
+				return inspectorRow.displayName;
 			String value = null;
 			for(int i = 0; i < objects.size(); i++)
 			{
@@ -4429,12 +4567,27 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	class InspectorRow {
 		String name;
+		String displayName;
 		int col;
 
-		InspectorRow(String attrName, int attrCol) {
+		InspectorRow(String attrName, String attrDisplayName, int attrCol) {
 			name = attrName;
+			displayName = attrDisplayName == null ? attrName : attrDisplayName;
 			col = attrCol;
 		}
+	}
+
+	private String inspectorDisplayName(GeneralObj obj, ObjAttribute attr) {
+		if(attr == null)
+			return "";
+		if(obj != null && (obj.getType() == 1 || obj.getType() == 2))
+		{
+			if(attr.getName().equals("equation"))
+				return "Condition: equation";
+			if(attr.getType().equals("output"))
+				return "Action: " + attr.getName();
+		}
+		return attr.getName();
 	}
 
 	class ReadOnlyInspectorTableModel extends javax.swing.table.DefaultTableModel {

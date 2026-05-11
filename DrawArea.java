@@ -244,6 +244,13 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				pasteDiagramSelection();
 			}
 		});
+		getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "fitDiagramToViewport");
+		getActionMap().put("fitDiagramToViewport", new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				if(frame instanceof FizzimGui)
+					((FizzimGui)frame).fitDiagramShortcut();
+			}
+		});
 		installNudgeKeyBindings();
 
 	}
@@ -397,17 +404,46 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 
 	public void updateCanvasExtents()
 	{
-		updateCanvasExtents(DIAGRAM_PADDING);
+		updateCanvasExtents(DIAGRAM_PADDING, false);
 	}
 
 	private void updateCanvasExtents(int padding)
 	{
+		updateCanvasExtents(padding, true);
+	}
+
+	private void updateCanvasExtents(int padding, boolean forceToBounds)
+	{
 		Rectangle bounds = getDiagramBounds(currPage);
-		originX = bounds.x - padding;
-		originY = bounds.y - padding;
-		logicalWidth = Math.max(1, bounds.width + padding * 2);
-		logicalHeight = Math.max(1, bounds.height + padding * 2);
+		JViewport scrollViewport = (JViewport)SwingUtilities.getAncestorOfClass(JViewport.class, this);
+		Point oldView = scrollViewport == null ? null : scrollViewport.getViewPosition();
+		double oldModelX = oldView == null ? originX : originX + oldView.x / zoom;
+		double oldModelY = oldView == null ? originY : originY + oldView.y / zoom;
+
+		int newOriginX = bounds.x - padding;
+		int newOriginY = bounds.y - padding;
+		int newRight = bounds.x + bounds.width + padding;
+		int newBottom = bounds.y + bounds.height + padding;
+
+		if(!forceToBounds)
+		{
+			newOriginX = Math.min(originX, newOriginX);
+			newOriginY = Math.min(originY, newOriginY);
+			newRight = Math.max(originX + logicalWidth, newRight);
+			newBottom = Math.max(originY + logicalHeight, newBottom);
+		}
+
+		originX = newOriginX;
+		originY = newOriginY;
+		logicalWidth = Math.max(1, newRight - newOriginX);
+		logicalHeight = Math.max(1, newBottom - newOriginY);
 		updateZoomedSize();
+		if(oldView != null && !forceToBounds)
+			scrollViewport.setViewPosition(new Point(
+					Math.max(0, (int)Math.round((oldModelX - originX) * zoom)),
+					Math.max(0, (int)Math.round((oldModelY - originY) * zoom))));
+		if(!forceToBounds)
+			notifyFitExtentsChanged();
 	}
 
 	private void expandCanvasExtentsForDrag()
@@ -610,15 +646,29 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 
 	public void fitDiagramToViewport(Dimension viewport)
 	{
+		fitDiagramToViewport(viewport, true);
+	}
+
+	public void fitDiagramToViewport(Dimension viewport, boolean allowZoomIn)
+	{
 		if(viewport == null || viewport.width <= 0 || viewport.height <= 0)
 			return;
 		updateCanvasExtents(FIT_PADDING);
 		double xZoom = viewport.getWidth() / logicalWidth;
 		double yZoom = viewport.getHeight() / logicalHeight;
-		setZoom(Math.min(1.0, Math.min(xZoom, yZoom)));
+		double fitZoom = Math.min(1.0, Math.min(xZoom, yZoom));
+		if(!allowZoomIn)
+			fitZoom = Math.min(getZoom(), fitZoom);
+		setZoom(fitZoom);
 		JViewport scrollViewport = (JViewport)SwingUtilities.getAncestorOfClass(JViewport.class, this);
 		if(scrollViewport != null)
 			scrollViewport.setViewPosition(new Point(0, 0));
+	}
+
+	private void notifyFitExtentsChanged()
+	{
+		if(frame instanceof FizzimGui)
+			((FizzimGui)frame).fitDiagramOnlyIfZoomOutNeeded();
 	}
 
 	private int modelX(MouseEvent e)
@@ -3250,6 +3300,7 @@ public void updateTransitions()
 	
     // update transition attribute lists when global list is updated
 	public void updateTrans() {
+		ensureTransitionPriorityDefinition();
 		syncTransitionOutputDefaultsWithOutputs();
 		for(int i = 1; i < objList.size(); i++)
 		{
@@ -3258,9 +3309,58 @@ public void updateTransitions()
 			{
 				TransitionObj s = (TransitionObj) o;
 				s.updateAttrib(globalList,4);
+				normalizeTransitionPriorityAttribute(s);
 			}
 		}
 		
+	}
+
+	private void ensureTransitionPriorityDefinition()
+	{
+		if(globalList == null || globalList.size() <= 4)
+			return;
+		LinkedList<ObjAttribute> transGlobals = globalList.get(4);
+		ObjAttribute priority = null;
+		for(int i = 0; i < transGlobals.size(); i++)
+		{
+			ObjAttribute attr = transGlobals.get(i);
+			if(attr.getName().equals("priority"))
+			{
+				priority = attr;
+				transGlobals.remove(i);
+				break;
+			}
+		}
+		int[] editable = { ObjAttribute.ABS, ObjAttribute.GLOBAL_VAR,
+				ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR,
+				ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR };
+		if(priority == null)
+			priority = new ObjAttribute("priority", "1000", ObjAttribute.NONDEFAULT, "", "", Color.black, "", "", editable);
+		normalizePriorityAttribute(priority);
+		int insertIndex = transitionAttributeInsertIndexAfter("equation", transGlobals);
+		transGlobals.add(insertIndex, priority);
+	}
+
+	private void normalizeTransitionPriorityAttribute(TransitionObj trans)
+	{
+		ObjAttribute priority = getTransitionPriorityAttribute(trans);
+		if(priority != null)
+			normalizePriorityAttribute(priority);
+	}
+
+	private void normalizePriorityAttribute(ObjAttribute priority)
+	{
+		priority.setVisibility(ObjAttribute.NONDEFAULT);
+		if(priority.getEditable(1) != ObjAttribute.LOCAL)
+			priority.setEditable(1, ObjAttribute.GLOBAL_VAR);
+	}
+
+	private int transitionAttributeInsertIndexAfter(String name, LinkedList<ObjAttribute> attrs)
+	{
+		for(int i = 0; i < attrs.size(); i++)
+			if(attrs.get(i).getName().equals(name))
+				return i + 1;
+		return attrs.size();
 	}
 
 	public void syncTransitionOutputDefaultsWithOutputs()
@@ -3273,7 +3373,7 @@ public void updateTransitions()
 
 			ObjAttribute transOutput = findOutputAttribute(globalList.get(4), output.getName());
 			if(transOutput != null)
-				transOutput.setValue(output.getValue());
+				transOutput.setValue("");
 		}
 	}
 
@@ -3286,13 +3386,37 @@ public void updateTransitions()
 			LinkedList<TransitionObj> transitions = transitionsBySource.get(source);
 			if(transitions.size() <= 1)
 			{
-				setTransitionPriorityImplied(transitions.get(0));
+				if(!isLocalTransitionPriority(transitions.get(0)))
+					setTransitionPriorityImplied(transitions.get(0));
 				continue;
 			}
 			sortTransitionsByPriority(transitions);
+			LinkedHashSet<Integer> usedLocalPriorities = new LinkedHashSet<Integer>();
 			for(int i = 0; i < transitions.size(); i++)
-				setTransitionPriority(transitions.get(i), Math.min(i, PRIORITY_MAX));
+			{
+				TransitionObj trans = transitions.get(i);
+				if(isLocalTransitionPriority(trans))
+					usedLocalPriorities.add(new Integer(Math.max(0, Math.min(PRIORITY_MAX, (int)getTransitionPriority(trans)))));
+			}
+			int nextPriority = 0;
+			for(int i = 0; i < transitions.size(); i++)
+			{
+				TransitionObj trans = transitions.get(i);
+				if(isLocalTransitionPriority(trans))
+					continue;
+				while(usedLocalPriorities.contains(new Integer(nextPriority)) && nextPriority < PRIORITY_MAX)
+					nextPriority++;
+				setTransitionPriority(trans, Math.min(nextPriority, PRIORITY_MAX));
+				usedLocalPriorities.add(new Integer(Math.min(nextPriority, PRIORITY_MAX)));
+				nextPriority++;
+			}
 		}
+	}
+
+	private boolean isLocalTransitionPriority(TransitionObj trans)
+	{
+		ObjAttribute priority = getTransitionPriorityAttribute(trans);
+		return priority != null && priority.getEditable(1) == ObjAttribute.LOCAL;
 	}
 
 	private void refreshTransitionPriorityHighlights()
@@ -4088,15 +4212,18 @@ public void updateTransitions()
 	{
 		TreeSet<String> names = new TreeSet<String>();
 		for(int i = 0; i < globalList.get(1).size(); i++)
-			names.add(baseIdentifier(globalList.get(1).get(i).getName()));
+			addKnownExpressionName(names, globalList.get(1).get(i).getName());
 		for(int i = 0; i < globalList.get(2).size(); i++)
-			names.add(baseIdentifier(globalList.get(2).get(i).getName()));
-		for(int i = 0; i < globalList.get(0).size(); i++)
+			addKnownExpressionName(names, globalList.get(2).get(i).getName());
+		for(int listIndex = 0; listIndex < globalList.size(); listIndex++)
 		{
-			ObjAttribute attr = globalList.get(0).get(i);
-			String type = attr.getType() == null ? "" : attr.getType().trim().toLowerCase();
-			if(type.equals("parameter") || type.equals("define") || type.equals("`define"))
-				names.add(baseIdentifier(stripVerilogMacroPrefix(attr.getName())));
+			for(int i = 0; i < globalList.get(listIndex).size(); i++)
+			{
+				ObjAttribute attr = globalList.get(listIndex).get(i);
+				String type = attr.getType() == null ? "" : attr.getType().trim().toLowerCase();
+				if(type.equals("parameter") || type.equals("define") || type.equals("`define"))
+					addKnownExpressionName(names, stripVerilogMacroPrefix(attr.getName()));
+			}
 		}
 		names.add("state");
 		names.add("nextstate");
@@ -4107,11 +4234,21 @@ public void updateTransitions()
 		return names;
 	}
 
+	private void addKnownExpressionName(TreeSet<String> names, String name)
+	{
+		String base = baseIdentifier(name);
+		if(!base.equals(""))
+			names.add(base);
+	}
+
 	private String baseIdentifier(String name)
 	{
+		if(name == null)
+			return "";
+		name = name.trim();
 		int bracket = name.indexOf("[");
 		if(bracket >= 0)
-			return name.substring(0, bracket);
+			name = name.substring(0, bracket);
 		return name;
 	}
 
@@ -4137,6 +4274,7 @@ public void updateTransitions()
 	{
 		String stripped = expression;
 		stripped = stripped.replaceAll("(?i)(?:\\d+\\s*)?'\\s*[bBoOdDhH]\\s*[0-9a-f_xz?]+", " ");
+		stripped = stripped.replaceAll("\\[[^\\]]*\\]", " ");
 		stripped = stripped.replaceAll("`[A-Za-z_][A-Za-z0-9_$]*", " ");
 		return stripped;
 	}
@@ -4248,11 +4386,7 @@ public void updateTransitions()
 				{
 					String value = attr.getValue().trim();
 					if(value.equals(""))
-					{
-						wroteHeader = appendLintHeader(report, wroteHeader, "Transition Actions");
-						appendLint(report, "ERROR", transitionLabel((TransitionObj)obj) + " has a blank transition action for output "
-								+ attr.getName() + ".", obj);
-					}
+						continue;
 					if(value.indexOf("<=") >= 0 || value.indexOf("=") >= 0)
 					{
 						wroteHeader = appendLintHeader(report, wroteHeader, "Transition Actions");

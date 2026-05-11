@@ -26,10 +26,13 @@ import javax.swing.border.Border;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
 import javax.swing.AbstractCellEditor;
+import javax.swing.BorderFactory;
 
 //Written by: Michael Zimmer - mike@zimmerdesignservices.com
 
@@ -236,17 +239,24 @@ class MyTableModel extends AbstractTableModel {
         	return;
         }
 
-        // only flag, regd can have reset values
+        // only flag and regdp can have reset values
         if ( false
           || (global && col == 7 && !value.equals("") && !((attrib.get(row).getType().equals("flag") || attrib.get(row).getType().equals("regdp"))) )
-          || (global && col == 3 && !(value.equals("flag")|| value.equals("regdp")) && !attrib.get(row).getresetval().equals("") ) 
           )
         {
-        	JOptionPane.showMessageDialog(dialog,
+		JOptionPane.showMessageDialog(dialog,
                     "Only regdp and flag can have a reset value",
                     "error",
                     JOptionPane.ERROR_MESSAGE);
-        	value = attrib.get(row).get(col);
+		value = attrib.get(row).get(col);
+        }
+
+        if(global && col == 3 && attrib.equals(globalList.get(2)))
+        {
+		if(value.equals("regdp") && attrib.get(row).getresetval().trim().equals(""))
+			attrib.get(row).setresetval("0");
+		else if(!value.equals("regdp") && !value.equals("flag") && !attrib.get(row).getresetval().trim().equals(""))
+			attrib.get(row).setresetval("");
         }
         // flag type outputs must have null default value
         if ( false
@@ -287,8 +297,8 @@ class MyTableModel extends AbstractTableModel {
 				globalList.get(3).addLast(newObj);
 				if(value.equals("regdp"))
 				{
-		        	ObjAttribute newTransObj = new ObjAttribute(attrib.get(row).getName(),attrib.get(row).getValue(),
-		        			attrib.get(row).getVisibility(),"output","",Color.black,"","",editable);
+					ObjAttribute newTransObj = new ObjAttribute(attrib.get(row).getName(),"",
+							attrib.get(row).getVisibility(),"output","",Color.black,"","",editable);
 					globalList.get(4).addLast(newTransObj);
 				}
         }
@@ -301,8 +311,8 @@ class MyTableModel extends AbstractTableModel {
 	        	int[] editable = { ObjAttribute.GLOBAL_FIXED, ObjAttribute.GLOBAL_VAR,
 	        	ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR};
 	        	removeAttribute(4,attrib.get(row).getName());
-	        	ObjAttribute newTransObj = new ObjAttribute(attrib.get(row).getName(),attrib.get(row).getValue(),
-	        			attrib.get(row).getVisibility(),"output","",Color.black,"","",editable);
+				ObjAttribute newTransObj = new ObjAttribute(attrib.get(row).getName(),"",
+						attrib.get(row).getVisibility(),"output","",Color.black,"","",editable);
 				globalList.get(4).addLast(newTransObj);
         	}
         	else if(attrib.get(row).getType().equals("regdp"))
@@ -567,6 +577,88 @@ class FilteredOutputTableModel extends MyTableModel {
 	}
 }
 
+class FilteredParameterTableModel extends MyTableModel {
+	FilteredParameterTableModel(LinkedList<LinkedList<ObjAttribute>> globalL, DrawArea da) {
+		super((LinkedList<ObjAttribute>)globalL.get(0), globalL, da);
+	}
+
+	private ArrayList<Integer> visibleRows() {
+		ArrayList<Integer> rows = new ArrayList<Integer>();
+		for(int i = 0; i < attrib.size(); i++) {
+			if(attrib.get(i).getType().equals("parameter"))
+				rows.add(new Integer(i));
+		}
+		return rows;
+	}
+
+	int actualRow(int visibleRow) {
+		return visibleRows().get(visibleRow).intValue();
+	}
+
+	public int getRowCount() {
+		return visibleRows().size();
+	}
+
+	public Object getValueAt(int row, int col) {
+		return super.getValueAt(actualRow(row), col);
+	}
+
+	public Class getColumnClass(int col) {
+		if(getRowCount() == 0)
+			return String.class;
+		return getValueAt(0, col).getClass();
+	}
+
+	public boolean isCellEditable(int row, int col) {
+		return super.isCellEditable(actualRow(row), col);
+	}
+
+	public void setValueAt(Object value, int row, int col) {
+		super.setValueAt(value, actualRow(row), col);
+	}
+}
+
+class FilteredMachineTableModel extends MyTableModel {
+	FilteredMachineTableModel(LinkedList<LinkedList<ObjAttribute>> globalL, DrawArea da) {
+		super((LinkedList<ObjAttribute>)globalL.get(0), globalL, da);
+	}
+
+	private ArrayList<Integer> visibleRows() {
+		ArrayList<Integer> rows = new ArrayList<Integer>();
+		for(int i = 0; i < attrib.size(); i++) {
+			if(!attrib.get(i).getType().equals("parameter"))
+				rows.add(new Integer(i));
+		}
+		return rows;
+	}
+
+	int actualRow(int visibleRow) {
+		return visibleRows().get(visibleRow).intValue();
+	}
+
+	public int getRowCount() {
+		return visibleRows().size();
+	}
+
+	public Object getValueAt(int row, int col) {
+		return super.getValueAt(actualRow(row), col);
+	}
+
+	public Class getColumnClass(int col) {
+		if(getRowCount() == 0)
+			return String.class;
+		return getValueAt(0, col).getClass();
+	}
+
+	public boolean isCellEditable(int row, int col) {
+		return super.isCellEditable(actualRow(row), col);
+	}
+
+	public void setValueAt(Object value, int row, int col) {
+		super.setValueAt(value, actualRow(row), col);
+	}
+}
+
 class MyJColorRenderer extends JLabel implements TableCellRenderer {
 
 	public MyJColorRenderer() {
@@ -578,7 +670,67 @@ class MyJColorRenderer extends JLabel implements TableCellRenderer {
         setBackground(newColor);
         return this;
 	}
-	
+
+}
+
+class TransitionSectionRenderer extends DefaultTableCellRenderer {
+	public Component getTableCellRendererComponent(JTable table, Object value,
+			boolean isSelected, boolean hasFocus, int row, int column) {
+		Component component = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+		if(component instanceof JLabel)
+		{
+			JLabel label = (JLabel)component;
+			label.setBorder(sectionStartsAt(table, row) ? BorderFactory.createMatteBorder(3, 0, 0, 0, new Color(190, 205, 220)) : null);
+			if(isSelected)
+				label.setBackground(table.getSelectionBackground());
+			else if(sectionStartsAt(table, row))
+				label.setBackground(new Color(245, 248, 252));
+			else
+				label.setBackground(table.getBackground());
+		}
+		return component;
+	}
+
+	private boolean sectionStartsAt(JTable table, int viewRow)
+	{
+		if(viewRow < 0)
+			return false;
+		String field = String.valueOf(table.getValueAt(viewRow, 0));
+		if(field.equals("priority"))
+			return true;
+		if(field.startsWith("Action: "))
+			return firstActionRow(table, viewRow);
+		if(table.getModel().getColumnCount() > 3)
+		{
+			int modelRow = table.convertRowIndexToModel(viewRow);
+			Object type = table.getModel().getValueAt(modelRow, 3);
+			if("output".equals(String.valueOf(type)))
+				return firstOutputRow(table, viewRow);
+		}
+		return false;
+	}
+
+	private boolean firstActionRow(JTable table, int viewRow)
+	{
+		for(int i = viewRow - 1; i >= 0; i--)
+			if(String.valueOf(table.getValueAt(i, 0)).startsWith("Action: "))
+				return false;
+		return true;
+	}
+
+	private boolean firstOutputRow(JTable table, int viewRow)
+	{
+		if(table.getModel().getColumnCount() <= 3)
+			return false;
+		for(int i = viewRow - 1; i >= 0; i--)
+		{
+			int modelRow = table.convertRowIndexToModel(i);
+			Object type = table.getModel().getValueAt(modelRow, 3);
+			if("output".equals(String.valueOf(type)))
+				return false;
+		}
+		return true;
+	}
 }
 
 // http://java.sun.com/docs/books/tutorial/uiswing/components/table.html
@@ -695,6 +847,23 @@ class AttributeTableReorder {
 	}
 }
 
+class DialogLayoutUtil {
+	static void hideColumns(JTable table, int... modelColumns) {
+		TableColumnModel columnModel = table.getColumnModel();
+		for(int i = 0; i < modelColumns.length; i++)
+		{
+			int viewColumn = table.convertColumnIndexToView(modelColumns[i]);
+			if(viewColumn >= 0)
+				columnModel.removeColumn(columnModel.getColumn(viewColumn));
+		}
+	}
+
+	static void makeTableResizeUseful(JTable table) {
+		table.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
+		table.setFillsViewportHeight(true);
+	}
+}
+
 
 
 class TransProperties extends javax.swing.JDialog {
@@ -721,6 +890,7 @@ class TransProperties extends javax.swing.JDialog {
 		pref = state;
 		globalList = drawArea.getGlobalList();
 		colorChooser = drawArea.getColorChooser();
+		drawArea.updateTrans();
 		if(trans.getType() == 1)
 		{
 			StateTransitionObj t1 = (StateTransitionObj) t;
@@ -756,7 +926,7 @@ class TransProperties extends javax.swing.JDialog {
 
 		
 		setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-		setResizable(false);
+		setResizable(true);
 		if(!loopback)
 		{
 			setTitle("Edit State Transition Properties");
@@ -770,8 +940,9 @@ class TransProperties extends javax.swing.JDialog {
 		TPTable.setModel(new MyTableModel(trans,this,globalList,4));
 		TPTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 		FizzimFonts.applyCodeFont(TPTable);
+		DialogLayoutUtil.makeTableResizeUseful(TPTable);
+		TPTable.setDefaultRenderer(Object.class, new TransitionSectionRenderer());
 
-		
 		//use dropdown boxes
 		String[] options = new String[]{"No", "Yes", "Only non-default"};
 		TableColumn column = TPTable.getColumnModel().getColumn(2);
@@ -781,6 +952,7 @@ class TransProperties extends javax.swing.JDialog {
 		column.setPreferredWidth(TPTable.getRowHeight());
 		column.setCellEditor(new MyJColorEditor(colorChooser));
 		column.setCellRenderer(new MyJColorRenderer());
+		DialogLayoutUtil.hideColumns(TPTable, 3, 7);
 		TPNew.setVisible(false);
 		TPDelete.setVisible(false);
 
@@ -1085,9 +1257,9 @@ class TransProperties extends javax.swing.JDialog {
 												org.jdesktop.layout.LayoutStyle.RELATED)
 										.add(
 												TPScroll,
-												org.jdesktop.layout.GroupLayout.PREFERRED_SIZE,
+												org.jdesktop.layout.GroupLayout.DEFAULT_SIZE,
 												151,
-												org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+												Short.MAX_VALUE)
 										.addPreferredGap(
 												org.jdesktop.layout.LayoutStyle.RELATED)
 										.add(
@@ -1150,6 +1322,7 @@ class TransProperties extends javax.swing.JDialog {
 																						.add(jCheckBox1))
 																		.addContainerGap()))));
 		pack();
+		setMinimumSize(getSize());
 	}// </editor-fold>//GEN-END:initComponents
 
 	
@@ -1174,7 +1347,8 @@ class TransProperties extends javax.swing.JDialog {
 
 	//GEN-FIRST:event_TPOKActionPerformed
 	private void TPOKActionPerformed(java.awt.event.ActionEvent evt) {
-		TPTable.editCellAt(0,0);
+		if(TPTable.isEditing())
+			TPTable.getCellEditor().stopCellEditing();
 		if(!drawArea.checkTransNames())
 		{
 			JOptionPane.showMessageDialog(this,
@@ -1322,7 +1496,7 @@ class StateProperties extends javax.swing.JDialog {
 		SPUp = new javax.swing.JButton();
 		SPDown = new javax.swing.JButton();
 
-		setResizable(false);
+		setResizable(true);
 
 		setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 		setTitle("Edit State Properties");
@@ -1332,6 +1506,7 @@ class StateProperties extends javax.swing.JDialog {
 		SPTable.setModel(new MyTableModel(state,this,globalList,3));
 		SPTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 		FizzimFonts.applyCodeFont(SPTable);
+		DialogLayoutUtil.makeTableResizeUseful(SPTable);
 
 		//use dropdown boxes
 		String[] options = new String[]{"No", "Yes", "Only non-default"};
@@ -1550,9 +1725,9 @@ class StateProperties extends javax.swing.JDialog {
 												org.jdesktop.layout.LayoutStyle.RELATED)
 										.add(
 												SPScroll,
-												org.jdesktop.layout.GroupLayout.PREFERRED_SIZE,
+												org.jdesktop.layout.GroupLayout.DEFAULT_SIZE,
 												151,
-												org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+												Short.MAX_VALUE)
 										.addPreferredGap(
 												org.jdesktop.layout.LayoutStyle.RELATED)
 										.add(
@@ -1633,6 +1808,7 @@ class StateProperties extends javax.swing.JDialog {
 																								org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
 																		.addContainerGap()))));
 		pack();
+		setMinimumSize(getSize());
 	}// </editor-fold>//GEN-END:initComponents
 
 	//GEN-FIRST:event_SPNewActionPerformed
@@ -1760,11 +1936,12 @@ class StateProperties extends javax.swing.JDialog {
 class GlobalProperties extends javax.swing.JDialog {
 	
 	private static final int TAB_MACHINE = 0;
-	private static final int TAB_INPUTS = 1;
-	private static final int TAB_OUTPUTS = 2;
-	private static final int TAB_INTERNALS = 3;
-	private static final int TAB_STATES = 4;
-	private static final int TAB_TRANSITIONS = 5;
+	private static final int TAB_PARAMETERS = 1;
+	private static final int TAB_INPUTS = 2;
+	private static final int TAB_OUTPUTS = 3;
+	private static final int TAB_INTERNALS = 4;
+	private static final int TAB_STATES = 5;
+	private static final int TAB_TRANSITIONS = 6;
 
 	LinkedList<LinkedList<ObjAttribute>> globalLists;
 	DrawArea drawArea;
@@ -1784,8 +1961,10 @@ class GlobalProperties extends javax.swing.JDialog {
 	MyJComboBoxEditor stateSelect_editor;
 	private JTable currTable = null;
 	private int currTab = 0;
+	private FilteredMachineTableModel machineTableModel;
 	private FilteredOutputTableModel outputTableModel;
 	private FilteredOutputTableModel internalTableModel;
+	private FilteredParameterTableModel parameterTableModel;
 	int[] editable = { ObjAttribute.GLOBAL_FIXED, ObjAttribute.GLOBAL_VAR,
 			ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR};
 	int[] editable2 = { ObjAttribute.ABS, ObjAttribute.GLOBAL_VAR,
@@ -1864,6 +2043,8 @@ class GlobalProperties extends javax.swing.JDialog {
 						return super.getCellEditor(row, column);
 				}
 			};
+			GPScrollParameters = new javax.swing.JScrollPane();
+			GPTableParameters = new javax.swing.JTable();
 			GPScrollState = new javax.swing.JScrollPane();
 			GPTableState = new javax.swing.JTable();
 			GPScrollTrans = new javax.swing.JScrollPane();
@@ -1898,8 +2079,10 @@ class GlobalProperties extends javax.swing.JDialog {
 			GPLabel2
 					.setText("value can be overridden by right clicking on an object and selecting to 'Edit Properties.'");
 
-			GPTableMachine.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(0),globalLists, drawArea));
+			machineTableModel = new FilteredMachineTableModel(globalLists, drawArea);
+			GPTableMachine.setModel(machineTableModel);
 			GPTableMachine.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			DialogLayoutUtil.makeTableResizeUseful(GPTableMachine);
 			column = GPTableMachine.getColumnModel().getColumn(2);
 			column.setCellEditor(new MyJComboBoxEditor(options));
 			column = GPTableMachine.getColumnModel().getColumn(5);
@@ -1909,8 +2092,22 @@ class GlobalProperties extends javax.swing.JDialog {
 			GPScrollMachine.setViewportView(GPTableMachine);
 			GPTabbedPane.addTab("State Machine", GPScrollMachine);
 
+			parameterTableModel = new FilteredParameterTableModel(globalLists, drawArea);
+			GPTableParameters.setModel(parameterTableModel);
+			GPTableParameters.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			DialogLayoutUtil.makeTableResizeUseful(GPTableParameters);
+			column = GPTableParameters.getColumnModel().getColumn(2);
+			column.setCellEditor(new MyJComboBoxEditor(options));
+			column = GPTableParameters.getColumnModel().getColumn(5);
+			column.setCellEditor(new MyJColorEditor(colorChooser));
+			column.setCellRenderer(new MyJColorRenderer());
+			DialogLayoutUtil.hideColumns(GPTableParameters, 3, 7);
+			GPScrollParameters.setViewportView(GPTableParameters);
+			GPTabbedPane.addTab("Parameters", GPScrollParameters);
+
 			GPTableInputs.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(1),globalLists, drawArea));
 			GPTableInputs.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			DialogLayoutUtil.makeTableResizeUseful(GPTableInputs);
 			column = GPTableInputs.getColumnModel().getColumn(2);
 			column.setCellEditor(new MyJComboBoxEditor(options));
 			column = GPTableInputs.getColumnModel().getColumn(5);
@@ -1923,6 +2120,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			outputTableModel = new FilteredOutputTableModel(globalLists, drawArea, false);
 			GPTableOutputs.setModel(outputTableModel);
 			GPTableOutputs.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			DialogLayoutUtil.makeTableResizeUseful(GPTableOutputs);
                         // Visibility
 			column = GPTableOutputs.getColumnModel().getColumn(2);
 			column.setCellEditor(new MyJComboBoxEditor(options));
@@ -1940,6 +2138,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			internalTableModel = new FilteredOutputTableModel(globalLists, drawArea, true);
 			GPTableInternals.setModel(internalTableModel);
 			GPTableInternals.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			DialogLayoutUtil.makeTableResizeUseful(GPTableInternals);
                         // Visibility
 			column = GPTableInternals.getColumnModel().getColumn(2);
 			column.setCellEditor(new MyJComboBoxEditor(options));
@@ -1955,6 +2154,7 @@ class GlobalProperties extends javax.swing.JDialog {
 
 			GPTableState.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(3),globalLists, drawArea));
 			GPTableState.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			DialogLayoutUtil.makeTableResizeUseful(GPTableState);
 			column = GPTableState.getColumnModel().getColumn(2);
 			column.setCellEditor(new MyJComboBoxEditor(options));
 			column = GPTableState.getColumnModel().getColumn(5);
@@ -1962,18 +2162,17 @@ class GlobalProperties extends javax.swing.JDialog {
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
 			GPScrollState.setViewportView(GPTableState);
-			GPTabbedPane.addTab("States", GPScrollState);
-			
+
 			GPTableTrans.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(4),globalLists, drawArea));
 			GPTableTrans.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			DialogLayoutUtil.makeTableResizeUseful(GPTableTrans);
 			column = GPTableTrans.getColumnModel().getColumn(2);
 			column.setCellEditor(new MyJComboBoxEditor(options));
 			column = GPTableTrans.getColumnModel().getColumn(5);
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
 			GPScrollTrans.setViewportView(GPTableTrans);
-			GPTabbedPane.addTab("Transitions", GPScrollTrans);
-			
+
 			
                         // set default column widths
                         setcolumnwidths(GPTableMachine);
@@ -2146,9 +2345,9 @@ class GlobalProperties extends javax.swing.JDialog {
 													org.jdesktop.layout.LayoutStyle.RELATED)
 											.add(
 													GPTabbedPane,
-													org.jdesktop.layout.GroupLayout.PREFERRED_SIZE,
+													org.jdesktop.layout.GroupLayout.DEFAULT_SIZE,
 													179,
-													org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+													Short.MAX_VALUE)
 											.addPreferredGap(
 													org.jdesktop.layout.LayoutStyle.RELATED)
 											.add(
@@ -2169,6 +2368,7 @@ class GlobalProperties extends javax.swing.JDialog {
 															.add(GPOK))
 											.addContainerGap()));
 			pack();
+			setMinimumSize(getSize());
 		}// </editor-fold>//GEN-END:initComponents
 		
 		protected void GPTabbedPaneActionPerformed(ChangeEvent e) {
@@ -2181,6 +2381,7 @@ class GlobalProperties extends javax.swing.JDialog {
 		
 		private void setTable(int tab)
 		{
+			GPOption2.setVisible(true);
 			if(tab == TAB_MACHINE)
 			{
 				currTable = GPTableMachine;
@@ -2190,6 +2391,17 @@ class GlobalProperties extends javax.swing.JDialog {
 					GPOption3.setEnabled(false);
 				else
 					GPOption3.setEnabled(true);
+				GPOption4.setVisible(false);
+				GPOption5.setVisible(false);
+				GPOption6.setVisible(false);
+			}
+			if(tab == TAB_PARAMETERS)
+			{
+				currTable = GPTableParameters;
+				GPOption3.setVisible(true);
+				GPOption3.setEnabled(true);
+				GPOption3.setText("Parameter");
+				GPOption2.setVisible(false);
 				GPOption4.setVisible(false);
 				GPOption5.setVisible(false);
 				GPOption6.setVisible(false);
@@ -2214,7 +2426,9 @@ class GlobalProperties extends javax.swing.JDialog {
 				GPOption4.setVisible(true);
 				GPOption4.setText("Multibit Output");
 				GPOption5.setVisible(false);
-				GPOption6.setVisible(false);
+				GPOption6.setVisible(true);
+				GPOption6.setEnabled(true);
+				GPOption6.setText("Make Internal");
 			}
 			if(tab == TAB_INTERNALS)
 			{
@@ -2226,7 +2440,9 @@ class GlobalProperties extends javax.swing.JDialog {
 				GPOption4.setText("Multibit Internal");
 				GPOption5.setVisible(true);
 				GPOption5.setText("Flag");
-				GPOption6.setVisible(false);
+				GPOption6.setVisible(true);
+				GPOption6.setEnabled(true);
+				GPOption6.setText("Make Output");
 			}
 			if(tab == TAB_STATES)
 			{
@@ -2261,17 +2477,25 @@ class GlobalProperties extends javax.swing.JDialog {
 
 		private int tabToUiTab(int tab)
 		{
+			if(tab == 6)
+				return TAB_PARAMETERS;
 			if(tab == 5)
 				return TAB_INTERNALS;
 			if(tab == 3)
 				return TAB_STATES;
 			if(tab == 4)
 				return TAB_TRANSITIONS;
+			if(tab == 1)
+				return TAB_INPUTS;
+			if(tab == 2)
+				return TAB_OUTPUTS;
 			return tab;
 		}
 
 		private int uiTabToGlobalTab(int tab)
 		{
+			if(tab == TAB_PARAMETERS)
+				return 0;
 			if(tab == TAB_INTERNALS)
 				return 2;
 			if(tab == TAB_STATES)
@@ -2285,6 +2509,10 @@ class GlobalProperties extends javax.swing.JDialog {
 		{
 			if(table.getModel() instanceof FilteredOutputTableModel)
 				return ((FilteredOutputTableModel)table.getModel()).actualRow(row);
+			if(table.getModel() instanceof FilteredParameterTableModel)
+				return ((FilteredParameterTableModel)table.getModel()).actualRow(row);
+			if(table.getModel() instanceof FilteredMachineTableModel)
+				return ((FilteredMachineTableModel)table.getModel()).actualRow(row);
 			return row;
 		}
 
@@ -2294,6 +2522,10 @@ class GlobalProperties extends javax.swing.JDialog {
 				outputTableModel.fireTableDataChanged();
 			if(internalTableModel != null)
 				internalTableModel.fireTableDataChanged();
+			if(parameterTableModel != null)
+				parameterTableModel.fireTableDataChanged();
+			if(machineTableModel != null)
+				machineTableModel.fireTableDataChanged();
 			if(GPTableState != null && GPTableState.getModel() instanceof MyTableModel)
 				((MyTableModel)GPTableState.getModel()).fireTableDataChanged();
 			if(GPTableTrans != null && GPTableTrans.getModel() instanceof MyTableModel)
@@ -2364,6 +2596,8 @@ class GlobalProperties extends javax.swing.JDialog {
 		//GEN-FIRST:event_GPNewActionPerformed
 		private void GPOption1ActionPerformed(java.awt.event.ActionEvent evt) {
 			
+			if(currTable.isEditing())
+				currTable.getCellEditor().stopCellEditing();
 			
 			int[] rows = currTable.getSelectedRows();
 			int tab1 = GPTabbedPane.getSelectedIndex();
@@ -2457,6 +2691,13 @@ class GlobalProperties extends javax.swing.JDialog {
 				globalLists.get(1).add(new ObjAttribute("in", "", 0, "","",Color.black,"","",
 					editable));
 
+				currTable.revalidate();
+			}
+			if(currTab == TAB_PARAMETERS)
+			{
+				globalLists.get(0).add(new ObjAttribute("PARAM", "0", 1, "parameter","",Color.black,"","",
+					editable));
+				refreshOutputViews();
 				currTable.revalidate();
 			}
 			if(currTab == TAB_OUTPUTS)
@@ -2576,8 +2817,50 @@ class GlobalProperties extends javax.swing.JDialog {
 		}
 
 		private void GPOption6ActionPerformed(java.awt.event.ActionEvent evt) {
-			
-			
+			if(currTab == TAB_OUTPUTS)
+				moveSelectedOutputsBetweenPortListModes(true);
+			else if(currTab == TAB_INTERNALS)
+				moveSelectedOutputsBetweenPortListModes(false);
+		}
+
+		private void moveSelectedOutputsBetweenPortListModes(boolean makeInternal) {
+			if(!(currTable.getModel() instanceof FilteredOutputTableModel))
+				return;
+			if(currTable.isEditing())
+				currTable.getCellEditor().stopCellEditing();
+			int[] rows = currTable.getSelectedRows();
+			if(rows.length == 0)
+				return;
+
+			FilteredOutputTableModel model = (FilteredOutputTableModel)currTable.getModel();
+			LinkedList<ObjAttribute> moved = new LinkedList<ObjAttribute>();
+			for(int i = 0; i < rows.length; i++)
+			{
+				int actualRow = model.actualRow(rows[i]);
+				ObjAttribute attr = globalLists.get(2).get(actualRow);
+				OutputAttributeFilter.setInternal(attr, makeInternal);
+				moved.add(attr);
+			}
+
+			refreshOutputViews();
+			GPTabbedPane.setSelectedIndex(makeInternal ? TAB_INTERNALS : TAB_OUTPUTS);
+			currTable = makeInternal ? GPTableInternals : GPTableOutputs;
+			currTab = makeInternal ? TAB_INTERNALS : TAB_OUTPUTS;
+			setTable(currTab);
+			selectMovedOutputRows(moved);
+		}
+
+		private void selectMovedOutputRows(LinkedList<ObjAttribute> moved) {
+			if(!(currTable.getModel() instanceof FilteredOutputTableModel))
+				return;
+			FilteredOutputTableModel model = (FilteredOutputTableModel)currTable.getModel();
+			currTable.clearSelection();
+			for(int i = 0; i < model.getRowCount(); i++)
+			{
+				ObjAttribute attr = globalLists.get(2).get(model.actualRow(i));
+				if(moved.contains(attr))
+					currTable.addRowSelectionInterval(i, i);
+			}
 		}
 
 		private void GPUpActionPerformed(java.awt.event.ActionEvent evt) {
@@ -2646,6 +2929,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			GPTableState.editCellAt(0,0);
 			GPTableTrans.editCellAt(0,0);
 			GPTableInputs.editCellAt(0,0);
+			GPTableParameters.editCellAt(0,0);
 			GPTableOutputs.editCellAt(0,0);
 			GPTableInternals.editCellAt(0,0);
 			if(!checkReservedGlobalNames())
@@ -2696,6 +2980,8 @@ class GlobalProperties extends javax.swing.JDialog {
 				ObjAttribute obj = globalLists.get(0).get(i);
 				if(obj.getName().equals("name") && VerilogNameValidator.showReservedWordError(this, obj.getValue(), "module name"))
 					return false;
+				if(obj.getType().equals("parameter") && VerilogNameValidator.showReservedWordError(this, obj.getName(), "parameter name"))
+					return false;
 			}
 			for(int i = 0; i < globalLists.get(1).size(); i++)
 			{
@@ -2733,6 +3019,7 @@ class GlobalProperties extends javax.swing.JDialog {
 		private javax.swing.JButton GPOK;
 		private javax.swing.JButton GPUp;
 		private javax.swing.JScrollPane GPScrollMachine;
+		private javax.swing.JScrollPane GPScrollParameters;
 		private javax.swing.JScrollPane GPScrollState;
 		private javax.swing.JScrollPane GPScrollTrans;
 		private javax.swing.JScrollPane GPScrollInputs;
@@ -2740,6 +3027,7 @@ class GlobalProperties extends javax.swing.JDialog {
 		private javax.swing.JScrollPane GPScrollInternals;
 		private javax.swing.JTabbedPane GPTabbedPane;
 		private javax.swing.JTable GPTableMachine;
+		private javax.swing.JTable GPTableParameters;
 		private javax.swing.JTable GPTableState;
 		private javax.swing.JTable GPTableTrans;
 		private javax.swing.JTable GPTableInputs;
