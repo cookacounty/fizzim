@@ -239,17 +239,24 @@ class MyTableModel extends AbstractTableModel {
         	return;
         }
 
-        // only flag, regd can have reset values
+        // only flag and regdp can have reset values
         if ( false
           || (global && col == 7 && !value.equals("") && !((attrib.get(row).getType().equals("flag") || attrib.get(row).getType().equals("regdp"))) )
-          || (global && col == 3 && !(value.equals("flag")|| value.equals("regdp")) && !attrib.get(row).getresetval().equals("") ) 
           )
         {
-        	JOptionPane.showMessageDialog(dialog,
+		JOptionPane.showMessageDialog(dialog,
                     "Only regdp and flag can have a reset value",
                     "error",
                     JOptionPane.ERROR_MESSAGE);
-        	value = attrib.get(row).get(col);
+		value = attrib.get(row).get(col);
+        }
+
+        if(global && col == 3 && attrib.equals(globalList.get(2)))
+        {
+		if(value.equals("regdp") && attrib.get(row).getresetval().trim().equals(""))
+			attrib.get(row).setresetval("0");
+		else if(!value.equals("regdp") && !value.equals("flag") && !attrib.get(row).getresetval().trim().equals(""))
+			attrib.get(row).setresetval("");
         }
         // flag type outputs must have null default value
         if ( false
@@ -2589,6 +2596,8 @@ class GlobalProperties extends javax.swing.JDialog {
 		//GEN-FIRST:event_GPNewActionPerformed
 		private void GPOption1ActionPerformed(java.awt.event.ActionEvent evt) {
 			
+			if(currTable.isEditing())
+				currTable.getCellEditor().stopCellEditing();
 			
 			int[] rows = currTable.getSelectedRows();
 			int tab1 = GPTabbedPane.getSelectedIndex();

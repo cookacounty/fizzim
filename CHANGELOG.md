@@ -88,6 +88,9 @@ part of the current codebase.
 - Transition-equation reference lint now treats parameters as declared
   expression names and ignores identifiers used only inside bit-select or
   part-select brackets.
+- Output/internal attribute editing now defaults new `regdp` entries to a
+  reset value of `0`, clears reset values when switching to non-resettable
+  `comb` style entries, and commits active table edits before deleting rows.
 - Added reset reachability linting for real states, including paths through
   state-group exits, group default entries, and forks.
 - Added state coverage linting for states with no outgoing transition when
