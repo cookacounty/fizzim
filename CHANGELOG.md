@@ -279,6 +279,9 @@ part of the current codebase.
   file, so it stays portable across projects.
 - HDL generation metadata now marks the diagram as unsaved instead of silently
   saving the `.fzm`, so the title-bar `*` reflects that the XML changed.
+- Tightened GUI dirty-state tracking so opening property dialogs or pressing OK
+  without real content changes no longer creates undo points, marks the diagram
+  modified, or makes HDL look stale.
 - Added a Java HDL backend entry point, `FizzimJavaBackend`, plus Windows and
   Linux launcher scripts. The entry point currently delegates to the checked-in
   Perl backend so Java-launched generation is line-for-line compatible while the

@@ -3,6 +3,7 @@ import java.awt.event.*;
 import java.awt.print.*;
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.*;
 import javax.swing.*;
 
@@ -2023,12 +2024,21 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	public void cancel()
 	{
 		objList = tempList;
+		if(objList != null && objList.size() > 0)
+			globalList = (LinkedList<LinkedList<ObjAttribute>>) objList.get(0);
 	}
 	
 	// If a modification actually occurred, 
 	// the temp list is stored to the undo list array
-	public void commitUndo()
+	public boolean commitUndo()
 	{
+		if(tempList != null && !pendingUndoChanges())
+		{
+			cancel();
+			tempList = null;
+			repaint();
+			return false;
+		}
 		autoAssignTransitionPriorities();
 		refreshTransitionPriorityHighlights();
 		int size = undoList.size();
@@ -2044,6 +2054,43 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		fileModified = true;
 		notifyHdlOutOfSync();
 		repaint();
+		return true;
+	}
+
+	public boolean pendingUndoChanges()
+	{
+		if(tempList == null)
+			return true;
+		return !snapshotForUndoCompare(tempList).equals(snapshotForUndoCompare(objList));
+	}
+
+	private String snapshotForUndoCompare(Vector<Object> list)
+	{
+		try {
+			StringWriter text = new StringWriter();
+			BufferedWriter writer = new BufferedWriter(text);
+			if(list.size() > 0 && list.get(0) instanceof LinkedList)
+			{
+				LinkedList<LinkedList<ObjAttribute>> globals = (LinkedList<LinkedList<ObjAttribute>>)list.get(0);
+				for(int i = 0; i < globals.size(); i++)
+				{
+					writer.write("<global-list " + i + ">\n");
+					for(int j = 0; j < globals.get(i).size(); j++)
+						globals.get(i).get(j).save(writer, 0);
+					writer.write("</global-list>\n");
+				}
+			}
+			for(int i = 1; i < list.size(); i++)
+			{
+				Object item = list.get(i);
+				if(item instanceof GeneralObj)
+					((GeneralObj)item).save(writer);
+			}
+			writer.flush();
+			return text.toString();
+		} catch (IOException ex) {
+			return String.valueOf(System.identityHashCode(list));
+		}
 	}
 	
 	public void mouseClicked(MouseEvent e) {	

@@ -1359,6 +1359,14 @@ class TransProperties extends javax.swing.JDialog {
 		}
 		if(drawArea.checkReservedTransNames())
 		{
+			boolean endpointsChanged = trans.getStartState() != start || (!loopback && trans.getEndState() != end);
+			boolean stubChanged = trans.getType() == 1 && jCheckBox1.isSelected() != stub;
+			if(!drawArea.pendingUndoChanges() && !endpointsChanged && !stubChanged)
+			{
+				drawArea.cancel();
+				dispose();
+				return;
+			}
 			if(!loopback)
 			{
 				if(start != end)
@@ -1852,7 +1860,8 @@ class StateProperties extends javax.swing.JDialog {
 
 	//GEN-FIRST:event_SPOKActionPerformed
 	private void SPOKActionPerformed(java.awt.event.ActionEvent evt) {
-		SPTable.editCellAt(0,0);
+		if(SPTable.isEditing())
+			SPTable.getCellEditor().stopCellEditing();
 		if(!drawArea.checkStateNames())
 		{
 			JOptionPane.showMessageDialog(this,
@@ -1880,12 +1889,26 @@ class StateProperties extends javax.swing.JDialog {
 		}
 		int width = ((Number) SPWField.getValue()).intValue();
 		int height = ((Number) SPHField.getValue()).intValue();
-		state.setSize(width,height);
+		boolean geometryChanged = width != state.getWidth() || height != state.getHeight();
+		if(geometryChanged)
+			state.setSize(width,height);
 		if(state.getType() == 5 && SPEntryState.getSelectedItem() != null)
-			((StateGroupObj)state).setEntryState((String)SPEntryState.getSelectedItem());
-		//make transitions redraw
-		state.setStateModifiedTrue();
-		drawArea.updateTransitions();
+		{
+			String entryState = (String)SPEntryState.getSelectedItem();
+			if(!entryState.equals(((StateGroupObj)state).getEntryState()))
+				((StateGroupObj)state).setEntryState(entryState);
+		}
+		if(!drawArea.pendingUndoChanges())
+		{
+			drawArea.cancel();
+			dispose();
+			return;
+		}
+		if(geometryChanged)
+		{
+			state.setStateModifiedTrue();
+			drawArea.updateTransitions();
+		}
 		drawArea.updateStates();
 		drawArea.updateGlobalTable();
 		drawArea.commitUndo();
@@ -2925,13 +2948,13 @@ class GlobalProperties extends javax.swing.JDialog {
 		
 		//GEN-FIRST:event_GPOKActionPerformed
 		private void GPOKActionPerformed(java.awt.event.ActionEvent evt) {
-			GPTableMachine.editCellAt(0,0);
-			GPTableState.editCellAt(0,0);
-			GPTableTrans.editCellAt(0,0);
-			GPTableInputs.editCellAt(0,0);
-			GPTableParameters.editCellAt(0,0);
-			GPTableOutputs.editCellAt(0,0);
-			GPTableInternals.editCellAt(0,0);
+			stopTableEditing(GPTableMachine);
+			stopTableEditing(GPTableState);
+			stopTableEditing(GPTableTrans);
+			stopTableEditing(GPTableInputs);
+			stopTableEditing(GPTableParameters);
+			stopTableEditing(GPTableOutputs);
+			stopTableEditing(GPTableInternals);
 			if(!checkReservedGlobalNames())
 				return;
 			int error = 0;
@@ -2973,6 +2996,11 @@ class GlobalProperties extends javax.swing.JDialog {
 			}
 	
 		}//GEN-LAST:event_GPOKActionPerformed
+
+		private void stopTableEditing(JTable table) {
+			if(table != null && table.isEditing())
+				table.getCellEditor().stopCellEditing();
+		}
 
 		private boolean checkReservedGlobalNames() {
 			for(int i = 0; i < globalLists.get(0).size(); i++)
