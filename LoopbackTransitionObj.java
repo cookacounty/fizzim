@@ -451,14 +451,10 @@ private static final double BEND_ENDPOINT_PULL = 0.25;
 					ObjAttribute s = attrib.get(j);
 					s.unselect();
 				}
-	        	for (int i = 0; i < attrib.size(); i++)
+				ObjAttribute label = getTransitionLabelAnchor();
+				if(label != null && label.setSelectStatus(x,y))
 				{
-	        		ObjAttribute s = attrib.get(i);
-					if(s.setSelectStatus(x,y))
-					{
-						selectStatus = TXT;
-						break;
-					}
+					selectStatus = TXT;
 				}
 			}
 	        if(selectStatus != TXT)

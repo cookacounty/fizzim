@@ -1961,6 +1961,11 @@ public class FizzimGui extends javax.swing.JFrame {
 		scheduleFitDiagramToViewport();
 	}
 
+	public void fitDiagramShortcut() {
+		enterZoomFitMode();
+		scheduleFitDiagramToViewport();
+	}
+
 	private void fitDiagramToViewport() {
 		getContentPane().doLayout();
 		jPanel3.doLayout();
@@ -4226,7 +4231,7 @@ public class FizzimGui extends javax.swing.JFrame {
 
 		public Object getValueAt(int row, int col) {
 			if(col == 0)
-				return attrib.get(rowToAttribute[row]).getName();
+				return inspectorDisplayName(currentObj, attrib.get(rowToAttribute[row]));
 			return super.getValueAt(rowToAttribute[row], rowToColumn[row]);
 		}
 
@@ -4328,7 +4333,7 @@ public class FizzimGui extends javax.swing.JFrame {
 				if(findAttribute(objects.get(i), attrName) == null)
 					return;
 			}
-			rows.add(new InspectorRow(attrName, col));
+			rows.add(new InspectorRow(attrName, inspectorDisplayName(objects.getFirst(), findAttribute(objects.getFirst(), attrName)), col));
 		}
 
 		public int getColumnCount() {
@@ -4346,7 +4351,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		public Object getValueAt(int row, int col) {
 			InspectorRow inspectorRow = rows.get(row);
 			if(col == 0)
-				return inspectorRow.name;
+				return inspectorRow.displayName;
 			String value = null;
 			for(int i = 0; i < objects.size(); i++)
 			{
@@ -4429,12 +4434,27 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	class InspectorRow {
 		String name;
+		String displayName;
 		int col;
 
-		InspectorRow(String attrName, int attrCol) {
+		InspectorRow(String attrName, String attrDisplayName, int attrCol) {
 			name = attrName;
+			displayName = attrDisplayName == null ? attrName : attrDisplayName;
 			col = attrCol;
 		}
+	}
+
+	private String inspectorDisplayName(GeneralObj obj, ObjAttribute attr) {
+		if(attr == null)
+			return "";
+		if(obj != null && (obj.getType() == 1 || obj.getType() == 2))
+		{
+			if(attr.getName().equals("equation"))
+				return "Condition: equation";
+			if(attr.getType().equals("output"))
+				return "Action: " + attr.getName();
+		}
+		return attr.getName();
 	}
 
 	class ReadOnlyInspectorTableModel extends javax.swing.table.DefaultTableModel {

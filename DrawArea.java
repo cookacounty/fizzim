@@ -244,6 +244,13 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				pasteDiagramSelection();
 			}
 		});
+		getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "fitDiagramToViewport");
+		getActionMap().put("fitDiagramToViewport", new AbstractAction() {
+			public void actionPerformed(ActionEvent e) {
+				if(frame instanceof FizzimGui)
+					((FizzimGui)frame).fitDiagramShortcut();
+			}
+		});
 		installNudgeKeyBindings();
 
 	}
@@ -3273,7 +3280,7 @@ public void updateTransitions()
 
 			ObjAttribute transOutput = findOutputAttribute(globalList.get(4), output.getName());
 			if(transOutput != null)
-				transOutput.setValue(output.getValue());
+				transOutput.setValue("");
 		}
 	}
 
@@ -4248,11 +4255,7 @@ public void updateTransitions()
 				{
 					String value = attr.getValue().trim();
 					if(value.equals(""))
-					{
-						wroteHeader = appendLintHeader(report, wroteHeader, "Transition Actions");
-						appendLint(report, "ERROR", transitionLabel((TransitionObj)obj) + " has a blank transition action for output "
-								+ attr.getName() + ".", obj);
-					}
+						continue;
 					if(value.indexOf("<=") >= 0 || value.indexOf("=") >= 0)
 					{
 						wroteHeader = appendLintHeader(report, wroteHeader, "Transition Actions");

@@ -29,6 +29,7 @@ import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
 import javax.swing.AbstractCellEditor;
 
 //Written by: Michael Zimmer - mike@zimmerdesignservices.com
@@ -287,8 +288,8 @@ class MyTableModel extends AbstractTableModel {
 				globalList.get(3).addLast(newObj);
 				if(value.equals("regdp"))
 				{
-		        	ObjAttribute newTransObj = new ObjAttribute(attrib.get(row).getName(),attrib.get(row).getValue(),
-		        			attrib.get(row).getVisibility(),"output","",Color.black,"","",editable);
+					ObjAttribute newTransObj = new ObjAttribute(attrib.get(row).getName(),"",
+							attrib.get(row).getVisibility(),"output","",Color.black,"","",editable);
 					globalList.get(4).addLast(newTransObj);
 				}
         }
@@ -301,8 +302,8 @@ class MyTableModel extends AbstractTableModel {
 	        	int[] editable = { ObjAttribute.GLOBAL_FIXED, ObjAttribute.GLOBAL_VAR,
 	        	ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR};
 	        	removeAttribute(4,attrib.get(row).getName());
-	        	ObjAttribute newTransObj = new ObjAttribute(attrib.get(row).getName(),attrib.get(row).getValue(),
-	        			attrib.get(row).getVisibility(),"output","",Color.black,"","",editable);
+				ObjAttribute newTransObj = new ObjAttribute(attrib.get(row).getName(),"",
+						attrib.get(row).getVisibility(),"output","",Color.black,"","",editable);
 				globalList.get(4).addLast(newTransObj);
         	}
         	else if(attrib.get(row).getType().equals("regdp"))
@@ -695,6 +696,23 @@ class AttributeTableReorder {
 	}
 }
 
+class DialogLayoutUtil {
+	static void hideColumns(JTable table, int... modelColumns) {
+		TableColumnModel columnModel = table.getColumnModel();
+		for(int i = 0; i < modelColumns.length; i++)
+		{
+			int viewColumn = table.convertColumnIndexToView(modelColumns[i]);
+			if(viewColumn >= 0)
+				columnModel.removeColumn(columnModel.getColumn(viewColumn));
+		}
+	}
+
+	static void makeTableResizeUseful(JTable table) {
+		table.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
+		table.setFillsViewportHeight(true);
+	}
+}
+
 
 
 class TransProperties extends javax.swing.JDialog {
@@ -756,7 +774,7 @@ class TransProperties extends javax.swing.JDialog {
 
 		
 		setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-		setResizable(false);
+		setResizable(true);
 		if(!loopback)
 		{
 			setTitle("Edit State Transition Properties");
@@ -770,6 +788,7 @@ class TransProperties extends javax.swing.JDialog {
 		TPTable.setModel(new MyTableModel(trans,this,globalList,4));
 		TPTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 		FizzimFonts.applyCodeFont(TPTable);
+		DialogLayoutUtil.makeTableResizeUseful(TPTable);
 
 		
 		//use dropdown boxes
@@ -781,6 +800,7 @@ class TransProperties extends javax.swing.JDialog {
 		column.setPreferredWidth(TPTable.getRowHeight());
 		column.setCellEditor(new MyJColorEditor(colorChooser));
 		column.setCellRenderer(new MyJColorRenderer());
+		DialogLayoutUtil.hideColumns(TPTable, 3, 7);
 		TPNew.setVisible(false);
 		TPDelete.setVisible(false);
 
@@ -1085,9 +1105,9 @@ class TransProperties extends javax.swing.JDialog {
 												org.jdesktop.layout.LayoutStyle.RELATED)
 										.add(
 												TPScroll,
-												org.jdesktop.layout.GroupLayout.PREFERRED_SIZE,
+												org.jdesktop.layout.GroupLayout.DEFAULT_SIZE,
 												151,
-												org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+												Short.MAX_VALUE)
 										.addPreferredGap(
 												org.jdesktop.layout.LayoutStyle.RELATED)
 										.add(
@@ -1150,6 +1170,7 @@ class TransProperties extends javax.swing.JDialog {
 																						.add(jCheckBox1))
 																		.addContainerGap()))));
 		pack();
+		setMinimumSize(getSize());
 	}// </editor-fold>//GEN-END:initComponents
 
 	
@@ -1322,7 +1343,7 @@ class StateProperties extends javax.swing.JDialog {
 		SPUp = new javax.swing.JButton();
 		SPDown = new javax.swing.JButton();
 
-		setResizable(false);
+		setResizable(true);
 
 		setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 		setTitle("Edit State Properties");
@@ -1332,6 +1353,7 @@ class StateProperties extends javax.swing.JDialog {
 		SPTable.setModel(new MyTableModel(state,this,globalList,3));
 		SPTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 		FizzimFonts.applyCodeFont(SPTable);
+		DialogLayoutUtil.makeTableResizeUseful(SPTable);
 
 		//use dropdown boxes
 		String[] options = new String[]{"No", "Yes", "Only non-default"};
@@ -1550,9 +1572,9 @@ class StateProperties extends javax.swing.JDialog {
 												org.jdesktop.layout.LayoutStyle.RELATED)
 										.add(
 												SPScroll,
-												org.jdesktop.layout.GroupLayout.PREFERRED_SIZE,
+												org.jdesktop.layout.GroupLayout.DEFAULT_SIZE,
 												151,
-												org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+												Short.MAX_VALUE)
 										.addPreferredGap(
 												org.jdesktop.layout.LayoutStyle.RELATED)
 										.add(
@@ -1633,6 +1655,7 @@ class StateProperties extends javax.swing.JDialog {
 																								org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
 																		.addContainerGap()))));
 		pack();
+		setMinimumSize(getSize());
 	}// </editor-fold>//GEN-END:initComponents
 
 	//GEN-FIRST:event_SPNewActionPerformed
@@ -1900,6 +1923,7 @@ class GlobalProperties extends javax.swing.JDialog {
 
 			GPTableMachine.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(0),globalLists, drawArea));
 			GPTableMachine.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			DialogLayoutUtil.makeTableResizeUseful(GPTableMachine);
 			column = GPTableMachine.getColumnModel().getColumn(2);
 			column.setCellEditor(new MyJComboBoxEditor(options));
 			column = GPTableMachine.getColumnModel().getColumn(5);
@@ -1911,6 +1935,7 @@ class GlobalProperties extends javax.swing.JDialog {
 
 			GPTableInputs.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(1),globalLists, drawArea));
 			GPTableInputs.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			DialogLayoutUtil.makeTableResizeUseful(GPTableInputs);
 			column = GPTableInputs.getColumnModel().getColumn(2);
 			column.setCellEditor(new MyJComboBoxEditor(options));
 			column = GPTableInputs.getColumnModel().getColumn(5);
@@ -1923,6 +1948,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			outputTableModel = new FilteredOutputTableModel(globalLists, drawArea, false);
 			GPTableOutputs.setModel(outputTableModel);
 			GPTableOutputs.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			DialogLayoutUtil.makeTableResizeUseful(GPTableOutputs);
                         // Visibility
 			column = GPTableOutputs.getColumnModel().getColumn(2);
 			column.setCellEditor(new MyJComboBoxEditor(options));
@@ -1940,6 +1966,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			internalTableModel = new FilteredOutputTableModel(globalLists, drawArea, true);
 			GPTableInternals.setModel(internalTableModel);
 			GPTableInternals.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			DialogLayoutUtil.makeTableResizeUseful(GPTableInternals);
                         // Visibility
 			column = GPTableInternals.getColumnModel().getColumn(2);
 			column.setCellEditor(new MyJComboBoxEditor(options));
@@ -1955,6 +1982,7 @@ class GlobalProperties extends javax.swing.JDialog {
 
 			GPTableState.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(3),globalLists, drawArea));
 			GPTableState.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			DialogLayoutUtil.makeTableResizeUseful(GPTableState);
 			column = GPTableState.getColumnModel().getColumn(2);
 			column.setCellEditor(new MyJComboBoxEditor(options));
 			column = GPTableState.getColumnModel().getColumn(5);
@@ -1966,6 +1994,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			
 			GPTableTrans.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(4),globalLists, drawArea));
 			GPTableTrans.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			DialogLayoutUtil.makeTableResizeUseful(GPTableTrans);
 			column = GPTableTrans.getColumnModel().getColumn(2);
 			column.setCellEditor(new MyJComboBoxEditor(options));
 			column = GPTableTrans.getColumnModel().getColumn(5);
@@ -2146,9 +2175,9 @@ class GlobalProperties extends javax.swing.JDialog {
 													org.jdesktop.layout.LayoutStyle.RELATED)
 											.add(
 													GPTabbedPane,
-													org.jdesktop.layout.GroupLayout.PREFERRED_SIZE,
+													org.jdesktop.layout.GroupLayout.DEFAULT_SIZE,
 													179,
-													org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+													Short.MAX_VALUE)
 											.addPreferredGap(
 													org.jdesktop.layout.LayoutStyle.RELATED)
 											.add(
@@ -2169,6 +2198,7 @@ class GlobalProperties extends javax.swing.JDialog {
 															.add(GPOK))
 											.addContainerGap()));
 			pack();
+			setMinimumSize(getSize());
 		}// </editor-fold>//GEN-END:initComponents
 		
 		protected void GPTabbedPaneActionPerformed(ChangeEvent e) {

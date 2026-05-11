@@ -137,6 +137,7 @@ public class Pref extends javax.swing.JDialog {
 		SPHField = new javax.swing.JFormattedTextField(NumberFormat.getIntegerInstance());
 
 		setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+		setResizable(true);
 		globalTablePanel.setBorder(javax.swing.BorderFactory
 				.createTitledBorder("Global Table"));
 		tableVisCheckbox.setSelected(drawArea.getTableVis());
@@ -724,6 +725,7 @@ public class Pref extends javax.swing.JDialog {
 																jButton2))
 										.addContainerGap()));
 		pack();
+		setMinimumSize(getSize());
 	}// </editor-fold>//GEN-END:initComponents
 
 	

@@ -289,15 +289,49 @@ public abstract class GeneralObj implements Cloneable {
 				paintStateLikeAttributes(g);
 				return;
 			}
+			if(getType() == 1 || getType() == 2)
+			{
+				paintTransitionLikeAttributes(g);
+				return;
+			}
 			int step = -1;
 			for (int j = 0; j < attrib.size(); j++)
 			{
 				ObjAttribute obj = attrib.get(j);
 				if(obj.isCanvasVisible())
 					step++;
+				obj.setDrawParentType(getType());
 				obj.paintComponent(g,currPage,getCenter(currPage),getSelectStatus(),step);
 			}
 		}  
+	}
+
+	private void paintTransitionLikeAttributes(Graphics g)
+	{
+		ObjAttribute anchor = getTransitionLabelAnchor();
+		if(anchor == null)
+			return;
+		for(int j = 0; j < attrib.size(); j++)
+			attrib.get(j).setDrawParentType(getType());
+		anchor.paintTransitionGroup(g, currPage, getCenter(currPage), getSelectStatus(), attrib, getType());
+	}
+
+	protected ObjAttribute getTransitionLabelAnchor()
+	{
+		if(attrib == null)
+			return null;
+		ObjAttribute firstVisible = null;
+		for(int j = 0; j < attrib.size(); j++)
+		{
+			ObjAttribute obj = attrib.get(j);
+			if(!obj.isCanvasVisible())
+				continue;
+			if(firstVisible == null)
+				firstVisible = obj;
+			if(obj.getName().equals("equation"))
+				return obj;
+		}
+		return firstVisible;
 	}
 
 	private void paintStateLikeAttributes(Graphics g)
@@ -319,7 +353,10 @@ public abstract class GeneralObj implements Cloneable {
 			}
 		}
 		if(nameAttr != null)
+		{
+			nameAttr.setDrawParentType(getType());
 			nameAttr.paintStateComponent(g, currPage, shape, 0);
+		}
 
 		int row = 1;
 		for(int j = 0; j < attrib.size(); j++)
@@ -327,6 +364,7 @@ public abstract class GeneralObj implements Cloneable {
 			ObjAttribute obj = attrib.get(j);
 			if(obj == nameAttr || !obj.isCanvasVisible())
 				continue;
+			obj.setDrawParentType(getType());
 			obj.paintStateComponent(g, currPage, shape, row);
 			row++;
 		}

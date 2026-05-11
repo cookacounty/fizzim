@@ -23,6 +23,15 @@ part of the current codebase.
 - Added transition actions. Transitions can now assign `regdp` outputs directly,
   making one-cycle transition pulses easier to express without relying on
   `nextstate` expressions in destination states.
+- Changed transition-action defaults to blank, so an empty transition action
+  means "do not assign this variable on this transition" rather than inheriting
+  the state/output default.
+- Updated transition-action display in the GUI: conditions remain plain, while
+  transition actions are shown in bold `/ output <= value` notation and the
+  quick property inspector labels them as actions.
+- Grouped transition conditions and actions into one left-aligned transition
+  label block so users do not have to manage several independent floating text
+  labels on one transition.
 - Added a user-facing `Internals` global-attribute pane for FSM variables that
   should be generated internally but omitted from the module port list. These
   remain stored as outputs with `suppress_portlist` for parser and backend
