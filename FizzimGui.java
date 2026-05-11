@@ -347,6 +347,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		GlobalItemTransitions = new javax.swing.JMenuItem();
 		jSeparator3 = new javax.swing.JSeparator();
 		GlobalItemInputs = new javax.swing.JMenuItem();
+		GlobalItemParameters = new javax.swing.JMenuItem();
 		GlobalItemOutputs = new javax.swing.JMenuItem();
 		GlobalItemInternals = new javax.swing.JMenuItem();
 		HelpMenu = new javax.swing.JMenu();
@@ -900,6 +901,16 @@ public class FizzimGui extends javax.swing.JFrame {
 
 		GlobalMenu.add(GlobalItemInputs);
 
+		GlobalItemParameters.setMnemonic(java.awt.event.KeyEvent.VK_P);
+		GlobalItemParameters.setText("Parameters");
+		GlobalItemParameters.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				GlobalItemParametersActionPerformed(evt);
+			}
+		});
+
+		GlobalMenu.add(GlobalItemParameters);
+
 		GlobalItemOutputs.setMnemonic(java.awt.event.KeyEvent.VK_O);
 		GlobalItemOutputs.setText("Outputs");
 		GlobalItemOutputs
@@ -1086,6 +1097,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		distributeVerticalItem.setText(t("menu.tools.distributeV"));
 		GlobalMenu.setText(t("menu.interface"));
 		GlobalItemMachine.setText(t("menu.interface.machine"));
+		GlobalItemParameters.setText(t("menu.interface.parameters"));
 		GlobalItemInputs.setText(t("menu.interface.inputs"));
 		GlobalItemOutputs.setText(t("menu.interface.outputs"));
 		GlobalItemInternals.setText(t("menu.interface.internals"));
@@ -2581,6 +2593,12 @@ public class FizzimGui extends javax.swing.JFrame {
 				.setVisible(true);
 	}//GEN-LAST:event_GlobalItemsInputsActionPerformed
 
+	private void GlobalItemParametersActionPerformed(java.awt.event.ActionEvent evt) {
+		globalList = drawArea1.setUndoPoint();
+		new GlobalProperties(drawArea1, this, true, globalList, 6)
+				.setVisible(true);
+	}
+
 	private void GlobalItemOutputsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_GlobalItemOutputsActionPerformed
 		globalList = drawArea1.setUndoPoint();
 		new GlobalProperties(drawArea1, this, true, globalList, 2)
@@ -4028,6 +4046,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JMenuItem GlobalItemInternals;
 	private javax.swing.JMenuItem GlobalItemMachine;
 	private javax.swing.JMenuItem GlobalItemOutputs;
+	private javax.swing.JMenuItem GlobalItemParameters;
 	private javax.swing.JMenuItem GlobalItemStates;
 	private javax.swing.JMenuItem GlobalItemTransitions;
 	private javax.swing.JMenu GlobalMenu;

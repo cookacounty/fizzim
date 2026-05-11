@@ -32,6 +32,11 @@ part of the current codebase.
 - Grouped transition conditions and actions into one left-aligned transition
   label block so users do not have to manage several independent floating text
   labels on one transition.
+- Added a Verilog Parameters pane to the FSM Interface/global property editor
+  and a matching `FSM Interface > Parameters` menu item. Parameters remain
+  stored as backend-compatible machine attributes with `type == "parameter"`.
+- Added Verilog parameters to the main FSM summary text under a separate
+  `PARAMETERS` section.
 - Added a user-facing `Internals` global-attribute pane for FSM variables that
   should be generated internally but omitted from the module port list. These
   remain stored as outputs with `suppress_portlist` for parser and backend

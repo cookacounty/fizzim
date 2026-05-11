@@ -568,6 +568,88 @@ class FilteredOutputTableModel extends MyTableModel {
 	}
 }
 
+class FilteredParameterTableModel extends MyTableModel {
+	FilteredParameterTableModel(LinkedList<LinkedList<ObjAttribute>> globalL, DrawArea da) {
+		super((LinkedList<ObjAttribute>)globalL.get(0), globalL, da);
+	}
+
+	private ArrayList<Integer> visibleRows() {
+		ArrayList<Integer> rows = new ArrayList<Integer>();
+		for(int i = 0; i < attrib.size(); i++) {
+			if(attrib.get(i).getType().equals("parameter"))
+				rows.add(new Integer(i));
+		}
+		return rows;
+	}
+
+	int actualRow(int visibleRow) {
+		return visibleRows().get(visibleRow).intValue();
+	}
+
+	public int getRowCount() {
+		return visibleRows().size();
+	}
+
+	public Object getValueAt(int row, int col) {
+		return super.getValueAt(actualRow(row), col);
+	}
+
+	public Class getColumnClass(int col) {
+		if(getRowCount() == 0)
+			return String.class;
+		return getValueAt(0, col).getClass();
+	}
+
+	public boolean isCellEditable(int row, int col) {
+		return super.isCellEditable(actualRow(row), col);
+	}
+
+	public void setValueAt(Object value, int row, int col) {
+		super.setValueAt(value, actualRow(row), col);
+	}
+}
+
+class FilteredMachineTableModel extends MyTableModel {
+	FilteredMachineTableModel(LinkedList<LinkedList<ObjAttribute>> globalL, DrawArea da) {
+		super((LinkedList<ObjAttribute>)globalL.get(0), globalL, da);
+	}
+
+	private ArrayList<Integer> visibleRows() {
+		ArrayList<Integer> rows = new ArrayList<Integer>();
+		for(int i = 0; i < attrib.size(); i++) {
+			if(!attrib.get(i).getType().equals("parameter"))
+				rows.add(new Integer(i));
+		}
+		return rows;
+	}
+
+	int actualRow(int visibleRow) {
+		return visibleRows().get(visibleRow).intValue();
+	}
+
+	public int getRowCount() {
+		return visibleRows().size();
+	}
+
+	public Object getValueAt(int row, int col) {
+		return super.getValueAt(actualRow(row), col);
+	}
+
+	public Class getColumnClass(int col) {
+		if(getRowCount() == 0)
+			return String.class;
+		return getValueAt(0, col).getClass();
+	}
+
+	public boolean isCellEditable(int row, int col) {
+		return super.isCellEditable(actualRow(row), col);
+	}
+
+	public void setValueAt(Object value, int row, int col) {
+		super.setValueAt(value, actualRow(row), col);
+	}
+}
+
 class MyJColorRenderer extends JLabel implements TableCellRenderer {
 
 	public MyJColorRenderer() {
@@ -1783,11 +1865,12 @@ class StateProperties extends javax.swing.JDialog {
 class GlobalProperties extends javax.swing.JDialog {
 	
 	private static final int TAB_MACHINE = 0;
-	private static final int TAB_INPUTS = 1;
-	private static final int TAB_OUTPUTS = 2;
-	private static final int TAB_INTERNALS = 3;
-	private static final int TAB_STATES = 4;
-	private static final int TAB_TRANSITIONS = 5;
+	private static final int TAB_PARAMETERS = 1;
+	private static final int TAB_INPUTS = 2;
+	private static final int TAB_OUTPUTS = 3;
+	private static final int TAB_INTERNALS = 4;
+	private static final int TAB_STATES = 5;
+	private static final int TAB_TRANSITIONS = 6;
 
 	LinkedList<LinkedList<ObjAttribute>> globalLists;
 	DrawArea drawArea;
@@ -1807,8 +1890,10 @@ class GlobalProperties extends javax.swing.JDialog {
 	MyJComboBoxEditor stateSelect_editor;
 	private JTable currTable = null;
 	private int currTab = 0;
+	private FilteredMachineTableModel machineTableModel;
 	private FilteredOutputTableModel outputTableModel;
 	private FilteredOutputTableModel internalTableModel;
+	private FilteredParameterTableModel parameterTableModel;
 	int[] editable = { ObjAttribute.GLOBAL_FIXED, ObjAttribute.GLOBAL_VAR,
 			ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR, ObjAttribute.GLOBAL_VAR};
 	int[] editable2 = { ObjAttribute.ABS, ObjAttribute.GLOBAL_VAR,
@@ -1887,6 +1972,8 @@ class GlobalProperties extends javax.swing.JDialog {
 						return super.getCellEditor(row, column);
 				}
 			};
+			GPScrollParameters = new javax.swing.JScrollPane();
+			GPTableParameters = new javax.swing.JTable();
 			GPScrollState = new javax.swing.JScrollPane();
 			GPTableState = new javax.swing.JTable();
 			GPScrollTrans = new javax.swing.JScrollPane();
@@ -1921,7 +2008,8 @@ class GlobalProperties extends javax.swing.JDialog {
 			GPLabel2
 					.setText("value can be overridden by right clicking on an object and selecting to 'Edit Properties.'");
 
-			GPTableMachine.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(0),globalLists, drawArea));
+			machineTableModel = new FilteredMachineTableModel(globalLists, drawArea);
+			GPTableMachine.setModel(machineTableModel);
 			GPTableMachine.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 			DialogLayoutUtil.makeTableResizeUseful(GPTableMachine);
 			column = GPTableMachine.getColumnModel().getColumn(2);
@@ -1932,6 +2020,19 @@ class GlobalProperties extends javax.swing.JDialog {
 			column.setCellRenderer(new MyJColorRenderer());
 			GPScrollMachine.setViewportView(GPTableMachine);
 			GPTabbedPane.addTab("State Machine", GPScrollMachine);
+
+			parameterTableModel = new FilteredParameterTableModel(globalLists, drawArea);
+			GPTableParameters.setModel(parameterTableModel);
+			GPTableParameters.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+			DialogLayoutUtil.makeTableResizeUseful(GPTableParameters);
+			column = GPTableParameters.getColumnModel().getColumn(2);
+			column.setCellEditor(new MyJComboBoxEditor(options));
+			column = GPTableParameters.getColumnModel().getColumn(5);
+			column.setCellEditor(new MyJColorEditor(colorChooser));
+			column.setCellRenderer(new MyJColorRenderer());
+			DialogLayoutUtil.hideColumns(GPTableParameters, 3, 7);
+			GPScrollParameters.setViewportView(GPTableParameters);
+			GPTabbedPane.addTab("Parameters", GPScrollParameters);
 
 			GPTableInputs.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(1),globalLists, drawArea));
 			GPTableInputs.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
@@ -2211,6 +2312,7 @@ class GlobalProperties extends javax.swing.JDialog {
 		
 		private void setTable(int tab)
 		{
+			GPOption2.setVisible(true);
 			if(tab == TAB_MACHINE)
 			{
 				currTable = GPTableMachine;
@@ -2220,6 +2322,17 @@ class GlobalProperties extends javax.swing.JDialog {
 					GPOption3.setEnabled(false);
 				else
 					GPOption3.setEnabled(true);
+				GPOption4.setVisible(false);
+				GPOption5.setVisible(false);
+				GPOption6.setVisible(false);
+			}
+			if(tab == TAB_PARAMETERS)
+			{
+				currTable = GPTableParameters;
+				GPOption3.setVisible(true);
+				GPOption3.setEnabled(true);
+				GPOption3.setText("Parameter");
+				GPOption2.setVisible(false);
 				GPOption4.setVisible(false);
 				GPOption5.setVisible(false);
 				GPOption6.setVisible(false);
@@ -2291,17 +2404,25 @@ class GlobalProperties extends javax.swing.JDialog {
 
 		private int tabToUiTab(int tab)
 		{
+			if(tab == 6)
+				return TAB_PARAMETERS;
 			if(tab == 5)
 				return TAB_INTERNALS;
 			if(tab == 3)
 				return TAB_STATES;
 			if(tab == 4)
 				return TAB_TRANSITIONS;
+			if(tab == 1)
+				return TAB_INPUTS;
+			if(tab == 2)
+				return TAB_OUTPUTS;
 			return tab;
 		}
 
 		private int uiTabToGlobalTab(int tab)
 		{
+			if(tab == TAB_PARAMETERS)
+				return 0;
 			if(tab == TAB_INTERNALS)
 				return 2;
 			if(tab == TAB_STATES)
@@ -2315,6 +2436,10 @@ class GlobalProperties extends javax.swing.JDialog {
 		{
 			if(table.getModel() instanceof FilteredOutputTableModel)
 				return ((FilteredOutputTableModel)table.getModel()).actualRow(row);
+			if(table.getModel() instanceof FilteredParameterTableModel)
+				return ((FilteredParameterTableModel)table.getModel()).actualRow(row);
+			if(table.getModel() instanceof FilteredMachineTableModel)
+				return ((FilteredMachineTableModel)table.getModel()).actualRow(row);
 			return row;
 		}
 
@@ -2324,6 +2449,10 @@ class GlobalProperties extends javax.swing.JDialog {
 				outputTableModel.fireTableDataChanged();
 			if(internalTableModel != null)
 				internalTableModel.fireTableDataChanged();
+			if(parameterTableModel != null)
+				parameterTableModel.fireTableDataChanged();
+			if(machineTableModel != null)
+				machineTableModel.fireTableDataChanged();
 			if(GPTableState != null && GPTableState.getModel() instanceof MyTableModel)
 				((MyTableModel)GPTableState.getModel()).fireTableDataChanged();
 			if(GPTableTrans != null && GPTableTrans.getModel() instanceof MyTableModel)
@@ -2487,6 +2616,13 @@ class GlobalProperties extends javax.swing.JDialog {
 				globalLists.get(1).add(new ObjAttribute("in", "", 0, "","",Color.black,"","",
 					editable));
 
+				currTable.revalidate();
+			}
+			if(currTab == TAB_PARAMETERS)
+			{
+				globalLists.get(0).add(new ObjAttribute("PARAM", "0", 1, "parameter","",Color.black,"","",
+					editable));
+				refreshOutputViews();
 				currTable.revalidate();
 			}
 			if(currTab == TAB_OUTPUTS)
@@ -2676,6 +2812,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			GPTableState.editCellAt(0,0);
 			GPTableTrans.editCellAt(0,0);
 			GPTableInputs.editCellAt(0,0);
+			GPTableParameters.editCellAt(0,0);
 			GPTableOutputs.editCellAt(0,0);
 			GPTableInternals.editCellAt(0,0);
 			if(!checkReservedGlobalNames())
@@ -2726,6 +2863,8 @@ class GlobalProperties extends javax.swing.JDialog {
 				ObjAttribute obj = globalLists.get(0).get(i);
 				if(obj.getName().equals("name") && VerilogNameValidator.showReservedWordError(this, obj.getValue(), "module name"))
 					return false;
+				if(obj.getType().equals("parameter") && VerilogNameValidator.showReservedWordError(this, obj.getName(), "parameter name"))
+					return false;
 			}
 			for(int i = 0; i < globalLists.get(1).size(); i++)
 			{
@@ -2763,6 +2902,7 @@ class GlobalProperties extends javax.swing.JDialog {
 		private javax.swing.JButton GPOK;
 		private javax.swing.JButton GPUp;
 		private javax.swing.JScrollPane GPScrollMachine;
+		private javax.swing.JScrollPane GPScrollParameters;
 		private javax.swing.JScrollPane GPScrollState;
 		private javax.swing.JScrollPane GPScrollTrans;
 		private javax.swing.JScrollPane GPScrollInputs;
@@ -2770,6 +2910,7 @@ class GlobalProperties extends javax.swing.JDialog {
 		private javax.swing.JScrollPane GPScrollInternals;
 		private javax.swing.JTabbedPane GPTabbedPane;
 		private javax.swing.JTable GPTableMachine;
+		private javax.swing.JTable GPTableParameters;
 		private javax.swing.JTable GPTableState;
 		private javax.swing.JTable GPTableTrans;
 		private javax.swing.JTable GPTableInputs;
