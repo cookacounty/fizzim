@@ -272,6 +272,9 @@ part of the current codebase.
   lists of `.fzm` diagrams, support relative paths, and can be opened/saved from
   `File > Project`. `Build All` generates HDL for every diagram in the project
   using the configured backend settings.
+- Project diagrams are now sorted by project-relative path, so adding a new
+  diagram groups it with files in the same folder and keeps the Project tree
+  ordered A-Z.
 - Improved project navigation. Opening a project diagram now reuses the current
   window by default, prompts before unsaved edits are discarded, marks the active
   dirty project file in the tree, and offers right-click Open in New Window and

@@ -52,6 +52,8 @@ import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.StringTokenizer;
@@ -3189,8 +3191,17 @@ public class FizzimGui extends javax.swing.JFrame {
 			if(projectDiagramFiles.get(i).getAbsolutePath().equals(absolute.getAbsolutePath()))
 				return false;
 		projectDiagramFiles.add(absolute);
+		sortProjectDiagramFiles();
 		updateProjectPanel();
 		return true;
+	}
+
+	private void sortProjectDiagramFiles() {
+		Collections.sort(projectDiagramFiles, new Comparator<File>() {
+			public int compare(File a, File b) {
+				return projectDisplayPath(a).replace('\\', '/').compareToIgnoreCase(projectDisplayPath(b).replace('\\', '/'));
+			}
+		});
 	}
 
 	private void updateProjectPanel() {
