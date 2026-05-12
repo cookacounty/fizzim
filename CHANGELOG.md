@@ -350,6 +350,13 @@ part of the current codebase.
   feature-driven output.
 - Updated the Fizzim 1.0 compatibility generator to prune unreachable expanded
   transitions and emit explicit nonzero priorities for legacy-backend checks.
+- Fixed Fizzim 1.0 compatibility generation for state-group exits that branch
+  through forks. The generator now keeps state-group-exit priority as an
+  in-memory sort bias instead of encoding it as a negative numeric priority,
+  preserving fork branch order before priorities are normalized to 1..1000.
+- Strengthened the generic Fizzim 1.0 equivalence testbench to force both DUTs
+  into every state and test every input combination for one transition step, so
+  priority mismatches in otherwise-unreached grouped states are caught.
 - Added a checked-in legacy testbench area under `testcases/tb/legacy/` with the
   old backend and GUI source used for comparison.
 - Added Linux/Git Bash-oriented `make` targets for build, clean, jar generation,
