@@ -863,9 +863,14 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		return obj.getType() == 3 && !((TextObj)obj).getGlobalTable();
 	}
 
+	private boolean isSelectableTextObject(GeneralObj obj)
+	{
+		return obj.getType() == 3;
+	}
+
 	private boolean isSelectableDiagramObject(GeneralObj obj)
 	{
-		return isTransitionEndpoint(obj) || isMovableTextObject(obj);
+		return isTransitionEndpoint(obj) || isSelectableTextObject(obj);
 	}
 
 	private boolean isInspectableDiagramObject(GeneralObj obj)
@@ -1106,7 +1111,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				forks++;
 			else if(obj.getType() == 1 || obj.getType() == 2)
 				transitions++;
-			else if(obj.getType() == 3 && !((TextObj)obj).getGlobalTable())
+			else if(obj.getType() == 3)
 				text++;
 		}
 		((FizzimGui)frame).updateSelectionStatus(formatSelectionStatus(states, groups, forks, transitions, text));
@@ -1239,17 +1244,29 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 
 	private int findSelectableIndexAt(int x, int y)
 	{
-		int[] typeOrder = {4, 0, 5, 3};
+		int[] typeOrder = {4, 0, 5, 1, 2};
 		for(int t = 0; t < typeOrder.length; t++)
 		{
 			for(int i = objList.size() - 1; i >= 1; i--)
 			{
 				GeneralObj obj = (GeneralObj)objList.get(i);
-				if(obj.getType() == 3 && ((TextObj)obj).getGlobalTable())
-					continue;
 				if(obj.getType() == typeOrder[t] && isSelectableDiagramObject(obj) && hitTestObject(obj, x, y))
 					return i;
 			}
+		}
+		for(int i = objList.size() - 1; i >= 1; i--)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 3 && !((TextObj)obj).getGlobalTable()
+					&& isSelectableDiagramObject(obj) && hitTestObject(obj, x, y))
+				return i;
+		}
+		for(int i = objList.size() - 1; i >= 1; i--)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 3 && ((TextObj)obj).getGlobalTable()
+					&& isSelectableDiagramObject(obj) && hitTestObject(obj, x, y))
+				return i;
 		}
 		return -1;
 	}
@@ -1306,14 +1323,14 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj obj = (GeneralObj)objList.elementAt(i);
-			if(isSelectableDiagramObject(obj) && obj.setBoxSelectStatus(mX0, mY0, mX1, mY1))
+			if((isTransitionEndpoint(obj) || isMovableTextObject(obj)) && obj.setBoxSelectStatus(mX0, mY0, mX1, mY1))
 				boxHits.add(new Integer(i));
 		}
 
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj obj = (GeneralObj)objList.elementAt(i);
-			if(isSelectableDiagramObject(obj))
+			if(isTransitionEndpoint(obj) || isMovableTextObject(obj))
 				obj.unselect();
 		}
 
@@ -1357,9 +1374,10 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		addEndpointHits(hits, x, y, 4);
 		addEndpointHits(hits, x, y, 0);
 		addEndpointHits(hits, x, y, 5);
-		addObjectHits(hits, x, y, 3);
 		addObjectHits(hits, x, y, 1);
 		addObjectHits(hits, x, y, 2);
+		addFreeTextHits(hits, x, y);
+		addGlobalSummaryHits(hits, x, y);
 		return hits;
 	}
 
@@ -1389,9 +1407,27 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		for(int i = objList.size() - 1; i >= 1; i--)
 		{
 			GeneralObj obj = (GeneralObj)objList.elementAt(i);
-			if(obj.getType() == 3 && ((TextObj)obj).getGlobalTable())
-				continue;
 			if(obj.getType() == type && hitTestObject(obj, x, y))
+				addHitCandidate(hits, i, obj);
+		}
+	}
+
+	private void addFreeTextHits(LinkedList<HitCandidate> hits, int x, int y)
+	{
+		for(int i = objList.size() - 1; i >= 1; i--)
+		{
+			GeneralObj obj = (GeneralObj)objList.elementAt(i);
+			if(obj.getType() == 3 && !((TextObj)obj).getGlobalTable() && hitTestObject(obj, x, y))
+				addHitCandidate(hits, i, obj);
+		}
+	}
+
+	private void addGlobalSummaryHits(LinkedList<HitCandidate> hits, int x, int y)
+	{
+		for(int i = objList.size() - 1; i >= 1; i--)
+		{
+			GeneralObj obj = (GeneralObj)objList.elementAt(i);
+			if(obj.getType() == 3 && ((TextObj)obj).getGlobalTable() && hitTestObject(obj, x, y))
 				addHitCandidate(hits, i, obj);
 		}
 	}
@@ -2340,7 +2376,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 						}
 						else if(s.getType() == 3)
 						{
-							editText((TextObj) s);
+							openTextProperties((TextObj)s, y);
 						}
 					}
 				}
@@ -2353,7 +2389,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				for (int i = 1; i < objList.size(); i++)
 				{
 					GeneralObj s = (GeneralObj) objList.elementAt(i);
-					if(s.getType() == 3 && !((TextObj)s).getGlobalTable() && s.setSelectStatus(x,y))
+					if(s.getType() == 3 && s.setSelectStatus(x,y))
 					{
 						bestMatch = s;
 							
@@ -2367,6 +2403,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 						{
 							setUndoPoint(i,3);
 							unselectObjsExcept(i);
+							if(doubleClick)
+								openTextProperties((TextObj)s, y);
 						}
 						break;
 					}
@@ -3714,6 +3752,20 @@ public void updateTransitions()
 			obj.setText(s);
 			commitUndo();
 		}
+	}
+
+	private void openTextProperties(TextObj obj, int y)
+	{
+		if(obj.getGlobalTable())
+		{
+			int tab = obj.getSelectedGlobalInterfaceTab();
+			if(tab < 0)
+				tab = obj.getGlobalInterfaceTabAt(y);
+			if(frame instanceof FizzimGui)
+				((FizzimGui)frame).openGlobalPropertiesTab(tab);
+			return;
+		}
+		editText(obj);
 	}
 
 

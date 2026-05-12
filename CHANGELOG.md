@@ -86,6 +86,22 @@ part of the current codebase.
 - Audited filtered global-property tables so selection, move between
   Output/Internal, and Up/Down reordering consistently translate visible rows
   back to the underlying attribute list.
+- Fixed the Inputs global-property tab so Add/Delete immediately refreshes the
+  table instead of deferring visible changes until a later click or dialog
+  action.
+- Selecting a diagram object now automatically switches the left sidebar from
+  Project back to Properties so the quick inspector follows canvas selection.
+- The FSM summary text is now selectable and movable as one protected text
+  group. Double-clicking a summary section opens the matching FSM Interface tab
+  such as State Machine, Inputs, Parameters, Outputs, or Internals.
+- The FSM summary is ordered last in hit-testing, so overlapping states, forks,
+  state groups, and transitions are selected before the summary text.
+- To keep selection behavior conservative, the FSM summary is direct-click
+  selectable but is not included in Ctrl+A or drag-box selection.
+- Selecting the FSM summary now draws both the overall summary box and a smaller
+  section box; double-clicking opens the FSM Interface tab for that selected
+  section. The summary also uses the same blue hover highlight as other canvas
+  objects.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in

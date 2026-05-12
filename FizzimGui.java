@@ -1143,6 +1143,11 @@ public class FizzimGui extends javax.swing.JFrame {
 			sideTabbedPane.setSelectedComponent(projectPanel);
 	}
 
+	private void showPropertiesPane() {
+		if(sideTabbedPane != null && propertyInspectorPanel != null)
+			sideTabbedPane.setSelectedComponent(propertyInspectorPanel);
+	}
+
 	private void installSpaceFitShortcut() {
 		spaceFitDispatcher = new KeyEventDispatcher() {
 			public boolean dispatchKeyEvent(KeyEvent event) {
@@ -2310,6 +2315,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			propertyInspectorEditButton.setEnabled(false);
 			return;
 		}
+		showPropertiesPane();
 		if(selectionContainsTransition(selected))
 			drawArea1.updateTrans();
 		if(selected.size() > 1)
@@ -2333,6 +2339,13 @@ public class FizzimGui extends javax.swing.JFrame {
 		propertyInspectorEditButton.setEnabled(true);
 		if(obj.getType() == 3)
 		{
+			if(((TextObj)obj).getGlobalTable())
+			{
+				propertyInspectorTable.setModel(new ReadOnlyInspectorTableModel(
+						new Object[][] {{"Text", "FSM interface summary"}},
+						new Object[] {"Field", "Value"}));
+				return;
+			}
 			propertyInspectorTable.setModel(new ReadOnlyInspectorTableModel(
 					new Object[][] {{"Text", ((TextObj)obj).getText()}},
 					new Object[] {"Field", "Value"}));
@@ -2411,6 +2424,11 @@ public class FizzimGui extends javax.swing.JFrame {
 		}
 		else if(obj.getType() == 3)
 		{
+			if(((TextObj)obj).getGlobalTable())
+			{
+				openGlobalPropertiesTab(0);
+				return;
+			}
 			drawArea1.editText((TextObj)obj);
 		}
 		updatePropertyInspector(drawArea1.getSelectedObjectsForInspector());
@@ -2936,6 +2954,14 @@ public class FizzimGui extends javax.swing.JFrame {
 		new GlobalProperties(drawArea1, this, true, globalList, 0)
 				.setVisible(true);
 	}//GEN-LAST:event_GlobalItemMachineActionPerformed
+
+	public void openGlobalPropertiesTab(int tab) {
+		if(tab < 0)
+			tab = 0;
+		globalList = drawArea1.setUndoPoint();
+		new GlobalProperties(drawArea1, this, true, globalList, tab)
+				.setVisible(true);
+	}
 	
 	private void GlobalItemInputsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_GlobalItemsInputsActionPerformed
 		globalList = drawArea1.setUndoPoint();

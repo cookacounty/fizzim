@@ -3,8 +3,10 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.BasicStroke;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.Stroke;
 import java.awt.font.FontRenderContext;
 import java.awt.font.TextLayout;
 import java.io.BufferedWriter;
@@ -38,6 +40,8 @@ public class TextObj extends GeneralObj {
 
 	private int selectStatus = 0;
 	private int tX,tY,tW,tH,xTemp,yTemp;
+	private int selectedGlobalTab = -1;
+	private int selectedGlobalSection = -1;
         private int selectboxLeft,selectboxRight,selectboxBottom,selectboxTop;
 	private String text = null;
 	private GeneralObj connectedObj = null;
@@ -60,6 +64,9 @@ public class TextObj extends GeneralObj {
 	LinkedList<String> col2 = new LinkedList<String>();
 	LinkedList<String> col3 = new LinkedList<String>();
 	LinkedList<String> col4 = new LinkedList<String>();
+	LinkedList<Integer> rowInterfaceTabs = new LinkedList<Integer>();
+	LinkedList<Integer> rowSectionIds = new LinkedList<Integer>();
+	private int currentSummarySection = -1;
 	int col1W =0, col2W = 0, col3W = 0, col4W = 0;
 
 	
@@ -129,6 +136,9 @@ public class TextObj extends GeneralObj {
 		col2.clear();
 		col3.clear();
 		col4.clear();
+		rowInterfaceTabs.clear();
+		rowSectionIds.clear();
+		currentSummarySection = -1;
 		
 		
 		//add titles
@@ -146,16 +156,12 @@ public class TextObj extends GeneralObj {
 			else if(i < 3 && globalList.get(i).size() < 1)
 				continue;
 			switch(i) {
-				case 0: col1.add("STATE MACHINE"); break;
-				case 1: col1.add("INPUTS"); break;
-				case 2: col1.add("OUTPUTS"); break;
-				case 3: col1.add("STATES"); break;
-				case 4: col1.add("TRANSITIONS"); break;
+				case 0: addGlobalSummaryHeader("STATE MACHINE", 0); break;
+				case 1: addGlobalSummaryHeader("INPUTS", 1); break;
+				case 2: addGlobalSummaryHeader("OUTPUTS", 2); break;
+				case 3: addGlobalSummaryHeader("STATES", 3); break;
+				case 4: addGlobalSummaryHeader("TRANSITIONS", 4); break;
 			}
-
-			col2.add(" ");
-			col3.add(" ");
-			col4.add(" ");
 			if(i == 2)
 			{
 				addOutputSummaryRows(false);
@@ -173,24 +179,12 @@ public class TextObj extends GeneralObj {
 				if(isHiddenSummaryAttribute(obj))
 					continue;
 				String name = "   " + obj.getName();
-
-				if(col1W < fm.stringWidth(name))
-					col1W = fm.stringWidth(name);
-				col1.add(name);
 				String value = obj.getValue();
-				if(col2W < fm.stringWidth(value))
-					col2W = fm.stringWidth(value);
-				col2.add(value);
 				String type = obj.getType();
                                 // rename "reg" to "statebit" in the attributes table
                                 if (type.equals("reg")) type = "statebit";
-				if(col3W < fm.stringWidth(type))
-					col3W = fm.stringWidth(type);
-				col3.add(type);
 				String comm = obj.getComment();
-				if(col4W < fm.stringWidth(comm))
-					col4W = fm.stringWidth(comm);
-				col4.add(comm);
+				addGlobalSummaryRow(name, value, type, comm);
 			}
 			if(i == 0)
 			{
@@ -214,7 +208,7 @@ public class TextObj extends GeneralObj {
 			{
 				if(isInternalOutput(globalList.get(2).get(j)))
 				{
-					addGlobalSummaryRow("INTERNALS", " ", " ", " ");
+					addGlobalSummaryHeader("INTERNALS", 5);
 					wroteHeader = true;
 					break;
 				}
@@ -267,17 +261,26 @@ public class TextObj extends GeneralObj {
 			{
 				if(col1W < fm.stringWidth("PARAMETERS"))
 					col1W = fm.stringWidth("PARAMETERS");
-				col1.add("PARAMETERS");
-				col2.add(" ");
-				col3.add(" ");
-				col4.add(" ");
+				addGlobalSummaryHeader("PARAMETERS", 6);
 				wroteHeader = true;
 			}
 			addGlobalSummaryRow("   " + obj.getName(), obj.getValue(), obj.getType(), obj.getComment());
 		}
 	}
 
+	private void addGlobalSummaryHeader(String name, int tab)
+	{
+		currentSummarySection++;
+		addGlobalSummaryRow(name, " ", " ", " ", tab, currentSummarySection);
+	}
+
 	private void addGlobalSummaryRow(String name, String value, String type, String comment)
+	{
+		int tab = rowInterfaceTabs.size() > 0 ? rowInterfaceTabs.getLast().intValue() : 0;
+		addGlobalSummaryRow(name, value, type, comment, tab, currentSummarySection);
+	}
+
+	private void addGlobalSummaryRow(String name, String value, String type, String comment, int tab, int section)
 	{
 		if(col1W < fm.stringWidth(name))
 			col1W = fm.stringWidth(name);
@@ -291,6 +294,8 @@ public class TextObj extends GeneralObj {
 		if(col4W < fm.stringWidth(comment))
 			col4W = fm.stringWidth(comment);
 		col4.add(comment);
+		rowInterfaceTabs.add(new Integer(tab));
+		rowSectionIds.add(new Integer(section));
 	}
 
 	private String resolveHdlOutputSummary()
@@ -478,6 +483,9 @@ public class TextObj extends GeneralObj {
                     selectboxBottom = tybase+yoffset+4;
                     selectboxTop = tybase-tH+2;
   
+                  if(globalTable && tableVis && isHoverHighlighted())
+                    drawGlobalOutline((Graphics2D)g, new Color(65, 145, 220), 2.0f, 7);
+
                   //if object is selected, draw red selection box around it
                   if(selectStatus != 0 || parentSelected) {
                     g.setColor(Color.red);
@@ -488,11 +496,13 @@ public class TextObj extends GeneralObj {
                       g.drawLine(selectboxLeft,selectboxTop,selectboxLeft,selectboxBottom);  // Left
                       g.drawLine(selectboxRight,selectboxTop,selectboxRight,selectboxBottom);  // Right
 
-                    } else if (tableVis) {           
+                    } else if (tableVis) {
+                      g.setColor(Color.red);
                       g.drawLine(tX-4,tY+4+tH-(tH/col1.size()),tX+tW+3,tY+4+tH-(tH/col1.size()));
                       g.drawLine(tX+tW+3,tY+4+tH-(tH/col1.size()),tX+tW+3,tY-(tH/col1.size())+2);
                       g.drawLine(tX+tW+3,tY-(tH/col1.size())+2,tX-4,tY-(tH/col1.size())+2);
-                      g.drawLine(tX-4,tY+4+tH-(tH/col1.size()),tX-4,tY-(tH/col1.size())+2); 
+                      g.drawLine(tX-4,tY+4+tH-(tH/col1.size()),tX-4,tY-(tH/col1.size())+2);
+                      drawSelectedGlobalSection(g);
                    }
 
 		}
@@ -505,11 +515,19 @@ public class TextObj extends GeneralObj {
 			xTemp = x;
 			yTemp = y;
 			selectStatus = 0;
-			if(globalTable)
-				return false;
 
 			// check if inside square
-			if(x >= selectboxLeft && x <= selectboxRight && y >= selectboxTop && y <= selectboxBottom) {
+			if(globalTable)
+			{
+				Rectangle bounds = getBounds();
+				if(tableVis && bounds.contains(x, y))
+				{
+					selectStatus = 1;
+					selectedGlobalTab = getGlobalInterfaceTabAt(y);
+					selectedGlobalSection = getGlobalSectionAt(y);
+				}
+			}
+			else if(x >= selectboxLeft && x <= selectboxRight && y >= selectboxTop && y <= selectboxBottom) {
 				selectStatus = 1;
 			}
 
@@ -526,6 +544,8 @@ public class TextObj extends GeneralObj {
 
 	public void unselect() {
 		selectStatus = 0;
+		selectedGlobalTab = -1;
+		selectedGlobalSection = -1;
 	}
 
 	
@@ -542,6 +562,80 @@ public class TextObj extends GeneralObj {
 			return new Rectangle(tX - 8, tY - lineHeight, Math.max(16, tW + 16), Math.max(24, tH + 12));
 		}
 		return new Rectangle(tX - 8, tY - Math.max(20, tH), Math.max(16, tW + 16), Math.max(24, tH + 12));
+	}
+
+	public int getGlobalInterfaceTabAt(int y)
+	{
+		if(!globalTable || !tableVis || col1.size() == 0)
+			return -1;
+		int lineHeight = Math.max(1, tH / col1.size());
+		int top = tY - lineHeight + 2;
+		int row = (y - top) / lineHeight;
+		if(row < 0 || row >= rowInterfaceTabs.size())
+			return -1;
+		return rowInterfaceTabs.get(row).intValue();
+	}
+
+	private int getGlobalSectionAt(int y)
+	{
+		if(!globalTable || !tableVis || col1.size() == 0)
+			return -1;
+		int row = globalRowAt(y);
+		if(row < 0 || row >= rowSectionIds.size())
+			return -1;
+		return rowSectionIds.get(row).intValue();
+	}
+
+	public int getSelectedGlobalInterfaceTab()
+	{
+		return selectedGlobalTab;
+	}
+
+	private int globalRowAt(int y)
+	{
+		int lineHeight = Math.max(1, tH / col1.size());
+		int top = tY - lineHeight + 2;
+		return (y - top) / lineHeight;
+	}
+
+	private void drawSelectedGlobalSection(Graphics g)
+	{
+		if(selectedGlobalSection < 0 || col1.size() == 0)
+			return;
+		int firstRow = -1;
+		int lastRow = -1;
+		for(int i = 0; i < rowSectionIds.size(); i++)
+		{
+			if(rowSectionIds.get(i).intValue() == selectedGlobalSection)
+			{
+				if(firstRow < 0)
+					firstRow = i;
+				lastRow = i;
+			}
+		}
+		if(firstRow < 0)
+			return;
+		int lineHeight = Math.max(1, tH / col1.size());
+		int top = tY + firstRow * lineHeight - lineHeight + 2;
+		int bottom = tY + lastRow * lineHeight + 4;
+		g.drawLine(tX-8, top, tX+tW+7, top);
+		g.drawLine(tX+tW+7, top, tX+tW+7, bottom);
+		g.drawLine(tX+tW+7, bottom, tX-8, bottom);
+		g.drawLine(tX-8, bottom, tX-8, top);
+	}
+
+	private void drawGlobalOutline(Graphics2D g2D, Color outlineColor, float width, int pad)
+	{
+		if(col1.size() == 0)
+			return;
+		Stroke oldStroke = g2D.getStroke();
+		Color oldColor = g2D.getColor();
+		g2D.setColor(outlineColor);
+		g2D.setStroke(new BasicStroke(width));
+		Rectangle bounds = getBounds();
+		g2D.drawRect(bounds.x - pad, bounds.y - pad, bounds.width + pad * 2, bounds.height + pad * 2);
+		g2D.setStroke(oldStroke);
+		g2D.setColor(oldColor);
 	}
 
 
@@ -600,8 +694,6 @@ public class TextObj extends GeneralObj {
 	@Override
 	public boolean setBoxSelectStatus(int x0, int y0, int x1, int y1) {
 		selectStatus = 0;
-		if(globalTable)
-			return false;
 		if(myPage == currPage && x0 <= tX-4 && x1 >= tX+tW+3)
 		{
 
@@ -625,8 +717,6 @@ public class TextObj extends GeneralObj {
 	{
 		xTemp = x;
 		yTemp = y;
-		if(globalTable)
-			return false;
 		if(myPage == currPage && x >= tX-4 && x <= tX+tW+3)
 		{
 			
