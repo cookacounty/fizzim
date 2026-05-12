@@ -86,6 +86,9 @@ part of the current codebase.
 - Audited filtered global-property tables so selection, move between
   Output/Internal, and Up/Down reordering consistently translate visible rows
   back to the underlying attribute list.
+- Fixed the Inputs global-property tab so Add/Delete immediately refreshes the
+  table instead of deferring visible changes until a later click or dialog
+  action.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in

@@ -188,6 +188,8 @@ class MyTableModel extends AbstractTableModel {
 
 	// get type for column
     public Class getColumnClass(int col) {
+    	if(getRowCount() == 0)
+    		return String.class;
     	return getValueAt(0, col).getClass();
     }
     
@@ -2618,8 +2620,10 @@ class GlobalProperties extends javax.swing.JDialog {
 				table.getModel() instanceof FilteredMachineTableModel;
 		}
 
-		private void refreshOutputViews()
+		private void refreshGlobalPropertyViews()
 		{
+			if(GPTableInputs != null && GPTableInputs.getModel() instanceof MyTableModel)
+				((MyTableModel)GPTableInputs.getModel()).fireTableDataChanged();
 			if(outputTableModel != null)
 				outputTableModel.fireTableDataChanged();
 			if(internalTableModel != null)
@@ -2736,7 +2740,7 @@ class GlobalProperties extends javax.swing.JDialog {
 				}
 				currTable.revalidate();	
 			}
-			refreshOutputViews();
+			refreshGlobalPropertyViews();
 				
 
 		}//GEN-LAST:event_GPNewActionPerformed
@@ -2763,7 +2767,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			if(currTab == TAB_INTERNALS)
 				OutputAttributeFilter.setInternal(newObj, true);
 			globalLists.get(tab1).addLast(newObj);
-			refreshOutputViews();
+			refreshGlobalPropertyViews();
 			if(isOutputEditorTab(currTab))
 				currTable.setValueAt("regdp", currTable.getRowCount()-1, 3);
 			
@@ -2800,20 +2804,21 @@ class GlobalProperties extends javax.swing.JDialog {
 				globalLists.get(1).add(new ObjAttribute("in", "", 0, "","",Color.black,"","",
 					editable));
 
+				refreshGlobalPropertyViews();
 				currTable.revalidate();
 			}
 			if(currTab == TAB_PARAMETERS)
 			{
 				globalLists.get(0).add(new ObjAttribute("PARAM", "0", 1, "parameter","",Color.black,"","",
 					editable));
-				refreshOutputViews();
+				refreshGlobalPropertyViews();
 				currTable.revalidate();
 			}
 			if(currTab == TAB_OUTPUTS)
 			{
 				globalLists.get(2).add(new ObjAttribute("out", "0", 2, "","",Color.black,"","",
 					editable));
-				refreshOutputViews();
+				refreshGlobalPropertyViews();
 				GPTableOutputs.setValueAt("regdp", GPTableOutputs.getRowCount()-1, 3);
 
 				currTable.revalidate();
@@ -2823,7 +2828,7 @@ class GlobalProperties extends javax.swing.JDialog {
 				ObjAttribute newObj = new ObjAttribute("internal", "0", 2, "","",Color.black,"suppress_portlist","",
 					editable);
 				globalLists.get(2).add(newObj);
-				refreshOutputViews();
+				refreshGlobalPropertyViews();
 				GPTableInternals.setValueAt("regdp", GPTableInternals.getRowCount()-1, 3);
 
 				currTable.revalidate();
@@ -2872,13 +2877,14 @@ class GlobalProperties extends javax.swing.JDialog {
 				globalLists.get(1).add(new ObjAttribute("in[1:0]", "", 0, "","",Color.black,"","",
 					editable));
 
+				refreshGlobalPropertyViews();
 				currTable.revalidate();
 			}
 			if(currTab == TAB_OUTPUTS)
 			{
 				globalLists.get(2).add(new ObjAttribute("out[1:0]", "0", 2, "","",Color.black,"","",
 					editable));
-				refreshOutputViews();
+				refreshGlobalPropertyViews();
 				currTable.setValueAt("regdp", currTable.getRowCount()-1, 3);
 
 				currTable.revalidate();
@@ -2887,7 +2893,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			{
 				globalLists.get(2).add(new ObjAttribute("internal[1:0]", "0", 2, "","",Color.black,"suppress_portlist","",
 					editable));
-				refreshOutputViews();
+				refreshGlobalPropertyViews();
 				currTable.setValueAt("regdp", currTable.getRowCount()-1, 3);
 
 				currTable.revalidate();
@@ -2908,7 +2914,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			{
 				globalLists.get(2).add(new ObjAttribute("flag", "", 2, "","",Color.black,"suppress_portlist","",
 					editable));
-				refreshOutputViews();
+				refreshGlobalPropertyViews();
 				currTable.setValueAt("flag", currTable.getRowCount()-1, 3);
 
 				currTable.revalidate();
@@ -2950,7 +2956,7 @@ class GlobalProperties extends javax.swing.JDialog {
 				moved.add(attr);
 			}
 
-			refreshOutputViews();
+			refreshGlobalPropertyViews();
 			GPTabbedPane.setSelectedIndex(makeInternal ? TAB_INTERNALS : TAB_OUTPUTS);
 			currTable = makeInternal ? GPTableInternals : GPTableOutputs;
 			currTab = makeInternal ? TAB_INTERNALS : TAB_OUTPUTS;
@@ -3015,7 +3021,7 @@ class GlobalProperties extends javax.swing.JDialog {
 
 			if(currTable.getModel() instanceof FilteredOutputTableModel)
 				syncDerivedOutputOrder();
-			refreshOutputViews();
+			refreshGlobalPropertyViews();
 			currTable.clearSelection();
 			selectVisibleRowsForAttributes(moved);
 		}
