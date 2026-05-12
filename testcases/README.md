@@ -68,6 +68,22 @@ current project using the configured HDL generation settings. Use
 `File > Project > Lint All` or the Project pane `Lint All` button to run lint
 across every diagram in the project.
 
+The same project build can be run without opening the GUI:
+
+```bash
+java -jar fizzim.jar --build-project testcases/generic_project.fzp
+```
+
+The command-line build uses the same HDL backend preferences as the GUI Build
+All action, including any configured comparison backend. Successful builds
+record the HDL output path, Fizzim release, and build number in each diagram so
+the GUI can reopen the project with the HDL status in sync.
+
+Generated HDL includes a deterministic header with the Fizzim version and
+source diagram name. Source checksums can be enabled from the HDL generation
+settings, but are disabled by default so layout-only diagram edits do not
+create extra Verilog diffs.
+
 Projects are saved as `.fzp` files. Fizzim enforces that extension, auto-saves
 project membership changes, shows recent projects under
 `File > Open Recent Project`, and reopens the last project or diagram at startup
