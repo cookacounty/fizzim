@@ -27,6 +27,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JRootPane;
 import javax.swing.JTable;
+import javax.swing.JTextField;
 import javax.swing.InputMap;
 import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
@@ -903,6 +904,10 @@ class DialogLayoutUtil {
 	static void makeTableResizeUseful(JTable table) {
 		table.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
 		table.setFillsViewportHeight(true);
+		table.setCellSelectionEnabled(true);
+		table.setSelectionBackground(new Color(55, 125, 220));
+		table.setSelectionForeground(Color.white);
+		table.setDefaultEditor(String.class, new ReplacingTextCellEditor());
 		PropertyTableNavigation.install(table);
 	}
 
@@ -917,6 +922,34 @@ class DialogLayoutUtil {
 				cancelButton.doClick();
 			}
 		});
+	}
+}
+
+class ReplacingTextCellEditor extends DefaultCellEditor {
+	ReplacingTextCellEditor() {
+		super(new JTextField());
+		setClickCountToStart(2);
+	}
+
+	public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+		Component component = super.getTableCellEditorComponent(table, value, isSelected, row, column);
+		if(component instanceof JTextComponent)
+		{
+			final JTextComponent text = (JTextComponent)component;
+			text.selectAll();
+			SwingUtilities.invokeLater(new Runnable() {
+				public void run() {
+					text.selectAll();
+				}
+			});
+		}
+		return component;
+	}
+
+	public boolean isCellEditable(java.util.EventObject event) {
+		if(event instanceof MouseEvent)
+			return ((MouseEvent)event).getClickCount() >= 2;
+		return true;
 	}
 }
 

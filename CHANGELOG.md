@@ -111,6 +111,8 @@ part of the current codebase.
   not make sense for the selected item type. Parameters are treated as always
   visible in the FSM summary, and inputs no longer show unused default-value
   controls.
+- Property table cell selection is now more visible, and typing into a selected
+  text cell more reliably replaces the previous value instead of appending.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in
