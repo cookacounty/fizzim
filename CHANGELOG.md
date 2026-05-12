@@ -119,6 +119,8 @@ part of the current codebase.
 - Launching Fizzim with a `.fzm` or `.fzp` path now opens that file directly for
   deterministic testing and skips the last-opened restore path without updating
   the last-opened preference.
+- Fixed a property table keyboard-edit race where the first typed character
+  could be selected by Swing editor startup and replaced by the next character.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in

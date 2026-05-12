@@ -983,6 +983,14 @@ class ReplacingTextCellEditor extends DefaultCellEditor {
 		if(component instanceof JTextComponent)
 		{
 			final JTextComponent text = (JTextComponent)component;
+			Object initialText = table.getClientProperty("fizzim.initialEditText");
+			if(initialText instanceof String)
+			{
+				table.putClientProperty("fizzim.initialEditText", null);
+				text.setText((String)initialText);
+				text.setCaretPosition(text.getText().length());
+				return component;
+			}
 			text.selectAll();
 			SwingUtilities.invokeLater(new Runnable() {
 				public void run() {
@@ -1135,20 +1143,15 @@ class PropertyTableNavigation {
 	private static void startEditingWithText(final JTable table, final int row, final int col, final String text) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
+				table.putClientProperty("fizzim.initialEditText", text);
 				if(table.editCellAt(row, col))
 				{
 					Component editor = table.getEditorComponent();
 					if(editor != null)
-					{
 						editor.requestFocusInWindow();
-						if(editor instanceof JTextComponent)
-						{
-							JTextComponent textEditor = (JTextComponent)editor;
-							textEditor.setText(text);
-							textEditor.setCaretPosition(textEditor.getText().length());
-						}
-					}
 				}
+				else
+					table.putClientProperty("fizzim.initialEditText", null);
 			}
 		});
 	}
