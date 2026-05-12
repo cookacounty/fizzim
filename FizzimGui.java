@@ -1190,7 +1190,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		propertyInspectorTable.setFont(FizzimFonts.tableFont());
 		propertyInspectorTable.setRowHeight(propertyInspectorTable.getRowHeight() + 3);
 		propertyInspectorTable.setDefaultRenderer(Object.class, new TransitionSectionRenderer());
-		PropertyTableNavigation.install(propertyInspectorTable);
+		DialogLayoutUtil.makeTableResizeUseful(propertyInspectorTable);
 		propertyInspectorScroll.setViewportView(propertyInspectorTable);
 		propertyInspectorPanel.add(propertyInspectorScroll, BorderLayout.CENTER);
 		propertyInspectorEditButton.setText("Open Full Editor");

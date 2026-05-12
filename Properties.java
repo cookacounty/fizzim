@@ -908,6 +908,7 @@ class DialogLayoutUtil {
 		table.setSelectionBackground(new Color(55, 125, 220));
 		table.setSelectionForeground(Color.white);
 		table.setDefaultEditor(String.class, new ReplacingTextCellEditor());
+		table.setDefaultEditor(Object.class, new ReplacingTextCellEditor());
 		PropertyTableNavigation.install(table);
 	}
 

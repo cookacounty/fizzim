@@ -113,6 +113,8 @@ part of the current codebase.
   controls.
 - Property table cell selection is now more visible, and typing into a selected
   text cell more reliably replaces the previous value instead of appending.
+- The side property pane now uses the same spreadsheet-style table setup as the
+  full property editor.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in
