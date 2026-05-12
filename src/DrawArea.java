@@ -4387,8 +4387,45 @@ public void updateTransitions()
 				}
 			}
 		}
+		for(int i = 1; i < objList.size(); i++)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() != 0 && obj.getType() != 5)
+				continue;
+			LinkedList<ObjAttribute> attrs = obj.getAttributeList();
+			for(int j = 0; j < attrs.size(); j++)
+			{
+				ObjAttribute attr = attrs.get(j);
+				if(!attr.getType().equals("output") || attr.getEditable(1) != ObjAttribute.LOCAL)
+					continue;
+				String value = attr.getValue().trim();
+				if(value.equals(""))
+					continue;
+				LinkedList<String> refs = extractExpressionIdentifiers(value);
+				for(int k = 0; k < refs.size(); k++)
+				{
+					String ref = refs.get(k);
+					if(!knownSignals.contains(ref))
+					{
+						wroteHeader = appendLintHeader(report, wroteHeader, "Equation References");
+						appendLint(report, "WARN", objectKindLabel(obj) + " " + obj.getName()
+								+ " assignment for " + attr.getName() + " references \"" + ref
+								+ "\", which is not declared in the global input/output lists or as a built-in FSM signal.", obj);
+					}
+				}
+			}
+		}
 		if(wroteHeader)
 			report.append("\n");
+	}
+
+	private String objectKindLabel(GeneralObj obj)
+	{
+		if(obj.getType() == 5)
+			return "State group";
+		if(obj.getType() == 0)
+			return "State";
+		return "Object";
 	}
 
 	private TreeSet<String> getKnownExpressionNames()
