@@ -31,7 +31,8 @@ run since the last edit. Clicking the indicator opens the normal lint pane.
   - no incoming transition is an error,
   - no outgoing transition is an error,
   - pass-through, fan-in, fan-out, and partial-branch forks are allowed.
-- Checks transition equations for references to names that are not declared in
+- Checks transition equations plus locally assigned state and state-group
+  output/internal expressions for references to names that are not declared in
   the global input/output lists, machine parameters/defines, or as built-in FSM
   signals. Verilog constants and macro references are ignored.
 - Checks reachability from `reset_state` through normal transitions, state-group
