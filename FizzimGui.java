@@ -1143,6 +1143,11 @@ public class FizzimGui extends javax.swing.JFrame {
 			sideTabbedPane.setSelectedComponent(projectPanel);
 	}
 
+	private void showPropertiesPane() {
+		if(sideTabbedPane != null && propertyInspectorPanel != null)
+			sideTabbedPane.setSelectedComponent(propertyInspectorPanel);
+	}
+
 	private void installSpaceFitShortcut() {
 		spaceFitDispatcher = new KeyEventDispatcher() {
 			public boolean dispatchKeyEvent(KeyEvent event) {
@@ -2310,6 +2315,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			propertyInspectorEditButton.setEnabled(false);
 			return;
 		}
+		showPropertiesPane();
 		if(selectionContainsTransition(selected))
 			drawArea1.updateTrans();
 		if(selected.size() > 1)

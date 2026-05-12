@@ -89,6 +89,8 @@ part of the current codebase.
 - Fixed the Inputs global-property tab so Add/Delete immediately refreshes the
   table instead of deferring visible changes until a later click or dialog
   action.
+- Selecting a diagram object now automatically switches the left sidebar from
+  Project back to Properties so the quick inspector follows canvas selection.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in
