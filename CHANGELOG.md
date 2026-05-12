@@ -129,6 +129,12 @@ part of the current codebase.
 - The instantiation helper now notes when internal-only outputs are omitted
   from the module port list, and the canvas summary separates `OUTPUTS` from
   `INTERNALS` so suppressed internal variables are less confusing.
+- Audited all main GUI menu items after the Fizzim 2.0 UI changes and added
+  `docs/MENU_AUDIT.md`.
+- Fixed `Save As` and export file chooser starting directories so they use the
+  current diagram directory when available.
+- Fixed clipboard export cropping at the canvas edge and made `Clean Selected
+  Routes` a no-op when no transition route is selected.
 - Added reset reachability linting for real states, including paths through
   state-group exits, group default entries, and forks.
 - Added state coverage linting for states with no outgoing transition when
@@ -344,6 +350,13 @@ part of the current codebase.
   feature-driven output.
 - Updated the Fizzim 1.0 compatibility generator to prune unreachable expanded
   transitions and emit explicit nonzero priorities for legacy-backend checks.
+- Fixed Fizzim 1.0 compatibility generation for state-group exits that branch
+  through forks. The generator now keeps state-group-exit priority as an
+  in-memory sort bias instead of encoding it as a negative numeric priority,
+  preserving fork branch order before priorities are normalized to 1..1000.
+- Strengthened the generic Fizzim 1.0 equivalence testbench to force both DUTs
+  into every state and test every input combination for one transition step, so
+  priority mismatches in otherwise-unreached grouped states are caught.
 - Added a checked-in legacy testbench area under `testcases/tb/legacy/` with the
   old backend and GUI source used for comparison.
 - Added Linux/Git Bash-oriented `make` targets for build, clean, jar generation,

@@ -183,7 +183,7 @@ function setTransition(obj, field, value) {
 }
 
 function clone(obj) {
-  return { kind: obj.kind, block: obj.block.slice() };
+  return { ...obj, block: obj.block.slice() };
 }
 
 function autoRoute(obj, states) {
@@ -221,7 +221,10 @@ function sortKey(info) {
   return [Number.isFinite(pri) ? pri : 0, (info.equation || "").trim() === "1" ? 1 : 0, info.name];
 }
 
-function compareInfo(a, b) {
+function compareInfo(a, b, objA = null, objB = null) {
+  const groupBiasA = objA && objA.groupExit ? 0 : 1;
+  const groupBiasB = objB && objB.groupExit ? 0 : 1;
+  if (groupBiasA !== groupBiasB) return groupBiasA - groupBiasB;
   const ka = sortKey(a), kb = sortKey(b);
   return ka[0] - kb[0] || ka[1] - kb[1] || ka[2].localeCompare(kb[2]);
 }
@@ -255,7 +258,7 @@ function mergeFork(inObj, outObj, index, count, states) {
 function expandForkRoutes(pathObj, fork, outgoing, forkNames, states, visited = new Set()) {
   const routes = [];
   if (visited.has(fork)) return routes;
-  const branches = (outgoing.get(fork) || []).slice().sort((a, b) => compareInfo(tinfo(a), tinfo(b)));
+  const branches = (outgoing.get(fork) || []).slice().sort((a, b) => compareInfo(tinfo(a), tinfo(b), a, b));
   if (!branches.length) return routes;
   const nextVisited = new Set(visited);
   nextVisited.add(fork);
@@ -304,9 +307,7 @@ function expandGroups(transitions, groups, states) {
       setTransition(c, "name", starts.length > 1 ? `${info.name}__${start}` : info.name);
       setTransition(c, "startState", start);
       setTransition(c, "endState", end);
-      if (starts.length > 1 && info.priority !== "") {
-        setTransition(c, "priority", (Number(info.priority) - 1000000).toString());
-      }
+      if (groups[info.start]) c.groupExit = true;
       autoRoute(c, states);
       out.push(c);
     }
@@ -324,7 +325,7 @@ function normalizePriorities(transitions) {
 
   const kept = new Set();
   for (const list of bySource.values()) {
-    list.sort((a, b) => compareInfo(tinfo(a), tinfo(b)));
+    list.sort((a, b) => compareInfo(tinfo(a), tinfo(b), a, b));
     const reachable = [];
     for (const t of list) {
       reachable.push(t);

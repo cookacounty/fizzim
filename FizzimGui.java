@@ -2419,7 +2419,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	protected void FileExportPNGActionPerformed(ActionEvent evt) {
 		
 		try {
-			ExportChooser.setCurrentDirectory(currFile);
+			ExportChooser.setCurrentDirectory(defaultChooserDirectory(currFile));
 			ExportChooser.showSaveDialog(this);
 		} catch (java.awt.HeadlessException e1) {
 			e1.printStackTrace();
@@ -2439,7 +2439,7 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	protected void FileExportJPEGActionPerformed(ActionEvent evt) {
 		try {
-			ExportChooser.setCurrentDirectory(currFile);
+			ExportChooser.setCurrentDirectory(defaultChooserDirectory(currFile));
 			ExportChooser.showSaveDialog(this);
 		} catch (java.awt.HeadlessException e1) {
 			e1.printStackTrace();
@@ -2490,11 +2490,11 @@ public class FizzimGui extends javax.swing.JFrame {
 		//if it worked correctly, make a cropped bufferedimage
 		if(lX != -1 && rX != -1 && tY != -1 && bY != -1)
 		{
-			//System.out.println(lX +" "+rX+" "+tY+" "+bY);
-			//if(lX-1<0)
-			//	lX=1;
-			//if(tY-1<0)
-			bufferedImage = bufferedImage.getSubimage(lX-1, tY-1, rX-lX+3, bY-tY+3);
+			int cropX = Math.max(0, lX - 1);
+			int cropY = Math.max(0, tY - 1);
+			int cropRight = Math.min(bufferedImage.getWidth(), rX + 2);
+			int cropBottom = Math.min(bufferedImage.getHeight(), bY + 2);
+			bufferedImage = bufferedImage.getSubimage(cropX, cropY, cropRight - cropX, cropBottom - cropY);
 		}
 		
 
@@ -2510,6 +2510,19 @@ public class FizzimGui extends javax.swing.JFrame {
 		drawArea1.paintUnscaled(tempG);
 		
 		return bufferedImage;
+	}
+
+	private File defaultChooserDirectory(File file) {
+		if(file != null)
+		{
+			File absolute = file.getAbsoluteFile();
+			if(absolute.isDirectory())
+				return absolute;
+			File parent = absolute.getParentFile();
+			if(parent != null)
+				return parent;
+		}
+		return new java.io.File(System.getProperty("user.dir")).getAbsoluteFile();
 	}
 
 	protected void renameTab(int tab) {
@@ -2975,12 +2988,13 @@ public class FizzimGui extends javax.swing.JFrame {
 			if(currFile == null)
 			{
                                 // Default to cwd
-				FileSaveAction.setCurrentDirectory(new java.io.File(System.getProperty("user.dir")).getAbsoluteFile());
+				FileSaveAction.setCurrentDirectory(defaultChooserDirectory(null));
 			}
 			else
+			{
+				FileSaveAction.setCurrentDirectory(defaultChooserDirectory(currFile));
 				FileSaveAction.setSelectedFile(currFile);
-
-		        FileSaveAction.setCurrentDirectory(new java.io.File(System.getProperty("user.dir")).getAbsoluteFile());
+			}
 			FileSaveAction.showSaveDialog(this);
 		} catch (java.awt.HeadlessException e1) {
 			e1.printStackTrace();
