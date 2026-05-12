@@ -107,6 +107,10 @@ part of the current codebase.
   Tab commit edits and move the selected cell.
 - In property dialogs, Enter activates OK and Esc activates Cancel when a table
   cell is not actively being edited; active edits still get the first Esc/Enter.
+- Simplified property editor panes by hiding backend-oriented columns that do
+  not make sense for the selected item type. Parameters are treated as always
+  visible in the FSM summary, and inputs no longer show unused default-value
+  controls.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in

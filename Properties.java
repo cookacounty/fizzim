@@ -1164,7 +1164,7 @@ class TransProperties extends javax.swing.JDialog {
 		column.setPreferredWidth(TPTable.getRowHeight());
 		column.setCellEditor(new MyJColorEditor(colorChooser));
 		column.setCellRenderer(new MyJColorRenderer());
-		DialogLayoutUtil.hideColumns(TPTable, 3, 7);
+		DialogLayoutUtil.hideColumns(TPTable, 3, 6, 7);
 		TPNew.setVisible(false);
 		TPDelete.setVisible(false);
 
@@ -1742,6 +1742,7 @@ class StateProperties extends javax.swing.JDialog {
 		column.setPreferredWidth(SPTable.getRowHeight());
 		column.setCellEditor(new MyJColorEditor(colorChooser));
 		column.setCellRenderer(new MyJColorRenderer());
+		DialogLayoutUtil.hideColumns(SPTable, 3, 6, 7);
 
 		SPNew.setVisible(false);
 		SPDelete.setVisible(false);
@@ -2232,33 +2233,30 @@ class GlobalProperties extends javax.swing.JDialog {
 			FizzimFonts.applyCodeFont(table);
 			table.setRowSelectionAllowed(true);
 			table.setColumnSelectionAllowed(false);
-			TableColumn column;
 
                         // Name
-			column = table.getColumnModel().getColumn(0);
-			column.setPreferredWidth(40); 
+			setColumnWidth(table, 0, 40);
                         // Default value
-			column = table.getColumnModel().getColumn(1);
-			column.setPreferredWidth(15); 
+			setColumnWidth(table, 1, 15);
                         // Visibility
-			column = table.getColumnModel().getColumn(2);
-			column.setPreferredWidth(30);
+			setColumnWidth(table, 2, 30);
                         // Type
-			column = table.getColumnModel().getColumn(3);
-			column.setPreferredWidth(10); 
+			setColumnWidth(table, 3, 10);
                         // Comment
-			column = table.getColumnModel().getColumn(4);
-			column.setPreferredWidth(100); 
+			setColumnWidth(table, 4, 100);
                         // Color
-			column = table.getColumnModel().getColumn(5);
-			column.setPreferredWidth(5); 
+			setColumnWidth(table, 5, 5);
                         // UserAtts
-			column = table.getColumnModel().getColumn(6);
-			column.setPreferredWidth(100); 
+			setColumnWidth(table, 6, 100);
                         // Resetval
-			column = table.getColumnModel().getColumn(7);
-			column.setPreferredWidth(15); 
+			setColumnWidth(table, 7, 15);
                 }
+
+		private void setColumnWidth(JTable table, int modelColumn, int width) {
+			int viewColumn = table.convertColumnIndexToView(modelColumn);
+			if(viewColumn >= 0)
+				table.getColumnModel().getColumn(viewColumn).setPreferredWidth(width);
+		}
 
 		private void initComponents() {
 			
@@ -2331,6 +2329,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			//column.setPreferredWidth(GPTableMachine.getRowHeight());
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
+			DialogLayoutUtil.hideColumns(GPTableMachine, 2, 5, 6, 7);
 			GPScrollMachine.setViewportView(GPTableMachine);
 			GPTabbedPane.addTab("State Machine", GPScrollMachine);
 
@@ -2343,7 +2342,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			column = GPTableParameters.getColumnModel().getColumn(5);
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
-			DialogLayoutUtil.hideColumns(GPTableParameters, 3, 7);
+			DialogLayoutUtil.hideColumns(GPTableParameters, 2, 3, 5, 6, 7);
 			GPScrollParameters.setViewportView(GPTableParameters);
 			GPTabbedPane.addTab("Parameters", GPScrollParameters);
 
@@ -2356,6 +2355,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			//column.setPreferredWidth(GPTableInputs.getRowHeight());
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
+			DialogLayoutUtil.hideColumns(GPTableInputs, 1, 2, 3, 5, 6, 7);
 			GPScrollInputs.setViewportView(GPTableInputs);
 			GPTabbedPane.addTab("Inputs", GPScrollInputs);
 			
@@ -2374,6 +2374,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			//column.setPreferredWidth(GPTableOutputs.getRowHeight());
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
+			DialogLayoutUtil.hideColumns(GPTableOutputs, 5, 6);
 			GPScrollOutputs.setViewportView(GPTableOutputs);
 			GPTabbedPane.addTab("Outputs", GPScrollOutputs);
 
@@ -2391,6 +2392,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			column = GPTableInternals.getColumnModel().getColumn(5);
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
+			DialogLayoutUtil.hideColumns(GPTableInternals, 5, 6);
 			GPScrollInternals.setViewportView(GPTableInternals);
 			GPTabbedPane.addTab("Internals", GPScrollInternals);
 
@@ -2403,6 +2405,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			//column.setPreferredWidth(GPTableState.getRowHeight());
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
+			DialogLayoutUtil.hideColumns(GPTableState, 3, 6, 7);
 			GPScrollState.setViewportView(GPTableState);
 
 			GPTableTrans.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(4),globalLists, drawArea));
@@ -2413,6 +2416,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			column = GPTableTrans.getColumnModel().getColumn(5);
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
+			DialogLayoutUtil.hideColumns(GPTableTrans, 3, 6, 7);
 			GPScrollTrans.setViewportView(GPTableTrans);
 
 			
