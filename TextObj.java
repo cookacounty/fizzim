@@ -179,24 +179,12 @@ public class TextObj extends GeneralObj {
 				if(isHiddenSummaryAttribute(obj))
 					continue;
 				String name = "   " + obj.getName();
-
-				if(col1W < fm.stringWidth(name))
-					col1W = fm.stringWidth(name);
-				col1.add(name);
 				String value = obj.getValue();
-				if(col2W < fm.stringWidth(value))
-					col2W = fm.stringWidth(value);
-				col2.add(value);
 				String type = obj.getType();
                                 // rename "reg" to "statebit" in the attributes table
                                 if (type.equals("reg")) type = "statebit";
-				if(col3W < fm.stringWidth(type))
-					col3W = fm.stringWidth(type);
-				col3.add(type);
 				String comm = obj.getComment();
-				if(col4W < fm.stringWidth(comm))
-					col4W = fm.stringWidth(comm);
-				col4.add(comm);
+				addGlobalSummaryRow(name, value, type, comm);
 			}
 			if(i == 0)
 			{
