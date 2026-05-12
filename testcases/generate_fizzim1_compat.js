@@ -387,8 +387,68 @@ function outputDefaults(pre) {
   return { defaults, types };
 }
 
+function selectedTransitionConditions(transitions) {
+  const bySource = new Map();
+  for(const t of transitions) {
+    const source = tinfo(t).start;
+    if(!bySource.has(source))
+      bySource.set(source, []);
+    bySource.get(source).push(t);
+  }
+
+  const selected = new Map();
+  for(const list of bySource.values()) {
+    list.sort((a, b) => compareInfo(tinfo(a), tinfo(b), a, b));
+    const prior = [];
+    for(const t of list) {
+      const info = tinfo(t);
+      const equation = (info.equation || "1").trim() || "1";
+      const blocked = prior.length ? ` && !(${prior.join(" || ")})` : "";
+      selected.set(t, `(state==${info.start}) && (${equation})${blocked} && (nextstate==${info.end})`);
+      prior.push(`(${equation})`);
+      if(equation === "1")
+        break;
+    }
+  }
+  return selected;
+}
+
+function renameMachine(pre, suffix) {
+  let renamed = false;
+  return pre.map((line, index) => {
+    if(renamed)
+      return line;
+    if(trim(line) !== "<value>")
+      return line;
+    for(let i = index - 1; i >= 0; i--) {
+      const token = trim(pre[i]);
+      if(token === "<name>")
+        break;
+      if(token === "<machine>" || token === "</machine>")
+        return line;
+    }
+    for(let i = index - 1; i >= 0; i--) {
+      const token = trim(pre[i]);
+      if(token === "<machine>")
+        break;
+      if(token === "</machine>")
+        return line;
+    }
+    const valueIndex = index + 1;
+    if(valueIndex < pre.length) {
+      const current = trim(pre[valueIndex]);
+      if(current) {
+        pre[valueIndex] = pre[valueIndex].replace(/\S.*$/, `${current}${suffix}`);
+        renamed = true;
+      }
+    }
+    return line;
+  });
+}
+
 function convertActions(transitions, states, defaults, types) {
   const actions = new Map();
+  const selectedConditions = selectedTransitionConditions(transitions);
   for (const t of transitions) {
     const info = tinfo(t);
     for (const [name, r] of Object.entries(attrRanges(t.block)).reverse()) {
@@ -397,7 +457,7 @@ function convertActions(transitions, states, defaults, types) {
       if (attrValue(a) !== "" && valueStatus(a) === "LOCAL") {
         const key = `${info.end}\u0000${name}`;
         if (!actions.has(key)) actions.set(key, []);
-        actions.get(key).push({ info, value: attrValue(a), condition: `state==${info.start} && nextstate==${info.end}` });
+        actions.get(key).push({ info, value: attrValue(a), condition: selectedConditions.get(t) || `state==${info.start} && nextstate==${info.end}` });
       }
       removeAttrBlock(t.block, name);
     }
@@ -426,7 +486,7 @@ function main() {
   const input = process.argv[2], output = process.argv[3];
   const lines = fs.readFileSync(input, "utf8").split(/\r?\n/);
   let { pre, objects, post } = readObjects(lines);
-  pre = pre.join("\n").replace("generic_state_action", "generic_state_action_fizzim").split("\n");
+  pre = renameMachine(pre, "_fizzim");
 
   const states = Object.fromEntries(objects.filter((o) => o.kind === "state").map((o) => [objName(o), o]));
   const forks = new Set(objects.filter((o) => o.kind === "fork").map(objName));
