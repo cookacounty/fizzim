@@ -78,6 +78,9 @@ part of the current codebase.
   before removing anything, avoiding stale-index crashes in filtered tabs such
   as Outputs, Internals, and Parameters.
 - Global property deletion now keeps the active tab fixed for the entire delete
+- Property table keyboard editing now owns the first typed character directly,
+  avoiding Swing's default key-start path so typing into a selected cell behaves
+  like replacing a selected spreadsheet cell.
   operation and falls back to name/type matching if the selected table row is
   not the same object instance as the global list row.
 - Fixed global property tab-to-list mapping for Inputs and Outputs, so Delete
@@ -102,6 +105,26 @@ part of the current codebase.
   section box; double-clicking opens the FSM Interface tab for that selected
   section. The summary also uses the same blue hover highlight as other canvas
   objects.
+- Property tables now support spreadsheet-like keyboard editing: typing on a
+  selected text cell replaces the current value, while arrow keys, Enter, and
+  Tab commit edits and move the selected cell.
+- In property dialogs, Enter activates OK and Esc activates Cancel when a table
+  cell is not actively being edited; active edits still get the first Esc/Enter.
+- Simplified property editor panes by hiding backend-oriented columns that do
+  not make sense for the selected item type. Parameters are treated as always
+  visible in the FSM summary, and inputs no longer show unused default-value
+  controls.
+- Property table selection now uses a pale selected-row cue with a white active
+  cell and bold blue border, and typing into a selected text cell more reliably
+  replaces the previous value instead of appending.
+- The side property pane now uses the same spreadsheet-style table setup as the
+  full property editor.
+- Launching Fizzim with a `.fzm` or `.fzp` path now opens that file directly for
+  deterministic testing and skips the last-opened restore path without updating
+  the last-opened preference.
+- Fixed a property table keyboard-edit race where the first typed character
+  could be selected by Swing editor startup and replaced by the next character;
+  typed-key replacement is now intercepted before JTable's own edit startup.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in

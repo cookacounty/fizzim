@@ -1190,6 +1190,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		propertyInspectorTable.setFont(FizzimFonts.tableFont());
 		propertyInspectorTable.setRowHeight(propertyInspectorTable.getRowHeight() + 3);
 		propertyInspectorTable.setDefaultRenderer(Object.class, new TransitionSectionRenderer());
+		DialogLayoutUtil.makeTableResizeUseful(propertyInspectorTable);
 		propertyInspectorScroll.setViewportView(propertyInspectorTable);
 		propertyInspectorPanel.add(propertyInspectorScroll, BorderLayout.CENTER);
 		propertyInspectorEditButton.setText("Open Full Editor");
@@ -3534,6 +3535,10 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	private void openProject(File projectFile, boolean showMessage) {
+		openProject(projectFile, showMessage, true);
+	}
+
+	private void openProject(File projectFile, boolean showMessage, boolean rememberProject) {
 		try {
 			File file = ensureProjectExtension(projectFile).getAbsoluteFile();
 			LinkedList<File> diagrams = new LinkedList<File>();
@@ -3554,8 +3559,11 @@ public class FizzimGui extends javax.swing.JFrame {
 			currProjectFile = file;
 			updateProjectPanel();
 			showProjectPane();
-			rememberRecentProject(currProjectFile);
-			rememberLastOpened("project", currProjectFile);
+			if(rememberProject)
+			{
+				rememberRecentProject(currProjectFile);
+				rememberLastOpened("project", currProjectFile);
+			}
 			if(showMessage)
 				JOptionPane.showMessageDialog(this, "Opened project:\n" + file.getAbsolutePath()
 						+ "\n\nDiagrams: " + projectDiagramFiles.size(), "Project", JOptionPane.INFORMATION_MESSAGE);
@@ -4653,9 +4661,9 @@ public class FizzimGui extends javax.swing.JFrame {
 					File clfile = new File(clfilename);
 					String lowerClfilename = clfilename.toLowerCase();
 					if(lowerClfilename.endsWith(".fzp"))
-						fzim.openProject(clfile);
+						fzim.openProject(clfile, false, false);
 					else
-						fzim.openFile(clfile);
+						fzim.openFile(clfile, false);
 					if (clbatch_rewrite && lowerClfilename.endsWith(".fzm")) {
 						System.err.println("Saving file " + clfilename);
 						if (fzim.tryToSave(new File(clfilename), "fzm", false)) {

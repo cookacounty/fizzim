@@ -1,8 +1,11 @@
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.KeyboardFocusManager;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.KeyEventDispatcher;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.text.NumberFormat;
@@ -10,18 +13,28 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Vector;
+import java.util.WeakHashMap;
 import javax.swing.border.LineBorder;
 
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
 import javax.swing.DefaultCellEditor;
 import javax.swing.JButton;
 import javax.swing.JColorChooser;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JRootPane;
 import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.InputMap;
+import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
 import javax.swing.border.Border;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -33,6 +46,7 @@ import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 import javax.swing.AbstractCellEditor;
 import javax.swing.BorderFactory;
+import javax.swing.text.JTextComponent;
 
 //Written by: Michael Zimmer - mike@zimmerdesignservices.com
 
@@ -492,7 +506,7 @@ class MyTableModel extends AbstractTableModel {
 				}
 			}
 		}
-		
+
 	}
 
 	private void removeAttribute(int tab, String name)
@@ -712,13 +726,7 @@ class TransitionSectionRenderer extends DefaultTableCellRenderer {
 		if(component instanceof JLabel)
 		{
 			JLabel label = (JLabel)component;
-			label.setBorder(sectionStartsAt(table, row) ? BorderFactory.createMatteBorder(3, 0, 0, 0, new Color(190, 205, 220)) : null);
-			if(isSelected)
-				label.setBackground(table.getSelectionBackground());
-			else if(sectionStartsAt(table, row))
-				label.setBackground(new Color(245, 248, 252));
-			else
-				label.setBackground(table.getBackground());
+			PropertyTableSelectionStyle.apply(table, label, row, column, sectionStartsAt(table, row));
 		}
 		return component;
 	}
@@ -762,6 +770,56 @@ class TransitionSectionRenderer extends DefaultTableCellRenderer {
 				return false;
 		}
 		return true;
+	}
+}
+
+class PropertyTableCellRenderer extends DefaultTableCellRenderer {
+	public Component getTableCellRendererComponent(JTable table, Object value,
+			boolean isSelected, boolean hasFocus, int row, int column) {
+		Component component = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+		if(component instanceof JLabel)
+			PropertyTableSelectionStyle.apply(table, (JLabel)component, row, column, false);
+		return component;
+	}
+}
+
+class PropertyTableSelectionStyle {
+	private static final Color ROW_BACKGROUND = new Color(235, 244, 255);
+	private static final Color SECTION_BACKGROUND = new Color(245, 248, 252);
+	private static final Color SECTION_LINE = new Color(190, 205, 220);
+	private static final Color CELL_BORDER = new Color(35, 105, 210);
+
+	static void apply(JTable table, JLabel label, int row, int column, boolean sectionStart) {
+		boolean activeCell = row == table.getSelectedRow() && column == table.getSelectedColumn();
+		boolean selectedRow = isSelectedRow(table, row);
+		if(activeCell)
+			label.setBackground(Color.white);
+		else if(selectedRow)
+			label.setBackground(ROW_BACKGROUND);
+		else if(sectionStart)
+			label.setBackground(SECTION_BACKGROUND);
+		else
+			label.setBackground(table.getBackground());
+		label.setForeground(table.getForeground());
+		label.setBorder(borderFor(sectionStart, activeCell));
+	}
+
+	private static boolean isSelectedRow(JTable table, int row) {
+		int[] rows = table.getSelectedRows();
+		for(int i = 0; i < rows.length; i++)
+			if(rows[i] == row)
+				return true;
+		return false;
+	}
+
+	private static Border borderFor(boolean sectionStart, boolean activeCell) {
+		Border sectionBorder = sectionStart ? BorderFactory.createMatteBorder(3, 0, 0, 0, SECTION_LINE) : null;
+		Border cellBorder = activeCell ? BorderFactory.createLineBorder(CELL_BORDER, 2) : null;
+		if(sectionBorder != null && cellBorder != null)
+			return BorderFactory.createCompoundBorder(sectionBorder, cellBorder);
+		if(cellBorder != null)
+			return cellBorder;
+		return sectionBorder;
 	}
 }
 
@@ -893,6 +951,233 @@ class DialogLayoutUtil {
 	static void makeTableResizeUseful(JTable table) {
 		table.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
 		table.setFillsViewportHeight(true);
+		table.setCellSelectionEnabled(true);
+		table.setSelectionBackground(new Color(235, 244, 255));
+		table.setSelectionForeground(Color.black);
+		if(!(table.getDefaultRenderer(Object.class) instanceof TransitionSectionRenderer))
+			table.setDefaultRenderer(Object.class, new PropertyTableCellRenderer());
+		table.setDefaultEditor(String.class, new ReplacingTextCellEditor());
+		table.setDefaultEditor(Object.class, new ReplacingTextCellEditor());
+		PropertyTableNavigation.install(table);
+	}
+
+	static void installDialogButtons(JDialog dialog, JButton okButton, JButton cancelButton) {
+		dialog.getRootPane().setDefaultButton(okButton);
+		dialog.getRootPane().putClientProperty("fizzim.cancelButton", cancelButton);
+		InputMap inputMap = dialog.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+		ActionMap actionMap = dialog.getRootPane().getActionMap();
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "dialogCancel");
+		actionMap.put("dialogCancel", new AbstractAction() {
+			public void actionPerformed(ActionEvent evt) {
+				cancelButton.doClick();
+			}
+		});
+	}
+}
+
+class ReplacingTextCellEditor extends DefaultCellEditor {
+	ReplacingTextCellEditor() {
+		super(new JTextField());
+		setClickCountToStart(2);
+	}
+
+	public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+		Component component = super.getTableCellEditorComponent(table, value, isSelected, row, column);
+		if(component instanceof JTextComponent)
+		{
+			final JTextComponent text = (JTextComponent)component;
+			Object initialText = table.getClientProperty("fizzim.initialEditText");
+			if(initialText instanceof String)
+			{
+				table.putClientProperty("fizzim.initialEditText", null);
+				text.setText((String)initialText);
+				text.setCaretPosition(text.getText().length());
+				return component;
+			}
+			text.selectAll();
+		}
+		return component;
+	}
+
+	public boolean isCellEditable(java.util.EventObject event) {
+		if(event instanceof KeyEvent)
+			return false;
+		if(event instanceof MouseEvent)
+			return ((MouseEvent)event).getClickCount() >= 2;
+		return true;
+	}
+}
+
+class PropertyTableNavigation {
+	private static final Map<JTable, Boolean> installedTables = new WeakHashMap<JTable, Boolean>();
+	private static boolean dispatcherInstalled = false;
+
+	static void install(final JTable table) {
+		table.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
+		table.putClientProperty("fizzim.propertyTable", Boolean.TRUE);
+		installedTables.put(table, Boolean.TRUE);
+		installKeyboardDispatcher();
+		InputMap inputMap = table.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+		ActionMap actionMap = table.getActionMap();
+		bind(inputMap, actionMap, KeyEvent.VK_UP, 0, "editNavigateUp", -1, 0, false);
+		bind(inputMap, actionMap, KeyEvent.VK_DOWN, 0, "editNavigateDown", 1, 0, false);
+		bind(inputMap, actionMap, KeyEvent.VK_LEFT, 0, "editNavigateLeft", 0, -1, false);
+		bind(inputMap, actionMap, KeyEvent.VK_RIGHT, 0, "editNavigateRight", 0, 1, false);
+		bind(inputMap, actionMap, KeyEvent.VK_ENTER, 0, "editNavigateEnter", 1, 0, true);
+		bind(inputMap, actionMap, KeyEvent.VK_TAB, 0, "editNavigateTab", 0, 1, false);
+		bind(inputMap, actionMap, KeyEvent.VK_TAB, KeyEvent.SHIFT_DOWN_MASK, "editNavigateShiftTab", 0, -1, false);
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "editCancelOrClear");
+		actionMap.put("editCancelOrClear", new AbstractAction() {
+			public void actionPerformed(ActionEvent evt) {
+				Object source = evt.getSource();
+				if(source instanceof JTable)
+					cancelEditOrSelection((JTable)source);
+			}
+		});
+	}
+
+	private static void installKeyboardDispatcher() {
+		if(dispatcherInstalled)
+			return;
+		dispatcherInstalled = true;
+		KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new KeyEventDispatcher() {
+			public boolean dispatchKeyEvent(KeyEvent evt) {
+				if(evt.getID() != KeyEvent.KEY_TYPED)
+					return false;
+				Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+				JTable table = tableForFocusOwner(focusOwner);
+				if(table == null || !Boolean.TRUE.equals(table.getClientProperty("fizzim.propertyTable")))
+					return false;
+				return startReplacingSelection(table, evt);
+			}
+		});
+	}
+
+	private static JTable tableForFocusOwner(Component focusOwner) {
+		if(focusOwner instanceof JTable)
+			return (JTable)focusOwner;
+		Component table = SwingUtilities.getAncestorOfClass(JTable.class, focusOwner);
+		if(table instanceof JTable)
+			return (JTable)table;
+		return null;
+	}
+
+	private static void bind(InputMap inputMap, ActionMap actionMap, int key, int modifiers, String name, final int rowDelta, final int colDelta, final boolean defaultOnIdle) {
+		inputMap.put(KeyStroke.getKeyStroke(key, modifiers), name);
+		actionMap.put(name, new AbstractAction() {
+			public void actionPerformed(ActionEvent evt) {
+				Object source = evt.getSource();
+				if(source instanceof JTable)
+					commitMoveAndEdit((JTable)source, rowDelta, colDelta, defaultOnIdle);
+			}
+		});
+	}
+
+	private static void commitMoveAndEdit(JTable table, int rowDelta, int colDelta, boolean defaultOnIdle) {
+		boolean wasEditing = table.isEditing();
+		int row = table.getEditingRow();
+		int col = table.getEditingColumn();
+		if(row < 0 || col < 0)
+		{
+			row = table.getSelectedRow();
+			col = table.getSelectedColumn();
+		}
+		if(row < 0 || col < 0)
+			return;
+		if(table.isEditing() && !table.getCellEditor().stopCellEditing())
+			return;
+		int[] target = wasEditing ? nextEditableTextCell(table, row, col, rowDelta, colDelta) : nextVisibleCell(table, row, col, rowDelta, colDelta);
+		if(!wasEditing && defaultOnIdle)
+		{
+			clickDefaultButton(table);
+			return;
+		}
+		if(target == null)
+			return;
+		table.changeSelection(target[0], target[1], false, false);
+	}
+
+	private static int[] nextVisibleCell(JTable table, int row, int col, int rowDelta, int colDelta) {
+		int nextRow = Math.max(0, Math.min(table.getRowCount() - 1, row + rowDelta));
+		int nextCol = Math.max(0, Math.min(table.getColumnCount() - 1, col + colDelta));
+		return new int[] {nextRow, nextCol};
+	}
+
+	private static int[] nextEditableTextCell(JTable table, int row, int col, int rowDelta, int colDelta) {
+		int nextRow = row + rowDelta;
+		int nextCol = col + colDelta;
+		while(nextRow >= 0 && nextRow < table.getRowCount() && nextCol >= 0 && nextCol < table.getColumnCount())
+		{
+			if(isEditableTextCell(table, nextRow, nextCol))
+				return new int[] {nextRow, nextCol};
+			nextRow += rowDelta;
+			nextCol += colDelta;
+			if(rowDelta == 0 && colDelta == 0)
+				break;
+		}
+		return null;
+	}
+
+	private static boolean isEditableTextCell(JTable table, int row, int col) {
+		if(!table.isCellEditable(row, col))
+			return false;
+		int modelCol = table.convertColumnIndexToModel(col);
+		if(modelCol == 2 || modelCol == 3 || modelCol == 5)
+			return false;
+		return table.getModel().getColumnClass(modelCol) == String.class || table.getValueAt(row, col) instanceof String;
+	}
+
+	private static void cancelEditOrSelection(JTable table) {
+		if(table.isEditing())
+		{
+			table.getCellEditor().cancelCellEditing();
+			return;
+		}
+		clickCancelButton(table);
+	}
+
+	private static void clickDefaultButton(JTable table) {
+		JRootPane rootPane = SwingUtilities.getRootPane(table);
+		if(rootPane != null && rootPane.getDefaultButton() != null)
+			rootPane.getDefaultButton().doClick();
+	}
+
+	private static void clickCancelButton(JTable table) {
+		JRootPane rootPane = SwingUtilities.getRootPane(table);
+		if(rootPane == null)
+			return;
+		Object cancel = rootPane.getClientProperty("fizzim.cancelButton");
+		if(cancel instanceof JButton)
+			((JButton)cancel).doClick();
+	}
+
+	private static boolean startReplacingSelection(final JTable table, KeyEvent evt) {
+		if(table.isEditing())
+			return false;
+		if(evt.isAltDown() || evt.isControlDown() || evt.isMetaDown())
+			return false;
+		char ch = evt.getKeyChar();
+		if(ch == KeyEvent.CHAR_UNDEFINED || Character.isISOControl(ch))
+			return false;
+		int row = table.getSelectedRow();
+		int col = table.getSelectedColumn();
+		if(row < 0 || col < 0 || !isEditableTextCell(table, row, col))
+			return false;
+		evt.consume();
+		startEditingWithText(table, row, col, String.valueOf(ch));
+		return true;
+	}
+
+	private static void startEditingWithText(final JTable table, final int row, final int col, final String text) {
+		table.putClientProperty("fizzim.initialEditText", text);
+		if(table.editCellAt(row, col))
+		{
+			Component editor = table.getEditorComponent();
+			if(editor != null)
+				editor.requestFocusInWindow();
+		}
+		else
+			table.putClientProperty("fizzim.initialEditText", null);
 	}
 }
 
@@ -986,7 +1271,7 @@ class TransProperties extends javax.swing.JDialog {
 		column.setPreferredWidth(TPTable.getRowHeight());
 		column.setCellEditor(new MyJColorEditor(colorChooser));
 		column.setCellRenderer(new MyJColorRenderer());
-		DialogLayoutUtil.hideColumns(TPTable, 3, 7);
+		DialogLayoutUtil.hideColumns(TPTable, 3, 6, 7);
 		TPNew.setVisible(false);
 		TPDelete.setVisible(false);
 
@@ -1036,7 +1321,7 @@ class TransProperties extends javax.swing.JDialog {
 				TPOKActionPerformed(evt);
 			}
 		});
-		
+		DialogLayoutUtil.installDialogButtons(this, TPOK, TPCancel);
 
 
 
@@ -1564,6 +1849,7 @@ class StateProperties extends javax.swing.JDialog {
 		column.setPreferredWidth(SPTable.getRowHeight());
 		column.setCellEditor(new MyJColorEditor(colorChooser));
 		column.setCellRenderer(new MyJColorRenderer());
+		DialogLayoutUtil.hideColumns(SPTable, 3, 6, 7);
 
 		SPNew.setVisible(false);
 		SPDelete.setVisible(false);
@@ -1638,6 +1924,7 @@ class StateProperties extends javax.swing.JDialog {
 				SPOKActionPerformed(evt);
 			}
 		});
+		DialogLayoutUtil.installDialogButtons(this, SPOK, SPCancel);
 
 		SPNew.setText("New");
 		SPNew.addActionListener(new java.awt.event.ActionListener() {
@@ -2053,33 +2340,30 @@ class GlobalProperties extends javax.swing.JDialog {
 			FizzimFonts.applyCodeFont(table);
 			table.setRowSelectionAllowed(true);
 			table.setColumnSelectionAllowed(false);
-			TableColumn column;
 
                         // Name
-			column = table.getColumnModel().getColumn(0);
-			column.setPreferredWidth(40); 
+			setColumnWidth(table, 0, 40);
                         // Default value
-			column = table.getColumnModel().getColumn(1);
-			column.setPreferredWidth(15); 
+			setColumnWidth(table, 1, 15);
                         // Visibility
-			column = table.getColumnModel().getColumn(2);
-			column.setPreferredWidth(30);
+			setColumnWidth(table, 2, 30);
                         // Type
-			column = table.getColumnModel().getColumn(3);
-			column.setPreferredWidth(10); 
+			setColumnWidth(table, 3, 10);
                         // Comment
-			column = table.getColumnModel().getColumn(4);
-			column.setPreferredWidth(100); 
+			setColumnWidth(table, 4, 100);
                         // Color
-			column = table.getColumnModel().getColumn(5);
-			column.setPreferredWidth(5); 
+			setColumnWidth(table, 5, 5);
                         // UserAtts
-			column = table.getColumnModel().getColumn(6);
-			column.setPreferredWidth(100); 
+			setColumnWidth(table, 6, 100);
                         // Resetval
-			column = table.getColumnModel().getColumn(7);
-			column.setPreferredWidth(15); 
+			setColumnWidth(table, 7, 15);
                 }
+
+		private void setColumnWidth(JTable table, int modelColumn, int width) {
+			int viewColumn = table.convertColumnIndexToView(modelColumn);
+			if(viewColumn >= 0)
+				table.getColumnModel().getColumn(viewColumn).setPreferredWidth(width);
+		}
 
 		private void initComponents() {
 			
@@ -2152,6 +2436,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			//column.setPreferredWidth(GPTableMachine.getRowHeight());
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
+			DialogLayoutUtil.hideColumns(GPTableMachine, 2, 5, 6, 7);
 			GPScrollMachine.setViewportView(GPTableMachine);
 			GPTabbedPane.addTab("State Machine", GPScrollMachine);
 
@@ -2164,7 +2449,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			column = GPTableParameters.getColumnModel().getColumn(5);
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
-			DialogLayoutUtil.hideColumns(GPTableParameters, 3, 7);
+			DialogLayoutUtil.hideColumns(GPTableParameters, 2, 3, 5, 6, 7);
 			GPScrollParameters.setViewportView(GPTableParameters);
 			GPTabbedPane.addTab("Parameters", GPScrollParameters);
 
@@ -2177,6 +2462,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			//column.setPreferredWidth(GPTableInputs.getRowHeight());
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
+			DialogLayoutUtil.hideColumns(GPTableInputs, 1, 2, 3, 5, 6, 7);
 			GPScrollInputs.setViewportView(GPTableInputs);
 			GPTabbedPane.addTab("Inputs", GPScrollInputs);
 			
@@ -2195,6 +2481,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			//column.setPreferredWidth(GPTableOutputs.getRowHeight());
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
+			DialogLayoutUtil.hideColumns(GPTableOutputs, 5, 6);
 			GPScrollOutputs.setViewportView(GPTableOutputs);
 			GPTabbedPane.addTab("Outputs", GPScrollOutputs);
 
@@ -2212,6 +2499,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			column = GPTableInternals.getColumnModel().getColumn(5);
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
+			DialogLayoutUtil.hideColumns(GPTableInternals, 5, 6);
 			GPScrollInternals.setViewportView(GPTableInternals);
 			GPTabbedPane.addTab("Internals", GPScrollInternals);
 
@@ -2224,6 +2512,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			//column.setPreferredWidth(GPTableState.getRowHeight());
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
+			DialogLayoutUtil.hideColumns(GPTableState, 3, 6, 7);
 			GPScrollState.setViewportView(GPTableState);
 
 			GPTableTrans.setModel(new MyTableModel((LinkedList<ObjAttribute>)globalLists.get(4),globalLists, drawArea));
@@ -2234,6 +2523,7 @@ class GlobalProperties extends javax.swing.JDialog {
 			column = GPTableTrans.getColumnModel().getColumn(5);
 			column.setCellEditor(new MyJColorEditor(colorChooser));
 			column.setCellRenderer(new MyJColorRenderer());
+			DialogLayoutUtil.hideColumns(GPTableTrans, 3, 6, 7);
 			GPScrollTrans.setViewportView(GPTableTrans);
 
 			
@@ -2266,6 +2556,7 @@ class GlobalProperties extends javax.swing.JDialog {
 					GPOKActionPerformed(evt);
 				}
 			});
+			DialogLayoutUtil.installDialogButtons(this, GPOK, GPCancel);
 
 			GPOption1.setText("Delete");
 			GPOption1.addActionListener(new java.awt.event.ActionListener() {
