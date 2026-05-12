@@ -96,6 +96,8 @@ part of the current codebase.
   such as State Machine, Inputs, Parameters, Outputs, or Internals.
 - The FSM summary is ordered last in hit-testing, so overlapping states, forks,
   state groups, and transitions are selected before the summary text.
+- To keep selection behavior conservative, the FSM summary is direct-click
+  selectable but is not included in Ctrl+A or drag-box selection.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in

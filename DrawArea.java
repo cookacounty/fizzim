@@ -839,7 +839,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj obj = (GeneralObj)objList.get(i);
-			if(isSelectableDiagramObject(obj))
+			if(isTransitionEndpoint(obj) || isMovableTextObject(obj))
 			{
 				obj.setSelectStatus(true);
 				selectedIndices.add(new Integer(i));
@@ -1323,14 +1323,14 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj obj = (GeneralObj)objList.elementAt(i);
-			if(isSelectableDiagramObject(obj) && obj.setBoxSelectStatus(mX0, mY0, mX1, mY1))
+			if((isTransitionEndpoint(obj) || isMovableTextObject(obj)) && obj.setBoxSelectStatus(mX0, mY0, mX1, mY1))
 				boxHits.add(new Integer(i));
 		}
 
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj obj = (GeneralObj)objList.elementAt(i);
-			if(isSelectableDiagramObject(obj))
+			if(isTransitionEndpoint(obj) || isMovableTextObject(obj))
 				obj.unselect();
 		}
 
