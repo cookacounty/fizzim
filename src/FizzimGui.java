@@ -174,7 +174,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		openWindowCount++;
 		FizzimLocalizer.load(USER_PREFS);
 
-		ImageIcon icon = new ImageIcon("icon.png");
+		ImageIcon icon = new ImageIcon(getClass().getResource("icon.png"));
 		this.setIconImage(icon.getImage());
 		// create global lists
 		globalList = new LinkedList<LinkedList<ObjAttribute>>();

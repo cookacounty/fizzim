@@ -31,17 +31,17 @@ exit /b 0
 :jar
 call :tools
 echo Compiling Java sources for Java %JAVA_RELEASE%
-"%JAVAC%" --release %JAVA_RELEASE% *.java
+if not exist build\classes mkdir build\classes
+"%JAVAC%" --release %JAVA_RELEASE% -cp lib -d build\classes src\*.java
 if errorlevel 1 exit /b %errorlevel%
 echo Creating fizzim.jar
-"%JAR%" cfm fizzim.jar manifest.txt *.class splash.png icon.png org *.properties
+"%JAR%" cfm fizzim.jar manifest.txt -C build\classes . -C resources . -C lib org
 exit /b %errorlevel%
 
 :clean
-del /q *.class 2>nul
 del /q *.jar 2>nul
 del /q jar.log 2>nul
-for /d %%D in (*_jar) do rmdir /s /q "%%D"
+if exist build rmdir /s /q build
 exit /b 0
 
 :test

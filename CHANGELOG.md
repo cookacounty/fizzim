@@ -6,6 +6,16 @@ This summarizes the major changes made while evolving the original Fizzim tool
 into Fizzim 2.0. It intentionally focuses on features and workflows that remain
 part of the current codebase.
 
+### Repository Layout
+
+- Moved Java source files into `src/`, GUI assets/localization bundles into
+  `resources/`, and the pinned `org.jdesktop.layout` class files into `lib/`.
+- Updated `Makefile` and `make.cmd` to compile into `build/classes` and package
+  the jar from `src/`, `resources/`, and `lib/` while keeping `fizzim.jar` and
+  `fizzim.pl` in the repository root.
+- Removed tracked `fizzim_errors.log` and added ignored generated build/log
+  paths so the root folder stays focused on user-facing entry points.
+
 ### FSM Modeling
 
 - Added forked transitions. A transition can now target a small fork node, and

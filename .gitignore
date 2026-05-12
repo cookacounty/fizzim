@@ -1,5 +1,7 @@
 # Java build outputs
 *.class
+build/
+fizzim_errors.log
 
 # Generated public testcase outputs
 testcases/generated/

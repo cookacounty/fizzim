@@ -8,7 +8,8 @@ const source = path.join(repo, "testcases", "generic_state_machine.fzm");
 const outDir = path.join(repo, "testcases", "generated", "fuzz");
 const perl = process.env.PERL_BIN || process.env.FIZZIM_PERL || "perl";
 const backend = process.env.BACKEND || path.join(repo, "fizzim.pl");
-const java = process.env.JAVA_BIN || "java";
+const java = process.env.JAVA_BIN ||
+  (process.env.JAVA_HOME ? path.join(process.env.JAVA_HOME, "bin", process.platform === "win32" ? "java.exe" : "java") : "java");
 const count = parseInt(process.env.FUZZ_COUNT || "24", 10);
 
 const equations = [
