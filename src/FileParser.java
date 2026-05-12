@@ -96,9 +96,7 @@ public class FileParser {
 					while(line2.startsWith("##"))
 						line2 = reader.readLine();
 
-					String temp = line2;
-					temp = temp.replaceAll("\\.", "");
-					ver = Integer.parseInt(temp);
+					ver = legacyParserVersion(line2);
 				}
 				
 				//templist holds related chunks of lines
@@ -406,6 +404,23 @@ public class FileParser {
 		ForkObj fork = new ForkObj(x0,y0,x1,y1,name,page,currColor);
 		objList.add(fork);
 		tempList.clear();
+	}
+
+	private int legacyParserVersion(String version)
+	{
+		if(version == null)
+			return 0;
+		String trimmed = version.trim();
+		if(trimmed.startsWith("2."))
+			return 140228;
+		String temp = trimmed.replaceAll("[^0-9]", "");
+		if(temp.equals(""))
+			return 0;
+		try {
+			return Integer.parseInt(temp);
+		} catch (NumberFormatException ex) {
+			return 140228;
+		}
 	}
 
 	private void openStateGroup(ArrayList<String> tempList3) {

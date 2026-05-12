@@ -112,7 +112,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 public class FizzimGui extends javax.swing.JFrame {
 
-	private static final String APP_TITLE = "Fizzim 2.0";
+	private static final String APP_TITLE = FizzimVersion.APP_TITLE;
 	private static final int RECENT_FILE_LIMIT = 10;
 	private static final String RECENT_FILE_PREFIX = "recentFile.";
 	private static final String RECENT_PROJECT_PREFIX = "recentProject.";
@@ -143,10 +143,12 @@ public class FizzimGui extends javax.swing.JFrame {
 	private static final String PREF_WINDOW_MAXIMIZED = "windowMaximized";
 	private static final String HDL_STATE_ATTR = "fizzim2_hdl_generated";
 	private static final String HDL_OUTPUT_ATTR = "fizzim2_hdl_output";
+	private static final String HDL_VERSION_ATTR = "fizzim2_hdl_version";
+	private static final String HDL_BUILD_ATTR = "fizzim2_hdl_build";
 	private static final Preferences USER_PREFS = Preferences.userNodeForPackage(FizzimGui.class);
 	private static int openWindowCount = 0;
 
-	String currVer = "14.02.28";
+	String currVer = FizzimVersion.FILE_VERSION;
 	
 	// pointer to global lists
 	LinkedList<ObjAttribute> globalMachineAttributes;
@@ -1757,6 +1759,8 @@ public class FizzimGui extends javax.swing.JFrame {
 	private void markHdlGeneratedInSync(File output) {
 		hdlGeneratedInSync = true;
 		setMachineAttributeValue(HDL_STATE_ATTR, "1");
+		setMachineAttributeValue(HDL_VERSION_ATTR, FizzimVersion.RELEASE_VERSION);
+		setMachineAttributeValue(HDL_BUILD_ATTR, FizzimVersion.BUILD_NUMBER);
 		if(output != null)
 			setMachineAttributeValue(HDL_OUTPUT_ATTR, pathRelativeToFzm(output));
 		updateHdlStatusIndicator();
@@ -2050,7 +2054,13 @@ public class FizzimGui extends javax.swing.JFrame {
 	private void restorePersistedHdlStatus() {
 		String generated = getMachineAttributeValue(HDL_STATE_ATTR);
 		String output = getMachineAttributeValue(HDL_OUTPUT_ATTR);
-		hdlGeneratedInSync = generated.equals("1") && !output.equals("") && resolveRelativeToFzm(output).exists();
+		String version = getMachineAttributeValue(HDL_VERSION_ATTR);
+		String build = getMachineAttributeValue(HDL_BUILD_ATTR);
+		hdlGeneratedInSync = generated.equals("1")
+				&& !output.equals("")
+				&& resolveRelativeToFzm(output).exists()
+				&& version.equals(FizzimVersion.RELEASE_VERSION)
+				&& build.equals(FizzimVersion.BUILD_NUMBER);
 		updateHdlStatusIndicator();
 	}
 
