@@ -116,6 +116,9 @@ part of the current codebase.
   replaces the previous value instead of appending.
 - The side property pane now uses the same spreadsheet-style table setup as the
   full property editor.
+- Launching Fizzim with a `.fzm` or `.fzp` path now opens that file directly for
+  deterministic testing and skips the last-opened restore path without updating
+  the last-opened preference.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in
