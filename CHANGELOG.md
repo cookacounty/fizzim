@@ -32,6 +32,10 @@ part of the current codebase.
 - HDL output filenames now support `.v`, `.sv`, or any explicit custom file
   extension. Module-name based generation defaults to `.v`, while custom
   output filenames and project HDL paths preserve their typed extension.
+- Clicking Generate in the GUI now saves the diagram after successful HDL
+  generation so the generated-HDL status metadata is persisted immediately.
+- Setting an HDL output path from the Project pane now applies the change
+  without an extra confirmation popup.
 
 ### FSM Modeling
 

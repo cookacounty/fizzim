@@ -1745,7 +1745,10 @@ public class FizzimGui extends javax.swing.JFrame {
 							"Generated HDL:\n" + output.getAbsolutePath(),
 							"Generate HDL", JOptionPane.INFORMATION_MESSAGE);
 				if(generatedOk)
+				{
 					markHdlGeneratedInSync(output);
+					saveFile(currFile);
+				}
 			}
 			else
 			{
@@ -3893,10 +3896,6 @@ public class FizzimGui extends javax.swing.JFrame {
 			else
 				setMachineAttributeValueInFile(file, HDL_OUTPUT_ATTR, selectedPath);
 			updateProjectPanel();
-			JOptionPane.showMessageDialog(this,
-					"HDL output path for " + file.getName() + ":\n" + selectedPath
-					+ "\n\nPath is stored relative to the FSM file.",
-					"Project", JOptionPane.INFORMATION_MESSAGE);
 		} catch (IOException ex) {
 			JOptionPane.showMessageDialog(this, "Could not update HDL output path:\n" + ex.getMessage(),
 					"Project", JOptionPane.ERROR_MESSAGE);
