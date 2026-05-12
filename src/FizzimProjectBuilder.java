@@ -18,6 +18,7 @@ public class FizzimProjectBuilder {
 	private static final String PREF_HDL_OUTPUT_DIR = "hdlOutputDir";
 	private static final String PREF_HDL_USE_MODULE_FILENAME = "hdlUseModuleFilename";
 	private static final String PREF_HDL_OUTPUT_FILENAME = "hdlOutputFilename";
+	private static final String PREF_HDL_OUTPUT_EXTENSION = "hdlOutputExtension";
 	private static final String PREF_HDL_EXTRA_ARGS = "hdlExtraArgs";
 	private static final String PREF_HDL_SOURCE_CHECKSUM = "hdlSourceChecksum";
 	private static final String PREF_HDL_COMPARE_ENABLED = "hdlCompareEnabled";
@@ -237,22 +238,23 @@ public class FizzimProjectBuilder {
 		if(!persistedOutput.equals(""))
 			return resolveRelativeToFzm(fzmFile, persistedOutput);
 		return resolveHdlOutputFileFromSettings(fzmFile, machineName, getHdlOutputDir(),
-				getHdlUseModuleFilename(), getHdlOutputFilename());
+				getHdlUseModuleFilename(), getHdlOutputFilename(), getHdlOutputExtension());
 	}
 
 	private static File resolveHdlOutputFileFromSettings(File fzmFile, String machineName, String outputDirSetting,
-			boolean useModuleFilename, String outputFilenameSetting) {
+			boolean useModuleFilename, String outputFilenameSetting, String outputExtensionSetting) {
 		File fzmDir = fzmFile.getAbsoluteFile().getParentFile();
 		File outputDir = resolveRelativeToFzm(fzmFile, outputDirSetting);
+		String extension = normalizeHdlExtension(outputExtensionSetting);
 		String filename;
 		if(useModuleFilename)
-			filename = sanitizeHdlFilename(machineName) + ".v";
+			filename = sanitizeHdlFilename(machineName) + extension;
 		else
 			filename = outputFilenameSetting;
 		if(filename == null || filename.trim().equals(""))
-			filename = sanitizeHdlFilename(machineName) + ".v";
-		if(!filename.toLowerCase().endsWith(".v"))
-			filename += ".v";
+			filename = sanitizeHdlFilename(machineName) + extension;
+		else if(!hasFilenameExtension(filename))
+			filename += extension;
 		File output = new File(filename);
 		if(output.isAbsolute())
 			return output;
@@ -480,6 +482,23 @@ public class FizzimProjectBuilder {
 		return name.trim().replaceAll("[^A-Za-z0-9_.$-]", "_");
 	}
 
+	private static boolean hasFilenameExtension(String filename) {
+		if(filename == null)
+			return false;
+		String name = new File(filename).getName();
+		int dot = name.lastIndexOf('.');
+		return dot > 0 && dot < name.length() - 1;
+	}
+
+	private static String normalizeHdlExtension(String extension) {
+		if(extension == null || extension.trim().equals(""))
+			return ".v";
+		String value = extension.trim();
+		if(!value.startsWith("."))
+			value = "." + value;
+		return value;
+	}
+
 	private static void addHdlProvenanceArgs(ArrayList<String> command, File fzmFile) {
 		command.add("-fizzimversion");
 		command.add(FizzimVersion.FILE_VERSION);
@@ -519,7 +538,7 @@ public class FizzimProjectBuilder {
 		if(suffix == null || suffix.trim().equals(""))
 			suffix = ".java";
 		String base = stripExtension(primaryOutput.getName());
-		return new File(primaryOutput.getParentFile(), base + suffix + ".v");
+		return new File(primaryOutput.getParentFile(), base + suffix + fileExtension(primaryOutput.getName()));
 	}
 
 	private static String diffFiles(File primary, File comparison) throws IOException {
@@ -548,6 +567,16 @@ public class FizzimProjectBuilder {
 		return filename.substring(0, dot);
 	}
 
+	private static String fileExtension(String filename) {
+		if(filename == null)
+			return ".v";
+		String name = new File(filename).getName();
+		int dot = name.lastIndexOf('.');
+		if(dot <= 0 || dot == name.length() - 1)
+			return ".v";
+		return name.substring(dot);
+	}
+
 	private static String getHdlPerlCommand() {
 		return USER_PREFS.get(PREF_HDL_PERL, "perl");
 	}
@@ -566,6 +595,10 @@ public class FizzimProjectBuilder {
 
 	private static String getHdlOutputFilename() {
 		return USER_PREFS.get(PREF_HDL_OUTPUT_FILENAME, "");
+	}
+
+	private static String getHdlOutputExtension() {
+		return normalizeHdlExtension(USER_PREFS.get(PREF_HDL_OUTPUT_EXTENSION, ".v"));
 	}
 
 	private static String getHdlExtraArgs() {

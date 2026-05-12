@@ -29,6 +29,9 @@ part of the current codebase.
   Fizzim 2.0, the exact app version/build, and the source diagram name.
   Optional source SHA-256 checksums are available in HDL generation settings
   and default off to avoid layout-only diagram edits creating Verilog diffs.
+- HDL output filenames now support `.v`, `.sv`, or any explicit custom file
+  extension. Module-name based generation defaults to `.v`, while custom
+  output filenames and project HDL paths preserve their typed extension.
 
 ### FSM Modeling
 

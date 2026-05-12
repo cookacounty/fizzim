@@ -130,6 +130,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private static final String PREF_HDL_OUTPUT_DIR = "hdlOutputDir";
 	private static final String PREF_HDL_USE_MODULE_FILENAME = "hdlUseModuleFilename";
 	private static final String PREF_HDL_OUTPUT_FILENAME = "hdlOutputFilename";
+	private static final String PREF_HDL_OUTPUT_EXTENSION = "hdlOutputExtension";
 	private static final String PREF_HDL_EXTRA_ARGS = "hdlExtraArgs";
 	private static final String PREF_HDL_SOURCE_CHECKSUM = "hdlSourceChecksum";
 	private static final String PREF_HDL_COMPARE_ENABLED = "hdlCompareEnabled";
@@ -1615,6 +1616,9 @@ public class FizzimGui extends javax.swing.JFrame {
 		JTextField outputDirField = new JTextField(getHdlOutputDir(), 24);
 		JCheckBox useModuleName = new JCheckBox("Use module name for filename", getHdlUseModuleFilename());
 		JTextField outputFileField = new JTextField(getHdlOutputFilename(), 24);
+		JComboBox<String> outputExtensionField = new JComboBox<String>(new String[] { ".v", ".sv" });
+		outputExtensionField.setEditable(true);
+		outputExtensionField.setSelectedItem(getHdlOutputExtension());
 		JTextField extraArgsField = new JTextField(getHdlExtraArgs(), 24);
 		JCheckBox sourceChecksum = new JCheckBox("Include source checksum in generated HDL header", getHdlSourceChecksum());
 		JCheckBox compareEnabled = new JCheckBox("Generate comparison HDL and diff", getHdlCompareEnabled());
@@ -1649,6 +1653,8 @@ public class FizzimGui extends javax.swing.JFrame {
 		panel.add(outputDirField);
 		panel.add(new JLabel(""));
 		panel.add(useModuleName);
+		panel.add(new JLabel("Default extension:"));
+		panel.add(outputExtensionField);
 		panel.add(new JLabel("Output filename:"));
 		panel.add(outputFileField);
 		panel.add(new JLabel("Backend options:"));
@@ -1673,11 +1679,13 @@ public class FizzimGui extends javax.swing.JFrame {
 		String outputDirSetting = blankDefault(outputDirField.getText(), ".");
 		boolean useModuleFilename = useModuleName.isSelected();
 		String outputFilenameSetting = blankDefault(outputFileField.getText(), "");
+		String outputExtensionSetting = normalizeHdlExtension((String)outputExtensionField.getSelectedItem());
 		USER_PREFS.put(PREF_HDL_PERL, blankDefault(perlField.getText(), "perl"));
 		USER_PREFS.put(PREF_HDL_BACKEND, blankDefault(backendField.getText(), "fizzim.pl"));
 		USER_PREFS.put(PREF_HDL_OUTPUT_DIR, outputDirSetting);
 		USER_PREFS.putBoolean(PREF_HDL_USE_MODULE_FILENAME, useModuleFilename);
 		USER_PREFS.put(PREF_HDL_OUTPUT_FILENAME, outputFilenameSetting);
+		USER_PREFS.put(PREF_HDL_OUTPUT_EXTENSION, outputExtensionSetting);
 		USER_PREFS.put(PREF_HDL_EXTRA_ARGS, extraArgsField.getText().trim());
 		USER_PREFS.putBoolean(PREF_HDL_SOURCE_CHECKSUM, sourceChecksum.isSelected());
 		USER_PREFS.putBoolean(PREF_HDL_COMPARE_ENABLED, compareEnabled.isSelected());
@@ -1688,7 +1696,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(currFile != null)
 		{
 			File output = resolveHdlOutputFileFromSettings(currFile, getMachineName(), outputDirSetting,
-					useModuleFilename, outputFilenameSetting);
+					useModuleFilename, outputFilenameSetting, outputExtensionSetting);
 			String relativeOutput = pathRelativeToFzm(currFile, output);
 			if(!relativeOutput.equals(getMachineAttributeValue(HDL_OUTPUT_ATTR)))
 			{
@@ -1963,7 +1971,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(suffix == null || suffix.trim().equals(""))
 			suffix = ".java";
 		String base = stripExtension(primaryOutput.getName());
-		return new File(primaryOutput.getParentFile(), base + suffix + ".v");
+		return new File(primaryOutput.getParentFile(), base + suffix + fileExtension(primaryOutput.getName()));
 	}
 
 	private String stripExtension(String filename) {
@@ -1971,6 +1979,16 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(dot <= 0)
 			return filename;
 		return filename.substring(0, dot);
+	}
+
+	private String fileExtension(String filename) {
+		if(filename == null)
+			return ".v";
+		String name = new File(filename).getName();
+		int dot = name.lastIndexOf('.');
+		if(dot <= 0 || dot == name.length() - 1)
+			return ".v";
+		return name.substring(dot);
 	}
 
 	private String diffFiles(File primary, File comparison) throws IOException {
@@ -1997,22 +2015,23 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(!persistedOutput.equals(""))
 			return resolveRelativeToFzm(fzmFile, persistedOutput);
 		return resolveHdlOutputFileFromSettings(fzmFile, machineName, getHdlOutputDir(),
-				getHdlUseModuleFilename(), getHdlOutputFilename());
+				getHdlUseModuleFilename(), getHdlOutputFilename(), getHdlOutputExtension());
 	}
 
 	private File resolveHdlOutputFileFromSettings(File fzmFile, String machineName, String outputDirSetting,
-			boolean useModuleFilename, String outputFilenameSetting) {
+			boolean useModuleFilename, String outputFilenameSetting, String outputExtensionSetting) {
 		File fzmDir = fzmFile.getAbsoluteFile().getParentFile();
 		File outputDir = resolveRelativeToFzm(fzmFile, outputDirSetting);
+		String extension = normalizeHdlExtension(outputExtensionSetting);
 		String filename;
 		if(useModuleFilename)
-			filename = sanitizeHdlFilename(machineName) + ".v";
+			filename = sanitizeHdlFilename(machineName) + extension;
 		else
 			filename = outputFilenameSetting;
 		if(filename == null || filename.trim().equals(""))
-			filename = sanitizeHdlFilename(machineName) + ".v";
-		if(!filename.toLowerCase().endsWith(".v"))
-			filename += ".v";
+			filename = sanitizeHdlFilename(machineName) + extension;
+		else if(!hasFilenameExtension(filename))
+			filename += extension;
 		File output = new File(filename);
 		if(output.isAbsolute())
 			return output;
@@ -2164,6 +2183,23 @@ public class FizzimGui extends javax.swing.JFrame {
 		return name.trim().replaceAll("[^A-Za-z0-9_.$-]", "_");
 	}
 
+	private static boolean hasFilenameExtension(String filename) {
+		if(filename == null)
+			return false;
+		String name = new File(filename).getName();
+		int dot = name.lastIndexOf('.');
+		return dot > 0 && dot < name.length() - 1;
+	}
+
+	private static String normalizeHdlExtension(String extension) {
+		if(extension == null || extension.trim().equals(""))
+			return ".v";
+		String value = extension.trim();
+		if(!value.startsWith("."))
+			value = "." + value;
+		return value;
+	}
+
 	private ArrayList<String> splitCommandArgs(String args) {
 		ArrayList<String> parts = new ArrayList<String>();
 		if(args == null || args.trim().equals(""))
@@ -2210,6 +2246,10 @@ public class FizzimGui extends javax.swing.JFrame {
 
 	private static String getHdlOutputFilename() {
 		return USER_PREFS.get(PREF_HDL_OUTPUT_FILENAME, "");
+	}
+
+	private static String getHdlOutputExtension() {
+		return normalizeHdlExtension(USER_PREFS.get(PREF_HDL_OUTPUT_EXTENSION, ".v"));
 	}
 
 	private static String getHdlExtraArgs() {
@@ -3839,7 +3879,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			String currentPath = getPersistedHdlOutputPath(file);
 			if(currentPath.equals(""))
 				currentPath = pathRelativeToFzm(file, resolveHdlOutputFileFromSettings(file, machineName,
-						getHdlOutputDir(), getHdlUseModuleFilename(), getHdlOutputFilename()));
+						getHdlOutputDir(), getHdlUseModuleFilename(), getHdlOutputFilename(), getHdlOutputExtension()));
 			String selectedPath = promptForProjectDiagramHdlPath(file, currentPath);
 			if(selectedPath == null)
 				return;
@@ -3892,9 +3932,6 @@ public class FizzimGui extends javax.swing.JFrame {
 		if(selectedPath.equals(""))
 			selectedPath = currentPath;
 		File output = resolveRelativeToFzm(fzmFile, selectedPath);
-		String name = output.getName();
-		if(!name.toLowerCase().endsWith(".v"))
-			output = new File(output.getParentFile(), name + ".v");
 		return pathRelativeToFzm(fzmFile, output);
 	}
 

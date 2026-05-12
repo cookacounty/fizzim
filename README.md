@@ -197,6 +197,11 @@ This command uses the same configured HDL backend settings as the GUI
 `.fzm` file and the generated-status metadata is written back into each diagram
 after a successful build.
 
+HDL output defaults to `.v`, but `Settings > HDL Generation...` can change the
+module-name default extension to `.sv` or any custom extension. If you enter a
+custom output filename or per-project HDL path with an explicit extension,
+Fizzim preserves that extension instead of forcing `.v`.
+
 On Windows, the same command can be run from PowerShell if Perl is on `PATH`:
 
 ```powershell

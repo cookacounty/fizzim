@@ -84,6 +84,10 @@ source diagram name. Source checksums can be enabled from the HDL generation
 settings, but are disabled by default so layout-only diagram edits do not
 create extra Verilog diffs.
 
+Generated filenames default to `.v`, but the HDL generation settings can use
+`.sv` or a custom extension. Explicit extensions in custom output filenames or
+per-diagram project HDL paths are preserved.
+
 Projects are saved as `.fzp` files. Fizzim enforces that extension, auto-saves
 project membership changes, shows recent projects under
 `File > Open Recent Project`, and reopens the last project or diagram at startup
