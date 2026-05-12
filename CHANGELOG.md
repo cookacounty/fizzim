@@ -98,6 +98,10 @@ part of the current codebase.
   state groups, and transitions are selected before the summary text.
 - To keep selection behavior conservative, the FSM summary is direct-click
   selectable but is not included in Ctrl+A or drag-box selection.
+- Selecting the FSM summary now draws both the overall summary box and a smaller
+  section box; double-clicking opens the FSM Interface tab for that selected
+  section. The summary also uses the same blue hover highlight as other canvas
+  objects.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in

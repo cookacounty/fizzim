@@ -3758,7 +3758,9 @@ public void updateTransitions()
 	{
 		if(obj.getGlobalTable())
 		{
-			int tab = obj.getGlobalInterfaceTabAt(y);
+			int tab = obj.getSelectedGlobalInterfaceTab();
+			if(tab < 0)
+				tab = obj.getGlobalInterfaceTabAt(y);
 			if(frame instanceof FizzimGui)
 				((FizzimGui)frame).openGlobalPropertiesTab(tab);
 			return;
