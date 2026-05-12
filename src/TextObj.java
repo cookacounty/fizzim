@@ -37,6 +37,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 public class TextObj extends GeneralObj {
 	private static final String HDL_STATE_ATTR = "fizzim2_hdl_generated";
 	private static final String HDL_OUTPUT_ATTR = "fizzim2_hdl_output";
+	private static final String HDL_VERSION_ATTR = "fizzim2_hdl_version";
+	private static final String HDL_BUILD_ATTR = "fizzim2_hdl_build";
 
 	private int selectStatus = 0;
 	private int tX,tY,tW,tH,xTemp,yTemp;
@@ -243,7 +245,10 @@ public class TextObj extends GeneralObj {
 
 	private boolean isHiddenSummaryAttribute(ObjAttribute obj)
 	{
-		return obj.getName().equals(HDL_STATE_ATTR) || obj.getName().equals(HDL_OUTPUT_ATTR);
+		return obj.getName().equals(HDL_STATE_ATTR)
+				|| obj.getName().equals(HDL_OUTPUT_ATTR)
+				|| obj.getName().equals(HDL_VERSION_ATTR)
+				|| obj.getName().equals(HDL_BUILD_ATTR);
 	}
 
 	private void addParameterSummaryRows()

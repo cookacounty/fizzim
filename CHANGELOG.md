@@ -15,6 +15,10 @@ part of the current codebase.
   `fizzim.pl` in the repository root.
 - Removed tracked `fizzim_errors.log` and added ignored generated build/log
   paths so the root folder stays focused on user-facing entry points.
+- Added explicit release/build version tracking in the Java application. Saved
+  `.fzm` files now write `<version>` as the current GitHub release plus build
+  number, and generated-HDL status records the release/build that produced the
+  HDL so diagrams go stale after a Fizzim upgrade.
 
 ### FSM Modeling
 
