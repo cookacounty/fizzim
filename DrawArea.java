@@ -839,7 +839,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		for(int i = 1; i < objList.size(); i++)
 		{
 			GeneralObj obj = (GeneralObj)objList.get(i);
-			if(isTransitionEndpoint(obj) || isMovableTextObject(obj))
+			if(isSelectableDiagramObject(obj))
 			{
 				obj.setSelectStatus(true);
 				selectedIndices.add(new Integer(i));
@@ -863,9 +863,14 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		return obj.getType() == 3 && !((TextObj)obj).getGlobalTable();
 	}
 
+	private boolean isSelectableTextObject(GeneralObj obj)
+	{
+		return obj.getType() == 3;
+	}
+
 	private boolean isSelectableDiagramObject(GeneralObj obj)
 	{
-		return isTransitionEndpoint(obj) || isMovableTextObject(obj);
+		return isTransitionEndpoint(obj) || isSelectableTextObject(obj);
 	}
 
 	private boolean isInspectableDiagramObject(GeneralObj obj)
@@ -1106,7 +1111,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				forks++;
 			else if(obj.getType() == 1 || obj.getType() == 2)
 				transitions++;
-			else if(obj.getType() == 3 && !((TextObj)obj).getGlobalTable())
+			else if(obj.getType() == 3)
 				text++;
 		}
 		((FizzimGui)frame).updateSelectionStatus(formatSelectionStatus(states, groups, forks, transitions, text));
@@ -1245,8 +1250,6 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			for(int i = objList.size() - 1; i >= 1; i--)
 			{
 				GeneralObj obj = (GeneralObj)objList.get(i);
-				if(obj.getType() == 3 && ((TextObj)obj).getGlobalTable())
-					continue;
 				if(obj.getType() == typeOrder[t] && isSelectableDiagramObject(obj) && hitTestObject(obj, x, y))
 					return i;
 			}
@@ -1389,8 +1392,6 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		for(int i = objList.size() - 1; i >= 1; i--)
 		{
 			GeneralObj obj = (GeneralObj)objList.elementAt(i);
-			if(obj.getType() == 3 && ((TextObj)obj).getGlobalTable())
-				continue;
 			if(obj.getType() == type && hitTestObject(obj, x, y))
 				addHitCandidate(hits, i, obj);
 		}
@@ -2340,7 +2341,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 						}
 						else if(s.getType() == 3)
 						{
-							editText((TextObj) s);
+							openTextProperties((TextObj)s, y);
 						}
 					}
 				}
@@ -2353,7 +2354,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				for (int i = 1; i < objList.size(); i++)
 				{
 					GeneralObj s = (GeneralObj) objList.elementAt(i);
-					if(s.getType() == 3 && !((TextObj)s).getGlobalTable() && s.setSelectStatus(x,y))
+					if(s.getType() == 3 && s.setSelectStatus(x,y))
 					{
 						bestMatch = s;
 							
@@ -2367,6 +2368,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 						{
 							setUndoPoint(i,3);
 							unselectObjsExcept(i);
+							if(doubleClick)
+								openTextProperties((TextObj)s, y);
 						}
 						break;
 					}
@@ -3714,6 +3717,18 @@ public void updateTransitions()
 			obj.setText(s);
 			commitUndo();
 		}
+	}
+
+	private void openTextProperties(TextObj obj, int y)
+	{
+		if(obj.getGlobalTable())
+		{
+			int tab = obj.getGlobalInterfaceTabAt(y);
+			if(frame instanceof FizzimGui)
+				((FizzimGui)frame).openGlobalPropertiesTab(tab);
+			return;
+		}
+		editText(obj);
 	}
 
 

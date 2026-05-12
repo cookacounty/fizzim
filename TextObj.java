@@ -60,6 +60,7 @@ public class TextObj extends GeneralObj {
 	LinkedList<String> col2 = new LinkedList<String>();
 	LinkedList<String> col3 = new LinkedList<String>();
 	LinkedList<String> col4 = new LinkedList<String>();
+	LinkedList<Integer> rowInterfaceTabs = new LinkedList<Integer>();
 	int col1W =0, col2W = 0, col3W = 0, col4W = 0;
 
 	
@@ -129,6 +130,7 @@ public class TextObj extends GeneralObj {
 		col2.clear();
 		col3.clear();
 		col4.clear();
+		rowInterfaceTabs.clear();
 		
 		
 		//add titles
@@ -146,16 +148,12 @@ public class TextObj extends GeneralObj {
 			else if(i < 3 && globalList.get(i).size() < 1)
 				continue;
 			switch(i) {
-				case 0: col1.add("STATE MACHINE"); break;
-				case 1: col1.add("INPUTS"); break;
-				case 2: col1.add("OUTPUTS"); break;
-				case 3: col1.add("STATES"); break;
-				case 4: col1.add("TRANSITIONS"); break;
+				case 0: addGlobalSummaryRow("STATE MACHINE", " ", " ", " ", 0); break;
+				case 1: addGlobalSummaryRow("INPUTS", " ", " ", " ", 1); break;
+				case 2: addGlobalSummaryRow("OUTPUTS", " ", " ", " ", 2); break;
+				case 3: addGlobalSummaryRow("STATES", " ", " ", " ", 3); break;
+				case 4: addGlobalSummaryRow("TRANSITIONS", " ", " ", " ", 4); break;
 			}
-
-			col2.add(" ");
-			col3.add(" ");
-			col4.add(" ");
 			if(i == 2)
 			{
 				addOutputSummaryRows(false);
@@ -214,7 +212,7 @@ public class TextObj extends GeneralObj {
 			{
 				if(isInternalOutput(globalList.get(2).get(j)))
 				{
-					addGlobalSummaryRow("INTERNALS", " ", " ", " ");
+					addGlobalSummaryRow("INTERNALS", " ", " ", " ", 5);
 					wroteHeader = true;
 					break;
 				}
@@ -267,10 +265,7 @@ public class TextObj extends GeneralObj {
 			{
 				if(col1W < fm.stringWidth("PARAMETERS"))
 					col1W = fm.stringWidth("PARAMETERS");
-				col1.add("PARAMETERS");
-				col2.add(" ");
-				col3.add(" ");
-				col4.add(" ");
+				addGlobalSummaryRow("PARAMETERS", " ", " ", " ", 6);
 				wroteHeader = true;
 			}
 			addGlobalSummaryRow("   " + obj.getName(), obj.getValue(), obj.getType(), obj.getComment());
@@ -278,6 +273,12 @@ public class TextObj extends GeneralObj {
 	}
 
 	private void addGlobalSummaryRow(String name, String value, String type, String comment)
+	{
+		int tab = rowInterfaceTabs.size() > 0 ? rowInterfaceTabs.getLast().intValue() : 0;
+		addGlobalSummaryRow(name, value, type, comment, tab);
+	}
+
+	private void addGlobalSummaryRow(String name, String value, String type, String comment, int tab)
 	{
 		if(col1W < fm.stringWidth(name))
 			col1W = fm.stringWidth(name);
@@ -291,6 +292,7 @@ public class TextObj extends GeneralObj {
 		if(col4W < fm.stringWidth(comment))
 			col4W = fm.stringWidth(comment);
 		col4.add(comment);
+		rowInterfaceTabs.add(new Integer(tab));
 	}
 
 	private String resolveHdlOutputSummary()
@@ -505,11 +507,15 @@ public class TextObj extends GeneralObj {
 			xTemp = x;
 			yTemp = y;
 			selectStatus = 0;
-			if(globalTable)
-				return false;
 
 			// check if inside square
-			if(x >= selectboxLeft && x <= selectboxRight && y >= selectboxTop && y <= selectboxBottom) {
+			if(globalTable)
+			{
+				Rectangle bounds = getBounds();
+				if(tableVis && bounds.contains(x, y))
+					selectStatus = 1;
+			}
+			else if(x >= selectboxLeft && x <= selectboxRight && y >= selectboxTop && y <= selectboxBottom) {
 				selectStatus = 1;
 			}
 
@@ -542,6 +548,18 @@ public class TextObj extends GeneralObj {
 			return new Rectangle(tX - 8, tY - lineHeight, Math.max(16, tW + 16), Math.max(24, tH + 12));
 		}
 		return new Rectangle(tX - 8, tY - Math.max(20, tH), Math.max(16, tW + 16), Math.max(24, tH + 12));
+	}
+
+	public int getGlobalInterfaceTabAt(int y)
+	{
+		if(!globalTable || !tableVis || col1.size() == 0)
+			return -1;
+		int lineHeight = Math.max(1, tH / col1.size());
+		int top = tY - lineHeight + 2;
+		int row = (y - top) / lineHeight;
+		if(row < 0 || row >= rowInterfaceTabs.size())
+			return -1;
+		return rowInterfaceTabs.get(row).intValue();
 	}
 
 
@@ -600,8 +618,6 @@ public class TextObj extends GeneralObj {
 	@Override
 	public boolean setBoxSelectStatus(int x0, int y0, int x1, int y1) {
 		selectStatus = 0;
-		if(globalTable)
-			return false;
 		if(myPage == currPage && x0 <= tX-4 && x1 >= tX+tW+3)
 		{
 
@@ -625,8 +641,6 @@ public class TextObj extends GeneralObj {
 	{
 		xTemp = x;
 		yTemp = y;
-		if(globalTable)
-			return false;
 		if(myPage == currPage && x >= tX-4 && x <= tX+tW+3)
 		{
 			

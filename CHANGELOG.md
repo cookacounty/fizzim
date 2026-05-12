@@ -91,6 +91,9 @@ part of the current codebase.
   action.
 - Selecting a diagram object now automatically switches the left sidebar from
   Project back to Properties so the quick inspector follows canvas selection.
+- The FSM summary text is now selectable and movable as one protected text
+  group. Double-clicking a summary section opens the matching FSM Interface tab
+  such as State Machine, Inputs, Parameters, Outputs, or Internals.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in
