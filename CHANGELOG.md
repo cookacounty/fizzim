@@ -105,6 +105,8 @@ part of the current codebase.
 - Property tables now support spreadsheet-like keyboard editing: typing on a
   selected text cell replaces the current value, while arrow keys, Enter, and
   Tab commit edits and move the selected cell.
+- In property dialogs, Enter activates OK and Esc activates Cancel when a table
+  cell is not actively being edited; active edits still get the first Esc/Enter.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in

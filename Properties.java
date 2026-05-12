@@ -25,6 +25,7 @@ import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JRootPane;
 import javax.swing.JTable;
 import javax.swing.InputMap;
 import javax.swing.KeyStroke;
@@ -501,7 +502,7 @@ class MyTableModel extends AbstractTableModel {
 				}
 			}
 		}
-		
+
 	}
 
 	private void removeAttribute(int tab, String name)
@@ -904,6 +905,19 @@ class DialogLayoutUtil {
 		table.setFillsViewportHeight(true);
 		PropertyTableNavigation.install(table);
 	}
+
+	static void installDialogButtons(JDialog dialog, JButton okButton, JButton cancelButton) {
+		dialog.getRootPane().setDefaultButton(okButton);
+		dialog.getRootPane().putClientProperty("fizzim.cancelButton", cancelButton);
+		InputMap inputMap = dialog.getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+		ActionMap actionMap = dialog.getRootPane().getActionMap();
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "dialogCancel");
+		actionMap.put("dialogCancel", new AbstractAction() {
+			public void actionPerformed(ActionEvent evt) {
+				cancelButton.doClick();
+			}
+		});
+	}
 }
 
 class PropertyTableNavigation {
@@ -911,13 +925,13 @@ class PropertyTableNavigation {
 		table.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
 		InputMap inputMap = table.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
 		ActionMap actionMap = table.getActionMap();
-		bind(inputMap, actionMap, KeyEvent.VK_UP, 0, "editNavigateUp", -1, 0);
-		bind(inputMap, actionMap, KeyEvent.VK_DOWN, 0, "editNavigateDown", 1, 0);
-		bind(inputMap, actionMap, KeyEvent.VK_LEFT, 0, "editNavigateLeft", 0, -1);
-		bind(inputMap, actionMap, KeyEvent.VK_RIGHT, 0, "editNavigateRight", 0, 1);
-		bind(inputMap, actionMap, KeyEvent.VK_ENTER, 0, "editNavigateEnter", 1, 0);
-		bind(inputMap, actionMap, KeyEvent.VK_TAB, 0, "editNavigateTab", 0, 1);
-		bind(inputMap, actionMap, KeyEvent.VK_TAB, KeyEvent.SHIFT_DOWN_MASK, "editNavigateShiftTab", 0, -1);
+		bind(inputMap, actionMap, KeyEvent.VK_UP, 0, "editNavigateUp", -1, 0, false);
+		bind(inputMap, actionMap, KeyEvent.VK_DOWN, 0, "editNavigateDown", 1, 0, false);
+		bind(inputMap, actionMap, KeyEvent.VK_LEFT, 0, "editNavigateLeft", 0, -1, false);
+		bind(inputMap, actionMap, KeyEvent.VK_RIGHT, 0, "editNavigateRight", 0, 1, false);
+		bind(inputMap, actionMap, KeyEvent.VK_ENTER, 0, "editNavigateEnter", 1, 0, true);
+		bind(inputMap, actionMap, KeyEvent.VK_TAB, 0, "editNavigateTab", 0, 1, false);
+		bind(inputMap, actionMap, KeyEvent.VK_TAB, KeyEvent.SHIFT_DOWN_MASK, "editNavigateShiftTab", 0, -1, false);
 		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "editCancelOrClear");
 		actionMap.put("editCancelOrClear", new AbstractAction() {
 			public void actionPerformed(ActionEvent evt) {
@@ -933,18 +947,18 @@ class PropertyTableNavigation {
 		});
 	}
 
-	private static void bind(InputMap inputMap, ActionMap actionMap, int key, int modifiers, String name, final int rowDelta, final int colDelta) {
+	private static void bind(InputMap inputMap, ActionMap actionMap, int key, int modifiers, String name, final int rowDelta, final int colDelta, final boolean defaultOnIdle) {
 		inputMap.put(KeyStroke.getKeyStroke(key, modifiers), name);
 		actionMap.put(name, new AbstractAction() {
 			public void actionPerformed(ActionEvent evt) {
 				Object source = evt.getSource();
 				if(source instanceof JTable)
-					commitMoveAndEdit((JTable)source, rowDelta, colDelta);
+					commitMoveAndEdit((JTable)source, rowDelta, colDelta, defaultOnIdle);
 			}
 		});
 	}
 
-	private static void commitMoveAndEdit(JTable table, int rowDelta, int colDelta) {
+	private static void commitMoveAndEdit(JTable table, int rowDelta, int colDelta, boolean defaultOnIdle) {
 		boolean wasEditing = table.isEditing();
 		int row = table.getEditingRow();
 		int col = table.getEditingColumn();
@@ -958,6 +972,11 @@ class PropertyTableNavigation {
 		if(table.isEditing() && !table.getCellEditor().stopCellEditing())
 			return;
 		int[] target = wasEditing ? nextEditableTextCell(table, row, col, rowDelta, colDelta) : nextVisibleCell(table, row, col, rowDelta, colDelta);
+		if(!wasEditing && defaultOnIdle)
+		{
+			clickDefaultButton(table);
+			return;
+		}
 		if(target == null)
 			return;
 		table.changeSelection(target[0], target[1], false, false);
@@ -999,7 +1018,22 @@ class PropertyTableNavigation {
 			table.getCellEditor().cancelCellEditing();
 			return;
 		}
-		table.clearSelection();
+		clickCancelButton(table);
+	}
+
+	private static void clickDefaultButton(JTable table) {
+		JRootPane rootPane = SwingUtilities.getRootPane(table);
+		if(rootPane != null && rootPane.getDefaultButton() != null)
+			rootPane.getDefaultButton().doClick();
+	}
+
+	private static void clickCancelButton(JTable table) {
+		JRootPane rootPane = SwingUtilities.getRootPane(table);
+		if(rootPane == null)
+			return;
+		Object cancel = rootPane.getClientProperty("fizzim.cancelButton");
+		if(cancel instanceof JButton)
+			((JButton)cancel).doClick();
 	}
 
 	private static void startReplacingSelection(final JTable table, KeyEvent evt) {
@@ -1180,7 +1214,7 @@ class TransProperties extends javax.swing.JDialog {
 				TPOKActionPerformed(evt);
 			}
 		});
-		
+		DialogLayoutUtil.installDialogButtons(this, TPOK, TPCancel);
 
 
 
@@ -1782,6 +1816,7 @@ class StateProperties extends javax.swing.JDialog {
 				SPOKActionPerformed(evt);
 			}
 		});
+		DialogLayoutUtil.installDialogButtons(this, SPOK, SPCancel);
 
 		SPNew.setText("New");
 		SPNew.addActionListener(new java.awt.event.ActionListener() {
@@ -2410,6 +2445,7 @@ class GlobalProperties extends javax.swing.JDialog {
 					GPOKActionPerformed(evt);
 				}
 			});
+			DialogLayoutUtil.installDialogButtons(this, GPOK, GPCancel);
 
 			GPOption1.setText("Delete");
 			GPOption1.addActionListener(new java.awt.event.ActionListener() {
