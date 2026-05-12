@@ -723,13 +723,7 @@ class TransitionSectionRenderer extends DefaultTableCellRenderer {
 		if(component instanceof JLabel)
 		{
 			JLabel label = (JLabel)component;
-			label.setBorder(sectionStartsAt(table, row) ? BorderFactory.createMatteBorder(3, 0, 0, 0, new Color(190, 205, 220)) : null);
-			if(isSelected)
-				label.setBackground(table.getSelectionBackground());
-			else if(sectionStartsAt(table, row))
-				label.setBackground(new Color(245, 248, 252));
-			else
-				label.setBackground(table.getBackground());
+			PropertyTableSelectionStyle.apply(table, label, row, column, sectionStartsAt(table, row));
 		}
 		return component;
 	}
@@ -773,6 +767,56 @@ class TransitionSectionRenderer extends DefaultTableCellRenderer {
 				return false;
 		}
 		return true;
+	}
+}
+
+class PropertyTableCellRenderer extends DefaultTableCellRenderer {
+	public Component getTableCellRendererComponent(JTable table, Object value,
+			boolean isSelected, boolean hasFocus, int row, int column) {
+		Component component = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+		if(component instanceof JLabel)
+			PropertyTableSelectionStyle.apply(table, (JLabel)component, row, column, false);
+		return component;
+	}
+}
+
+class PropertyTableSelectionStyle {
+	private static final Color ROW_BACKGROUND = new Color(235, 244, 255);
+	private static final Color SECTION_BACKGROUND = new Color(245, 248, 252);
+	private static final Color SECTION_LINE = new Color(190, 205, 220);
+	private static final Color CELL_BORDER = new Color(35, 105, 210);
+
+	static void apply(JTable table, JLabel label, int row, int column, boolean sectionStart) {
+		boolean activeCell = row == table.getSelectedRow() && column == table.getSelectedColumn();
+		boolean selectedRow = isSelectedRow(table, row);
+		if(activeCell)
+			label.setBackground(Color.white);
+		else if(selectedRow)
+			label.setBackground(ROW_BACKGROUND);
+		else if(sectionStart)
+			label.setBackground(SECTION_BACKGROUND);
+		else
+			label.setBackground(table.getBackground());
+		label.setForeground(table.getForeground());
+		label.setBorder(borderFor(sectionStart, activeCell));
+	}
+
+	private static boolean isSelectedRow(JTable table, int row) {
+		int[] rows = table.getSelectedRows();
+		for(int i = 0; i < rows.length; i++)
+			if(rows[i] == row)
+				return true;
+		return false;
+	}
+
+	private static Border borderFor(boolean sectionStart, boolean activeCell) {
+		Border sectionBorder = sectionStart ? BorderFactory.createMatteBorder(3, 0, 0, 0, SECTION_LINE) : null;
+		Border cellBorder = activeCell ? BorderFactory.createLineBorder(CELL_BORDER, 2) : null;
+		if(sectionBorder != null && cellBorder != null)
+			return BorderFactory.createCompoundBorder(sectionBorder, cellBorder);
+		if(cellBorder != null)
+			return cellBorder;
+		return sectionBorder;
 	}
 }
 
@@ -905,8 +949,10 @@ class DialogLayoutUtil {
 		table.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
 		table.setFillsViewportHeight(true);
 		table.setCellSelectionEnabled(true);
-		table.setSelectionBackground(new Color(55, 125, 220));
-		table.setSelectionForeground(Color.white);
+		table.setSelectionBackground(new Color(235, 244, 255));
+		table.setSelectionForeground(Color.black);
+		if(!(table.getDefaultRenderer(Object.class) instanceof TransitionSectionRenderer))
+			table.setDefaultRenderer(Object.class, new PropertyTableCellRenderer());
 		table.setDefaultEditor(String.class, new ReplacingTextCellEditor());
 		table.setDefaultEditor(Object.class, new ReplacingTextCellEditor());
 		PropertyTableNavigation.install(table);
