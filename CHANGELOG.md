@@ -53,6 +53,12 @@ part of the current codebase.
   `real`, packed ranges, or array ranges before/after the parameter identifier.
   Lint and instantiation helpers extract the actual parameter name from the
   declaration so typed parameters still work in expressions.
+- HDL generation now preserves the GUI parameter row order in the generated
+  module parameter list, which allows later parameters to depend on earlier
+  parameters without being broken by alphabetical sorting.
+- Backend regression tests now compare direct Perl backend output against the
+  Java-launched backend output for the exhaustive generation testcase so both
+  paths stay synchronized while the Perl backend remains checked in.
 - Added a user-facing `Internals` global-attribute pane for FSM variables that
   should be generated internally but omitted from the module port list. These
   remain stored as outputs with `suppress_portlist` for parser and backend

@@ -28,6 +28,7 @@ else
   FIZZIM1_BACKEND="${FIZZIM1_BACKEND:-$BACKEND}"
 fi
 PERL_BIN="${PERL_BIN:-${FIZZIM_PERL:-perl}}"
+JAVA_BIN="${JAVA_BIN:-java}"
 SIM="${SIM:-xrun}"
 
 add_oss_to_path() {
@@ -162,6 +163,31 @@ grep -q 'module exhaustive_generation ' "$EXHAUSTIVE_SV"
 grep -q '// datapath transition actions' "$EXHAUSTIVE_SV"
 grep -q 'SG_A\.S_A0' "$EXHAUSTIVE_SV"
 grep -q 'SG_D\.S_D0' "$EXHAUSTIVE_SV"
+if ! awk '
+  /parameter P_ZERO = 0,/ { seen_zero = NR }
+  /parameter P_ONE = 1,/ { seen_one = NR }
+  /parameter P_TWO = 2,/ { seen_two = NR }
+  /parameter P_LIMIT = 4,/ { seen_limit = NR }
+  /parameter P_MASK = 4.hA/ { seen_mask = NR }
+  END {
+    exit !(seen_zero && seen_one && seen_two && seen_limit && seen_mask &&
+           seen_zero < seen_one && seen_one < seen_two &&
+           seen_two < seen_limit && seen_limit < seen_mask)
+  }
+' "$EXHAUSTIVE_SV"; then
+  echo "Exhaustive feature RTL did not preserve GUI parameter order" >&2
+  exit 1
+fi
+if [[ -f "$REPO_ROOT/fizzim.jar" ]] && command -v "$JAVA_BIN" >/dev/null 2>&1; then
+  EXHAUSTIVE_JAVA_SV="$GENERATED_DIR/exhaustive_generation.java.sv"
+  echo "Checking Java-launched backend matches Perl backend"
+  FIZZIM_PERL="$PERL_BIN" "$JAVA_BIN" -cp "$REPO_ROOT/fizzim.jar" FizzimJavaBackend -noaddversion "$EXHAUSTIVE_FZM" > "$EXHAUSTIVE_JAVA_SV"
+  if ! diff -u "$EXHAUSTIVE_SV" "$EXHAUSTIVE_JAVA_SV" >/dev/null; then
+    echo "Java-launched backend output differs from direct Perl backend output" >&2
+    diff -u "$EXHAUSTIVE_SV" "$EXHAUSTIVE_JAVA_SV" >&2 || true
+    exit 1
+  fi
+fi
 
 echo "Generating exhaustive Fizzim 1.0-compatible RTL"
 "$PERL_BIN" "$FIZZIM1_BACKEND" -noaddversion "$EXHAUSTIVE_COMPAT_FZM" > "$EXHAUSTIVE_COMPAT_SV"

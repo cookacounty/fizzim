@@ -253,9 +253,10 @@ if ($language eq "vhdl") {
 }
 
 # Search for parameters
-foreach $attname (sort keys %{ $globals{machine} }) {
+foreach $attname (&ordered_machine_attributes) {
   if ($globals{machine}{$attname}{type} eq "parameter") {
     $parameters{$attname} = $globals{machine}{$attname}{value};
+    push(@parameter_order, $attname);
   }
 }
 #foreach $param (sort keys %parameters) {
@@ -680,7 +681,7 @@ if ($language eq "vhdl") {
   if (%parameters) { # If parameters are present, take care of them
     &print($indent++,"module $globals{machine}{name}{value} $comment\n");
     &print($indent++,"#(\n");
-    foreach $param (sort keys %parameters) {
+    foreach $param (@parameter_order) {
       &print($indent,"parameter $param = $parameters{$param},\n");
     }
     # Remove , in final line
@@ -2754,6 +2755,9 @@ sub parse_input {
       # Otherwise, append to ptr.  
       if ($array eq "") {
         $array = "$token";
+      } elsif ($array eq "globals" && $ptr eq "{\"machine\"}") {
+        push(@machine_attribute_order, $token);
+        $ptr = $ptr . "{\"$token\"}";
       } else {
         $ptr = $ptr . "{\"$token\"}";
       }
@@ -2813,6 +2817,26 @@ sub parse_input {
   #&debug("state0 vis is $states{state0}{attributes}{vis}",0,"parse_input");
   #&debug("trans0 startState is $transitions{trans0}{startState}",0,"parse_input");
   #&debug("trans0 endState is $transitions{trans0}{endState}",0,"parse_input");
+}
+
+sub ordered_machine_attributes {
+  my (@ordered, %seen, $attname);
+
+  foreach $attname (@machine_attribute_order) {
+    next if $seen{$attname};
+    next unless exists $globals{machine}{$attname};
+    push(@ordered, $attname);
+    $seen{$attname} = 1;
+  }
+
+  # Fallback for attributes that may come from command-line options, future
+  # parsers, or hand-edited files that bypassed the normal XML order capture.
+  foreach $attname (sort keys %{ $globals{machine} }) {
+    next if $seen{$attname};
+    push(@ordered, $attname);
+  }
+
+  return @ordered;
 }
 
 sub apply_stategroups {
