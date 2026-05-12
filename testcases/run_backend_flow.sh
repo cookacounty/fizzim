@@ -15,6 +15,11 @@ STRESS_FZM="$SCRIPT_DIR/fork_stategroup_stress.fzm"
 STRESS_REF_SV="$SCRIPT_DIR/fork_stategroup_stress_ref.sv"
 STRESS_SV="$GENERATED_DIR/fork_stategroup_stress.sv"
 STRESS_TESTBENCH="$SCRIPT_DIR/tb_fork_stategroup_stress_equiv.sv"
+EXHAUSTIVE_FZM="$SCRIPT_DIR/exhaustive_generation.fzm"
+EXHAUSTIVE_COMPAT_FZM="$GENERATED_DIR/exhaustive_generation_fizzim1.fzm"
+EXHAUSTIVE_SV="$GENERATED_DIR/exhaustive_generation.sv"
+EXHAUSTIVE_COMPAT_SV="$GENERATED_DIR/exhaustive_generation_fizzim.sv"
+EXHAUSTIVE_TESTBENCH="$SCRIPT_DIR/tb_exhaustive_generation_equiv.sv"
 
 BACKEND="${BACKEND:-$REPO_ROOT/fizzim.pl}"
 if [[ -z "${FIZZIM1_BACKEND:-}" && -f "$LEGACY_BACKEND" ]]; then
@@ -66,11 +71,23 @@ run_stress_generator() {
   fi
 }
 
+run_exhaustive_generator() {
+  if command -v node >/dev/null 2>&1; then
+    node "$SCRIPT_DIR/tools/generate_exhaustive_generation_case.js"
+  else
+    echo "Node.js is required to generate the exhaustive generation diagram." >&2
+    exit 1
+  fi
+}
+
 mkdir -p "$GENERATED_DIR"
 add_oss_to_path
 
 echo "Generating fork/state-group stress testcase"
 run_stress_generator
+
+echo "Generating exhaustive generation testcase"
+run_exhaustive_generator
 
 echo "Generating Fizzim 1.0-compatible golden diagram"
 run_compat_generator
@@ -132,6 +149,41 @@ else
   exit 1
 fi
 
+echo "Generating exhaustive Fizzim 1.0-compatible diagram"
+node "$SCRIPT_DIR/generate_fizzim1_compat.js" "$EXHAUSTIVE_FZM" "$EXHAUSTIVE_COMPAT_FZM"
+if grep -q '<fork>\|<stategroup>\|<entryState>' "$EXHAUSTIVE_COMPAT_FZM"; then
+  echo "Exhaustive compatibility diagram still contains Fizzim 2.0-only objects" >&2
+  exit 1
+fi
+
+echo "Generating exhaustive Fizzim 2.0 feature RTL"
+"$PERL_BIN" "$BACKEND" -noaddversion "$EXHAUSTIVE_FZM" > "$EXHAUSTIVE_SV"
+grep -q 'module exhaustive_generation ' "$EXHAUSTIVE_SV"
+grep -q '// datapath transition actions' "$EXHAUSTIVE_SV"
+grep -q 'SG_A\.S_A0' "$EXHAUSTIVE_SV"
+grep -q 'SG_D\.S_D0' "$EXHAUSTIVE_SV"
+
+echo "Generating exhaustive Fizzim 1.0-compatible RTL"
+"$PERL_BIN" "$FIZZIM1_BACKEND" -noaddversion "$EXHAUSTIVE_COMPAT_FZM" > "$EXHAUSTIVE_COMPAT_SV"
+grep -q 'module exhaustive_generation_fizzim ' "$EXHAUSTIVE_COMPAT_SV"
+if grep -q '// datapath transition actions\|SG_A\.S_A0\|fork' "$EXHAUSTIVE_COMPAT_SV"; then
+  echo "Exhaustive compatibility RTL leaked transition actions, state-group names, or fork names" >&2
+  exit 1
+fi
+
+echo "Compiling and simulating exhaustive generation equivalence"
+if [[ "$SIM" == "xrun" ]] && command -v xrun >/dev/null 2>&1; then
+  xrun -64bit -sv -clean -access +rwc -top tb_exhaustive_generation_equiv \
+    "$EXHAUSTIVE_COMPAT_SV" "$EXHAUSTIVE_SV" "$EXHAUSTIVE_TESTBENCH"
+elif command -v iverilog >/dev/null 2>&1 && command -v vvp >/dev/null 2>&1; then
+  iverilog -g2012 -Wall -o "$GENERATED_DIR/exhaustive_generation_equiv.vvp" \
+    "$EXHAUSTIVE_COMPAT_SV" "$EXHAUSTIVE_SV" "$EXHAUSTIVE_TESTBENCH"
+  vvp "$GENERATED_DIR/exhaustive_generation_equiv.vvp"
+else
+  echo "Could not find xrun or iverilog/vvp for exhaustive generation simulation." >&2
+  exit 1
+fi
+
 if command -v yosys >/dev/null 2>&1; then
   echo "Running Yosys syntax/synthesis checks"
   cat > "$GENERATED_DIR/yosys_check_generic_state_action.ys" <<YOSYS
@@ -158,6 +210,22 @@ opt
 check
 YOSYS
   yosys -q -s "$GENERATED_DIR/yosys_check_fork_stategroup_stress.ys"
+  cat > "$GENERATED_DIR/yosys_check_exhaustive_generation.ys" <<YOSYS
+read_verilog -sv "testcases/generated/exhaustive_generation.sv"
+hierarchy -check -top exhaustive_generation
+proc
+opt
+check
+YOSYS
+  cat > "$GENERATED_DIR/yosys_check_exhaustive_generation_fizzim.ys" <<YOSYS
+read_verilog -sv "testcases/generated/exhaustive_generation_fizzim.sv"
+hierarchy -check -top exhaustive_generation_fizzim
+proc
+opt
+check
+YOSYS
+  yosys -q -s "$GENERATED_DIR/yosys_check_exhaustive_generation.ys"
+  yosys -q -s "$GENERATED_DIR/yosys_check_exhaustive_generation_fizzim.ys"
 fi
 
-echo "PASS generic compatibility and fork/state-group stress backend flow"
+echo "PASS generic compatibility, fork/state-group stress, and exhaustive generation backend flow"

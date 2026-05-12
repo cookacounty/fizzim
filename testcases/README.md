@@ -15,8 +15,11 @@ https://github.com/cookacounty/fizzim/wiki/Backend-and-Regression-Testing
 | `generic_project.fzp` | Minimal project file listing the generic diagrams for testing `File > Project > Build All` and project-level `Lint All`. |
 | `generic_state_machine_lint_issues.fzm` | Copy of the generic diagram with intentional lint issues for GUI validation demos. |
 | `generate_fizzim1_compat.js` | Generates a Fizzim 1.0-compatible golden diagram from the source diagram. |
+| `exhaustive_generation.fzm` | Generated stress diagram with 50+ transitions, multi-tier forks, state groups, transition actions, internals, outputs, inputs, and parameters. |
+| `tools/generate_exhaustive_generation_case.js` | Source-of-truth generator for the exhaustive stress diagram and its equivalence testbench. |
 | `tools/fuzz_backend_compare.js` | Creates randomized non-human-readable variants of the generic diagram and compares direct Perl generation against Java-launched generation. |
 | `tb_generic_state_action_equiv.sv` | Drives the generated golden RTL and feature RTL with identical inputs, then forces every encoded state and checks every input combination for one transition step. |
+| `tb_exhaustive_generation_equiv.sv` | Forces every exhaustive stress state through every input combination and compares the Fizzim 2.0 RTL against the generated Fizzim 1.0-compatible RTL. |
 | `generated/` | Generated diagrams, RTL, simulator outputs, and Yosys scripts. Ignored by Git. |
 
 ## Run
@@ -42,6 +45,9 @@ bash testcases/run_backend_flow.sh
 For the lint showcase, see:
 
 https://github.com/cookacounty/fizzim/wiki/Validation-and-Lint
+
+For the generated stress-test intent and regeneration rules, see
+`docs/GENERATION_STRESS_TESTS.md`.
 
 ## Project Files
 

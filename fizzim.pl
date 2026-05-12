@@ -2217,7 +2217,7 @@ sub print_ifelse {
 
 sub print_regdp_transition_actions {
   my ($state, $trans, $att, $value, $equation, $keep_state, $keep_case);
-  my (@transitions_from_this_state, @assignments);
+  my (@transitions_from_this_state, @assignments, @prior_equations);
 
   return unless &has_regdp_transition_actions;
 
@@ -2251,8 +2251,13 @@ sub print_regdp_transition_actions {
     @transitions_from_this_state = &prune_transitions_after_unconditional(@transitions_from_this_state);
 
     @ifs = ();
+    @prior_equations = ();
     foreach $trans (@transitions_from_this_state) {
       @assignments = ();
+      $equation = $transitions{$trans}{attributes}{equation}{value};
+      $equation =~ s/\n//g;
+      $equation = 1 if ($equation eq "");
+
       foreach $att (sort keys %{ $transitions{$trans}{attributes} }) {
         next unless exists $regdp_outputs{$att};
         next unless $transitions{$trans}{attributes}{$att}{type} eq "output";
@@ -2263,12 +2268,10 @@ sub print_regdp_transition_actions {
                  ($value eq $regdp_outputs{$att}{default_value}));
         push(@assignments, "$att <= $value;\n");
       }
-      next unless @assignments;
-
-      $equation = $transitions{$trans}{attributes}{equation}{value};
-      $equation =~ s/\n//g;
-      $equation = 1 if ($equation eq "");
-      push(@ifs, [$equation, @assignments]);
+      if (@assignments) {
+        push(@ifs, [&transition_action_equation($equation, @prior_equations), @assignments]);
+      }
+      push(@prior_equations, $equation);
     }
 
     if (@ifs) {
@@ -2312,6 +2315,15 @@ sub print_regdp_transition_actions {
     pop(@pbuf);
     $indent--;
   }
+}
+
+sub transition_action_equation {
+  my ($equation, @prior_equations) = @_;
+  my ($prior);
+
+  return $equation unless @prior_equations;
+  $prior = join(" || ", map { "($_)" } @prior_equations);
+  return "($equation) && !($prior)";
 }
 
 sub has_regdp_transition_actions {
