@@ -2705,6 +2705,7 @@ sub prune_transitions_after_unconditional {
 sub parse_input {
 
   my %myattributes_forcompare;
+  my ($status, $status_ptr);
 
   &debug("Start of parse_input\"$_\"",0,"parse_input");
 
@@ -2722,10 +2723,27 @@ sub parse_input {
     s/##.*$// ;# Remove comments
     s/^\s*//;  # Remove leading whitespace
 
-    # Toss status/endstatus
+    # Preserve value status for places where the GUI distinction between
+    # inherited/default and local values affects backend semantics.
     if (/^\s*<status>/) {
+      $status = "";
+      $status_ptr = $ptr;
       until (/^\s*<\/status>/) {
         $_ = <>;
+        chomp;
+        s/\r$//;
+        s/^\s*//;
+        if (!/^\s*<\/status>/ && ($_ ne "")) {
+          $status = $_;
+        }
+      }
+      if (($status ne "") && ($array ne "") && ($status_ptr =~ /\{"value"\}$/)) {
+        my $value_status_ptr = $status_ptr;
+        $value_status_ptr =~ s/\{"value"\}$/{"value_status"}/;
+        $status =~ s/"/\\"/g;
+        $cmd = "\$${array}${value_status_ptr} = \"$status\";";
+        &debug("status cmd is \"$cmd\"",0,"parse_input");
+        eval $cmd unless (!$array);
       }
       next;
     }
@@ -2859,8 +2877,9 @@ sub apply_stategroups {
           # assignment must take priority over the group value, and transition
           # actions are emitted later so they remain the highest-priority
           # datapath assignment.
-          if (!exists $states{$child}{attributes}{$att}{value} || ($states{$child}{attributes}{$att}{value} eq "")) {
+          if (!&state_has_local_assignment($child, $att)) {
             $states{$child}{attributes}{$att}{value} = $stategroups{$group}{attributes}{$att}{value};
+            $states{$child}{attributes}{$att}{value_status} = "STATEGROUP";
           }
         }
       } else {
@@ -2896,6 +2915,28 @@ sub apply_stategroups {
       $transitions{$newtrans}{_stategroup_transition} = 1;
     }
   }
+}
+
+sub state_has_local_assignment {
+  my ($state, $att) = @_;
+  my ($value, $status, $default);
+
+  return 0 unless exists $states{$state}{attributes}{$att}{value};
+  $value = $states{$state}{attributes}{$att}{value};
+  return 0 if ($value eq "");
+
+  if (exists $states{$state}{attributes}{$att}{value_status}) {
+    $status = $states{$state}{attributes}{$att}{value_status};
+    return 1 if (defined $status && ($status eq "LOCAL"));
+    return 0 if (defined $status && ($status =~ /^GLOBAL_/));
+  }
+
+  if (exists $globals{outputs}{$att}{value}) {
+    $default = $globals{outputs}{$att}{value};
+    return 0 if ($value eq $default);
+  }
+
+  return 1;
 }
 
 sub get_stategroup_entry_state {

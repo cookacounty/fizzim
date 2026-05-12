@@ -354,7 +354,7 @@ function inheritGroupAttrs(states, groups, groupObjs) {
         const ga = gobj.block.slice(r[0], r[1]);
         if (attrType(ga) !== "output" || attrValue(ga) === "") continue;
         const sa = attrBlock(sobj.block, name);
-        if (sa && attrValue(sa) === "") {
+        if (sa && !hasLocalStateAssignment(sa)) {
           setAttrValue(sa, attrValue(ga));
           setValueStatus(sa, "LOCAL");
           setAttrBlock(sobj.block, name, sa);
@@ -362,6 +362,15 @@ function inheritGroupAttrs(states, groups, groupObjs) {
       }
     }
   }
+}
+
+function hasLocalStateAssignment(attr) {
+  const value = attrValue(attr);
+  if (value === "") return false;
+  const status = valueStatus(attr);
+  if (status === "LOCAL") return true;
+  if (status.startsWith("GLOBAL_")) return false;
+  return true;
 }
 
 function outputDefaults(pre) {

@@ -50,6 +50,13 @@ higher-priority transition equations from the same source. This prevents an
 action on a low-priority always-true transition from firing when a higher route
 was actually selected.
 
+State-group output/internal assignments are also flattened into child states
+before HDL generation. A child state receives the parent group assignment unless
+that child has a locally edited value for the same signal. Inherited global
+defaults on the child do not block the parent group value. The Fizzim
+1.0-compatible generated diagram uses the same rule so equivalence tests compare
+the intended semantics.
+
 Fork placement relative to a state group is visual only for generation. A fork
 drawn inside a state-group box is not listed as a state-group child in the
 saved diagram, because forks are not states and do not inherit state-group

@@ -29,9 +29,10 @@ Fizzim resolves the generated HDL in this priority order:
 3. State group assignments, lowest priority shared defaults.
 
 State groups intentionally provide inherited defaults only. If a child state
-sets the same variable, the child state's value wins. If a transition action
-sets that variable on the route into the state, the transition action wins for
-that clock.
+locally sets the same variable, the child state's value wins. Values merely
+inherited from the global output/internal defaults do not block the parent
+state-group value. If a transition action sets that variable on the route into
+the state, the transition action wins for that clock.
 
 ## Quick Start
 
