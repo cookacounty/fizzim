@@ -3,6 +3,7 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.text.NumberFormat;
@@ -13,15 +14,21 @@ import java.util.LinkedList;
 import java.util.Vector;
 import javax.swing.border.LineBorder;
 
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
 import javax.swing.DefaultCellEditor;
 import javax.swing.JButton;
 import javax.swing.JColorChooser;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
+import javax.swing.InputMap;
+import javax.swing.KeyStroke;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
 import javax.swing.border.Border;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -33,6 +40,7 @@ import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 import javax.swing.AbstractCellEditor;
 import javax.swing.BorderFactory;
+import javax.swing.text.JTextComponent;
 
 //Written by: Michael Zimmer - mike@zimmerdesignservices.com
 
@@ -893,6 +901,105 @@ class DialogLayoutUtil {
 	static void makeTableResizeUseful(JTable table) {
 		table.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
 		table.setFillsViewportHeight(true);
+		PropertyTableNavigation.install(table);
+	}
+}
+
+class PropertyTableNavigation {
+	static void install(final JTable table) {
+		table.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
+		InputMap inputMap = table.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
+		ActionMap actionMap = table.getActionMap();
+		bind(inputMap, actionMap, KeyEvent.VK_UP, 0, "editNavigateUp", -1, 0);
+		bind(inputMap, actionMap, KeyEvent.VK_DOWN, 0, "editNavigateDown", 1, 0);
+		bind(inputMap, actionMap, KeyEvent.VK_LEFT, 0, "editNavigateLeft", 0, -1);
+		bind(inputMap, actionMap, KeyEvent.VK_RIGHT, 0, "editNavigateRight", 0, 1);
+		bind(inputMap, actionMap, KeyEvent.VK_ENTER, 0, "editNavigateEnter", 1, 0);
+		bind(inputMap, actionMap, KeyEvent.VK_TAB, 0, "editNavigateTab", 0, 1);
+		bind(inputMap, actionMap, KeyEvent.VK_TAB, KeyEvent.SHIFT_DOWN_MASK, "editNavigateShiftTab", 0, -1);
+	}
+
+	private static void bind(InputMap inputMap, ActionMap actionMap, int key, int modifiers, String name, final int rowDelta, final int colDelta) {
+		inputMap.put(KeyStroke.getKeyStroke(key, modifiers), name);
+		actionMap.put(name, new AbstractAction() {
+			public void actionPerformed(ActionEvent evt) {
+				Object source = evt.getSource();
+				if(source instanceof JTable)
+					commitMoveAndEdit((JTable)source, rowDelta, colDelta);
+			}
+		});
+	}
+
+	private static void commitMoveAndEdit(JTable table, int rowDelta, int colDelta) {
+		boolean wasEditing = table.isEditing();
+		int row = table.getEditingRow();
+		int col = table.getEditingColumn();
+		if(row < 0 || col < 0)
+		{
+			row = table.getSelectedRow();
+			col = table.getSelectedColumn();
+		}
+		if(row < 0 || col < 0)
+			return;
+		if(table.isEditing() && !table.getCellEditor().stopCellEditing())
+			return;
+		if(!wasEditing)
+		{
+			moveSelection(table, row, col, rowDelta, colDelta);
+			return;
+		}
+		int[] target = nextEditableTextCell(table, row, col, rowDelta, colDelta);
+		if(target == null)
+			return;
+		table.changeSelection(target[0], target[1], false, false);
+		startEditingAndSelectText(table, target[0], target[1]);
+	}
+
+	private static void moveSelection(JTable table, int row, int col, int rowDelta, int colDelta) {
+		int nextRow = Math.max(0, Math.min(table.getRowCount() - 1, row + rowDelta));
+		int nextCol = Math.max(0, Math.min(table.getColumnCount() - 1, col + colDelta));
+		table.changeSelection(nextRow, nextCol, false, false);
+	}
+
+	private static int[] nextEditableTextCell(JTable table, int row, int col, int rowDelta, int colDelta) {
+		int nextRow = row + rowDelta;
+		int nextCol = col + colDelta;
+		while(nextRow >= 0 && nextRow < table.getRowCount() && nextCol >= 0 && nextCol < table.getColumnCount())
+		{
+			if(isEditableTextCell(table, nextRow, nextCol))
+				return new int[] {nextRow, nextCol};
+			nextRow += rowDelta;
+			nextCol += colDelta;
+			if(rowDelta == 0 && colDelta == 0)
+				break;
+		}
+		return null;
+	}
+
+	private static boolean isEditableTextCell(JTable table, int row, int col) {
+		if(!table.isCellEditable(row, col))
+			return false;
+		int modelCol = table.convertColumnIndexToModel(col);
+		if(modelCol == 2 || modelCol == 3 || modelCol == 5)
+			return false;
+		return table.getModel().getColumnClass(modelCol) == String.class || table.getValueAt(row, col) instanceof String;
+	}
+
+	private static void startEditingAndSelectText(final JTable table, final int row, final int col) {
+		SwingUtilities.invokeLater(new Runnable() {
+			public void run() {
+				if(table.editCellAt(row, col))
+				{
+					Component editor = table.getEditorComponent();
+					if(editor != null)
+					{
+						editor.requestFocusInWindow();
+						if(editor instanceof JTextComponent)
+							((JTextComponent)editor).selectAll();
+					}
+				}
+			}
+		});
 	}
 }
 

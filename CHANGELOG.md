@@ -102,6 +102,9 @@ part of the current codebase.
   section box; double-clicking opens the FSM Interface tab for that selected
   section. The summary also uses the same blue hover highlight as other canvas
   objects.
+- Property tables now support faster keyboard editing: while editing a text
+  cell, arrow keys, Enter, and Tab commit the current value, move to the next
+  editable text cell, start editing, and select the text.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in
