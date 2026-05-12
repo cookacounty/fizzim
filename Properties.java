@@ -3,6 +3,7 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -917,6 +918,19 @@ class PropertyTableNavigation {
 		bind(inputMap, actionMap, KeyEvent.VK_ENTER, 0, "editNavigateEnter", 1, 0);
 		bind(inputMap, actionMap, KeyEvent.VK_TAB, 0, "editNavigateTab", 0, 1);
 		bind(inputMap, actionMap, KeyEvent.VK_TAB, KeyEvent.SHIFT_DOWN_MASK, "editNavigateShiftTab", 0, -1);
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "editCancelOrClear");
+		actionMap.put("editCancelOrClear", new AbstractAction() {
+			public void actionPerformed(ActionEvent evt) {
+				Object source = evt.getSource();
+				if(source instanceof JTable)
+					cancelEditOrSelection((JTable)source);
+			}
+		});
+		table.addKeyListener(new KeyAdapter() {
+			public void keyTyped(KeyEvent evt) {
+				startReplacingSelection(table, evt);
+			}
+		});
 	}
 
 	private static void bind(InputMap inputMap, ActionMap actionMap, int key, int modifiers, String name, final int rowDelta, final int colDelta) {
@@ -943,22 +957,16 @@ class PropertyTableNavigation {
 			return;
 		if(table.isEditing() && !table.getCellEditor().stopCellEditing())
 			return;
-		if(!wasEditing)
-		{
-			moveSelection(table, row, col, rowDelta, colDelta);
-			return;
-		}
-		int[] target = nextEditableTextCell(table, row, col, rowDelta, colDelta);
+		int[] target = wasEditing ? nextEditableTextCell(table, row, col, rowDelta, colDelta) : nextVisibleCell(table, row, col, rowDelta, colDelta);
 		if(target == null)
 			return;
 		table.changeSelection(target[0], target[1], false, false);
-		startEditingAndSelectText(table, target[0], target[1]);
 	}
 
-	private static void moveSelection(JTable table, int row, int col, int rowDelta, int colDelta) {
+	private static int[] nextVisibleCell(JTable table, int row, int col, int rowDelta, int colDelta) {
 		int nextRow = Math.max(0, Math.min(table.getRowCount() - 1, row + rowDelta));
 		int nextCol = Math.max(0, Math.min(table.getColumnCount() - 1, col + colDelta));
-		table.changeSelection(nextRow, nextCol, false, false);
+		return new int[] {nextRow, nextCol};
 	}
 
 	private static int[] nextEditableTextCell(JTable table, int row, int col, int rowDelta, int colDelta) {
@@ -985,7 +993,32 @@ class PropertyTableNavigation {
 		return table.getModel().getColumnClass(modelCol) == String.class || table.getValueAt(row, col) instanceof String;
 	}
 
-	private static void startEditingAndSelectText(final JTable table, final int row, final int col) {
+	private static void cancelEditOrSelection(JTable table) {
+		if(table.isEditing())
+		{
+			table.getCellEditor().cancelCellEditing();
+			return;
+		}
+		table.clearSelection();
+	}
+
+	private static void startReplacingSelection(final JTable table, KeyEvent evt) {
+		if(table.isEditing())
+			return;
+		if(evt.isAltDown() || evt.isControlDown() || evt.isMetaDown())
+			return;
+		char ch = evt.getKeyChar();
+		if(ch == KeyEvent.CHAR_UNDEFINED || Character.isISOControl(ch))
+			return;
+		int row = table.getSelectedRow();
+		int col = table.getSelectedColumn();
+		if(row < 0 || col < 0 || !isEditableTextCell(table, row, col))
+			return;
+		evt.consume();
+		startEditingWithText(table, row, col, String.valueOf(ch));
+	}
+
+	private static void startEditingWithText(final JTable table, final int row, final int col, final String text) {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				if(table.editCellAt(row, col))
@@ -995,7 +1028,11 @@ class PropertyTableNavigation {
 					{
 						editor.requestFocusInWindow();
 						if(editor instanceof JTextComponent)
-							((JTextComponent)editor).selectAll();
+						{
+							JTextComponent textEditor = (JTextComponent)editor;
+							textEditor.setText(text);
+							textEditor.setCaretPosition(textEditor.getText().length());
+						}
 					}
 				}
 			}
