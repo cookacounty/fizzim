@@ -1,0 +1,435 @@
+[
+  {
+    "project": "wicker-systemverilog-fsm",
+    "module": "landing_gear_fsm",
+    "source": "source/landing-gear-controller/verilog/LandingGear.v",
+    "license": "BSD-3-Clause",
+    "states": [
+      "TAXI",
+      "TUP",
+      "TDN",
+      "GOUP",
+      "GODN",
+      "FLYUP",
+      "FLYDN"
+    ],
+    "transitions": [
+      {
+        "name": "taxi_takeoff_up",
+        "from": "TAXI",
+        "to": "TUP",
+        "equation": "(PlaneOnGround == NO) && (Lever == UP)",
+        "priority": 1
+      },
+      {
+        "name": "taxi_takeoff_down",
+        "from": "TAXI",
+        "to": "TDN",
+        "equation": "(PlaneOnGround == NO) && (Lever == DOWN)",
+        "priority": 2
+      },
+      {
+        "name": "tup_ground",
+        "from": "TUP",
+        "to": "TAXI",
+        "equation": "PlaneOnGround",
+        "priority": 1
+      },
+      {
+        "name": "tup_gear_leaves_down",
+        "from": "TUP",
+        "to": "GOUP",
+        "equation": "GearIsDown == NO",
+        "priority": 2
+      },
+      {
+        "name": "tup_timeout",
+        "from": "TUP",
+        "to": "FLYDN",
+        "equation": "TimeUp == YES",
+        "priority": 3
+      },
+      {
+        "name": "tup_lever_down",
+        "from": "TUP",
+        "to": "TDN",
+        "equation": "(TimeUp == NO) && (Lever == DOWN)",
+        "priority": 4
+      },
+      {
+        "name": "tdn_ground",
+        "from": "TDN",
+        "to": "TAXI",
+        "equation": "PlaneOnGround",
+        "priority": 1
+      },
+      {
+        "name": "tdn_gear_leaves_down",
+        "from": "TDN",
+        "to": "GOUP",
+        "equation": "GearIsDown == NO",
+        "priority": 2
+      },
+      {
+        "name": "tdn_timeout",
+        "from": "TDN",
+        "to": "FLYDN",
+        "equation": "TimeUp == YES",
+        "priority": 3
+      },
+      {
+        "name": "tdn_lever_up",
+        "from": "TDN",
+        "to": "TUP",
+        "equation": "(TimeUp == NO) && (Lever == UP)",
+        "priority": 4
+      },
+      {
+        "name": "goup_done",
+        "from": "GOUP",
+        "to": "FLYUP",
+        "equation": "GearIsUp == YES",
+        "priority": 1
+      },
+      {
+        "name": "godn_ground_done",
+        "from": "GODN",
+        "to": "TAXI",
+        "equation": "(PlaneOnGround == YES) && (GearIsDown == YES)",
+        "priority": 1
+      },
+      {
+        "name": "godn_done",
+        "from": "GODN",
+        "to": "FLYDN",
+        "equation": "GearIsDown == YES",
+        "priority": 2
+      },
+      {
+        "name": "flyup_lever_down",
+        "from": "FLYUP",
+        "to": "GODN",
+        "equation": "Lever == DOWN",
+        "priority": 1
+      },
+      {
+        "name": "flydn_ground",
+        "from": "FLYDN",
+        "to": "TAXI",
+        "equation": "PlaneOnGround == YES",
+        "priority": 1
+      },
+      {
+        "name": "flydn_lever_up",
+        "from": "FLYDN",
+        "to": "GOUP",
+        "equation": "Lever == UP",
+        "priority": 2
+      }
+    ]
+  },
+  {
+    "project": "wicker-systemverilog-fsm",
+    "module": "ticket_machine_fsm",
+    "source": "source/ticket-machine/verilog/TicketMachine.v",
+    "license": "BSD-3-Clause",
+    "states": [
+      "RDY",
+      "BILL10",
+      "BILL20",
+      "BILL30",
+      "DISP",
+      "RTN"
+    ],
+    "transitions": [
+      {
+        "name": "ready_ten",
+        "from": "RDY",
+        "to": "BILL10",
+        "equation": "Ten",
+        "priority": 1
+      },
+      {
+        "name": "ready_twenty",
+        "from": "RDY",
+        "to": "BILL20",
+        "equation": "Twenty",
+        "priority": 2
+      },
+      {
+        "name": "bill10_ten",
+        "from": "BILL10",
+        "to": "BILL20",
+        "equation": "Ten",
+        "priority": 1
+      },
+      {
+        "name": "bill10_twenty",
+        "from": "BILL10",
+        "to": "BILL30",
+        "equation": "Twenty",
+        "priority": 2
+      },
+      {
+        "name": "bill20_ten",
+        "from": "BILL20",
+        "to": "BILL30",
+        "equation": "Ten",
+        "priority": 1
+      },
+      {
+        "name": "bill20_twenty",
+        "from": "BILL20",
+        "to": "DISP",
+        "equation": "Twenty",
+        "priority": 2
+      },
+      {
+        "name": "bill30_ten",
+        "from": "BILL30",
+        "to": "DISP",
+        "equation": "Ten",
+        "priority": 1
+      },
+      {
+        "name": "bill30_twenty",
+        "from": "BILL30",
+        "to": "RTN",
+        "equation": "Twenty",
+        "priority": 2
+      },
+      {
+        "name": "disp_reset",
+        "from": "DISP",
+        "to": "RDY",
+        "equation": "1",
+        "priority": 1
+      },
+      {
+        "name": "return_reset",
+        "from": "RTN",
+        "to": "RDY",
+        "equation": "1",
+        "priority": 1
+      }
+    ]
+  },
+  {
+    "project": "amclain-verilog-uart",
+    "module": "amclain_uart_tx_fsm",
+    "source": "source/verilog/uart_tx.v",
+    "license": "MIT",
+    "states": [
+      "STATE_POST_RESET",
+      "STATE_IDLE",
+      "STATE_SEND_PACKET"
+    ],
+    "transitions": [
+      {
+        "name": "post_reset_done",
+        "from": "STATE_POST_RESET",
+        "to": "STATE_IDLE",
+        "equation": "bit_timer_done && packet_count_done",
+        "priority": 1
+      },
+      {
+        "name": "idle_write",
+        "from": "STATE_IDLE",
+        "to": "STATE_SEND_PACKET",
+        "equation": "write_i && !write_has_triggered",
+        "priority": 1
+      },
+      {
+        "name": "send_done",
+        "from": "STATE_SEND_PACKET",
+        "to": "STATE_IDLE",
+        "equation": "packet_count_done",
+        "priority": 1
+      }
+    ]
+  },
+  {
+    "project": "amclain-verilog-uart",
+    "module": "amclain_uart_rx_fsm",
+    "source": "source/verilog/uart_rx.v",
+    "license": "MIT",
+    "states": [
+      "STATE_IDLE",
+      "STATE_RECEIVE_PACKET",
+      "STATE_VALIDATE_PACKET"
+    ],
+    "transitions": [
+      {
+        "name": "idle_start",
+        "from": "STATE_IDLE",
+        "to": "STATE_RECEIVE_PACKET",
+        "equation": "!serial_i && clock_divider_valid",
+        "priority": 1
+      },
+      {
+        "name": "rx_bad_start",
+        "from": "STATE_RECEIVE_PACKET",
+        "to": "STATE_IDLE",
+        "equation": "sample_now && start_bit_invalid",
+        "priority": 1
+      },
+      {
+        "name": "rx_packet_done",
+        "from": "STATE_RECEIVE_PACKET",
+        "to": "STATE_VALIDATE_PACKET",
+        "equation": "sample_now && packet_done",
+        "priority": 2
+      },
+      {
+        "name": "validate_done",
+        "from": "STATE_VALIDATE_PACKET",
+        "to": "STATE_IDLE",
+        "equation": "1",
+        "priority": 1
+      }
+    ]
+  },
+  {
+    "project": "timrudy-uart-verilog",
+    "module": "timrudy_uart8_tx_fsm",
+    "source": "source/Uart8Transmitter.v",
+    "license": "GPL-3.0",
+    "states": [
+      "RESET",
+      "IDLE",
+      "START_BIT",
+      "DATA_BITS",
+      "STOP_BIT"
+    ],
+    "transitions": [
+      {
+        "name": "reset_enabled",
+        "from": "RESET",
+        "to": "IDLE",
+        "equation": "en",
+        "priority": 1
+      },
+      {
+        "name": "idle_start",
+        "from": "IDLE",
+        "to": "START_BIT",
+        "equation": "start",
+        "priority": 1
+      },
+      {
+        "name": "start_to_data",
+        "from": "START_BIT",
+        "to": "DATA_BITS",
+        "equation": "1",
+        "priority": 1
+      },
+      {
+        "name": "data_done",
+        "from": "DATA_BITS",
+        "to": "STOP_BIT",
+        "equation": "bit_index_done",
+        "priority": 1
+      },
+      {
+        "name": "stop_no_start",
+        "from": "STOP_BIT",
+        "to": "RESET",
+        "equation": "!start",
+        "priority": 1
+      },
+      {
+        "name": "stop_turbo",
+        "from": "STOP_BIT",
+        "to": "START_BIT",
+        "equation": "start && !done && turbo_frames",
+        "priority": 2
+      },
+      {
+        "name": "stop_extra_done",
+        "from": "STOP_BIT",
+        "to": "START_BIT",
+        "equation": "start && done",
+        "priority": 3
+      }
+    ]
+  },
+  {
+    "project": "timrudy-uart-verilog",
+    "module": "timrudy_uart8_rx_fsm",
+    "source": "source/Uart8Receiver.v",
+    "license": "GPL-3.0",
+    "states": [
+      "RESET",
+      "IDLE",
+      "START_BIT",
+      "DATA_BITS",
+      "STOP_BIT",
+      "READY"
+    ],
+    "transitions": [
+      {
+        "name": "reset_enabled",
+        "from": "RESET",
+        "to": "IDLE",
+        "equation": "en",
+        "priority": 1
+      },
+      {
+        "name": "idle_start_ok",
+        "from": "IDLE",
+        "to": "START_BIT",
+        "equation": "!in_sample && start_low_accepted",
+        "priority": 1
+      },
+      {
+        "name": "start_done",
+        "from": "START_BIT",
+        "to": "DATA_BITS",
+        "equation": "sample_done",
+        "priority": 1
+      },
+      {
+        "name": "data_done",
+        "from": "DATA_BITS",
+        "to": "STOP_BIT",
+        "equation": "sample_done",
+        "priority": 1
+      },
+      {
+        "name": "stop_valid_ready",
+        "from": "STOP_BIT",
+        "to": "READY",
+        "equation": "stop_midpoint && stop_valid",
+        "priority": 1
+      },
+      {
+        "name": "stop_next_start",
+        "from": "STOP_BIT",
+        "to": "IDLE",
+        "equation": "stop_midpoint && !in_sample",
+        "priority": 2
+      },
+      {
+        "name": "stop_error_idle",
+        "from": "STOP_BIT",
+        "to": "IDLE",
+        "equation": "stop_midpoint && !stop_valid",
+        "priority": 3
+      },
+      {
+        "name": "ready_idle",
+        "from": "READY",
+        "to": "IDLE",
+        "equation": "ready_done",
+        "priority": 1
+      },
+      {
+        "name": "ready_reset",
+        "from": "READY",
+        "to": "RESET",
+        "equation": "ready_reset",
+        "priority": 2
+      }
+    ]
+  }
+]

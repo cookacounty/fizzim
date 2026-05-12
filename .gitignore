@@ -4,6 +4,11 @@
 # Generated public testcase outputs
 testcases/generated/
 
+# Locally downloaded public reference repositories used by tb fixtures
+testcases/tb/*/source/
+testcases/tb/*/generated/*.vvp
+testcases/tb/*/generated/*.ys
+
 # Local environment helpers
 setup_java.ps1
 
