@@ -129,6 +129,12 @@ part of the current codebase.
 - The instantiation helper now notes when internal-only outputs are omitted
   from the module port list, and the canvas summary separates `OUTPUTS` from
   `INTERNALS` so suppressed internal variables are less confusing.
+- Audited all main GUI menu items after the Fizzim 2.0 UI changes and added
+  `docs/MENU_AUDIT.md`.
+- Fixed `Save As` and export file chooser starting directories so they use the
+  current diagram directory when available.
+- Fixed clipboard export cropping at the canvas edge and made `Clean Selected
+  Routes` a no-op when no transition route is selected.
 - Added reset reachability linting for real states, including paths through
   state-group exits, group default entries, and forks.
 - Added state coverage linting for states with no outgoing transition when

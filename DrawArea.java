@@ -3999,7 +3999,6 @@ public void updateTransitions()
 		}
 		if(routeIndices.size() == 0)
 		{
-			cleanTransitionRoutes();
 			return;
 		}
 
