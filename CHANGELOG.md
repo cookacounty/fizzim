@@ -120,7 +120,8 @@ part of the current codebase.
   deterministic testing and skips the last-opened restore path without updating
   the last-opened preference.
 - Fixed a property table keyboard-edit race where the first typed character
-  could be selected by Swing editor startup and replaced by the next character.
+  could be selected by Swing editor startup and replaced by the next character;
+  typed-key replacement is now intercepted before JTable's own edit startup.
 - Transition property tables and the side property inspector now add visual
   dividers between identity/condition, priority, and transition action rows.
 - The main window now remembers its last size, position, and maximized state in

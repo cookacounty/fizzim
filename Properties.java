@@ -1,9 +1,10 @@
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.KeyboardFocusManager;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyAdapter;
+import java.awt.KeyEventDispatcher;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
@@ -12,7 +13,9 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Vector;
+import java.util.WeakHashMap;
 import javax.swing.border.LineBorder;
 
 import javax.swing.AbstractAction;
@@ -1009,8 +1012,14 @@ class ReplacingTextCellEditor extends DefaultCellEditor {
 }
 
 class PropertyTableNavigation {
+	private static final Map<JTable, Boolean> installedTables = new WeakHashMap<JTable, Boolean>();
+	private static boolean dispatcherInstalled = false;
+
 	static void install(final JTable table) {
 		table.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
+		table.putClientProperty("fizzim.propertyTable", Boolean.TRUE);
+		installedTables.put(table, Boolean.TRUE);
+		installKeyboardDispatcher();
 		InputMap inputMap = table.getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
 		ActionMap actionMap = table.getActionMap();
 		bind(inputMap, actionMap, KeyEvent.VK_UP, 0, "editNavigateUp", -1, 0, false);
@@ -1028,11 +1037,32 @@ class PropertyTableNavigation {
 					cancelEditOrSelection((JTable)source);
 			}
 		});
-		table.addKeyListener(new KeyAdapter() {
-			public void keyTyped(KeyEvent evt) {
-				startReplacingSelection(table, evt);
+	}
+
+	private static void installKeyboardDispatcher() {
+		if(dispatcherInstalled)
+			return;
+		dispatcherInstalled = true;
+		KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new KeyEventDispatcher() {
+			public boolean dispatchKeyEvent(KeyEvent evt) {
+				if(evt.getID() != KeyEvent.KEY_TYPED)
+					return false;
+				Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+				JTable table = tableForFocusOwner(focusOwner);
+				if(table == null || !Boolean.TRUE.equals(table.getClientProperty("fizzim.propertyTable")))
+					return false;
+				return startReplacingSelection(table, evt);
 			}
 		});
+	}
+
+	private static JTable tableForFocusOwner(Component focusOwner) {
+		if(focusOwner instanceof JTable)
+			return (JTable)focusOwner;
+		Component table = SwingUtilities.getAncestorOfClass(JTable.class, focusOwner);
+		if(table instanceof JTable)
+			return (JTable)table;
+		return null;
 	}
 
 	private static void bind(InputMap inputMap, ActionMap actionMap, int key, int modifiers, String name, final int rowDelta, final int colDelta, final boolean defaultOnIdle) {
@@ -1124,20 +1154,21 @@ class PropertyTableNavigation {
 			((JButton)cancel).doClick();
 	}
 
-	private static void startReplacingSelection(final JTable table, KeyEvent evt) {
+	private static boolean startReplacingSelection(final JTable table, KeyEvent evt) {
 		if(table.isEditing())
-			return;
+			return false;
 		if(evt.isAltDown() || evt.isControlDown() || evt.isMetaDown())
-			return;
+			return false;
 		char ch = evt.getKeyChar();
 		if(ch == KeyEvent.CHAR_UNDEFINED || Character.isISOControl(ch))
-			return;
+			return false;
 		int row = table.getSelectedRow();
 		int col = table.getSelectedColumn();
 		if(row < 0 || col < 0 || !isEditableTextCell(table, row, col))
-			return;
+			return false;
 		evt.consume();
 		startEditingWithText(table, row, col, String.valueOf(ch));
+		return true;
 	}
 
 	private static void startEditingWithText(final JTable table, final int row, final int col, final String text) {
