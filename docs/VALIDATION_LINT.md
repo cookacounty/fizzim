@@ -78,9 +78,12 @@ the modeling contract:
 3. State group assignments are shared defaults for child states.
 
 This means a state group can safely define a common output value, while an
-individual child state can override only the exceptions. A transition action on
-the route into that child state still wins for the clock where the transition is
-taken.
+individual child state can override only the exceptions. Fizzim uses the
+diagram value status for this distinction: a locally edited child-state value
+overrides the parent group, while a value inherited from the global
+output/internal default is replaced by the parent group value. A transition
+action on the route into that child state still wins for the clock where the
+transition is taken.
 
 These checks line up with common RTL lint themes from Verilator and Verible:
 incomplete decision coverage, unreachable branches, accidental priority logic,
