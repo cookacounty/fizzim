@@ -1244,7 +1244,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 
 	private int findSelectableIndexAt(int x, int y)
 	{
-		int[] typeOrder = {4, 0, 5, 3};
+		int[] typeOrder = {4, 0, 5, 1, 2};
 		for(int t = 0; t < typeOrder.length; t++)
 		{
 			for(int i = objList.size() - 1; i >= 1; i--)
@@ -1253,6 +1253,20 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				if(obj.getType() == typeOrder[t] && isSelectableDiagramObject(obj) && hitTestObject(obj, x, y))
 					return i;
 			}
+		}
+		for(int i = objList.size() - 1; i >= 1; i--)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 3 && !((TextObj)obj).getGlobalTable()
+					&& isSelectableDiagramObject(obj) && hitTestObject(obj, x, y))
+				return i;
+		}
+		for(int i = objList.size() - 1; i >= 1; i--)
+		{
+			GeneralObj obj = (GeneralObj)objList.get(i);
+			if(obj.getType() == 3 && ((TextObj)obj).getGlobalTable()
+					&& isSelectableDiagramObject(obj) && hitTestObject(obj, x, y))
+				return i;
 		}
 		return -1;
 	}
@@ -1360,9 +1374,10 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		addEndpointHits(hits, x, y, 4);
 		addEndpointHits(hits, x, y, 0);
 		addEndpointHits(hits, x, y, 5);
-		addObjectHits(hits, x, y, 3);
 		addObjectHits(hits, x, y, 1);
 		addObjectHits(hits, x, y, 2);
+		addFreeTextHits(hits, x, y);
+		addGlobalSummaryHits(hits, x, y);
 		return hits;
 	}
 
@@ -1393,6 +1408,26 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		{
 			GeneralObj obj = (GeneralObj)objList.elementAt(i);
 			if(obj.getType() == type && hitTestObject(obj, x, y))
+				addHitCandidate(hits, i, obj);
+		}
+	}
+
+	private void addFreeTextHits(LinkedList<HitCandidate> hits, int x, int y)
+	{
+		for(int i = objList.size() - 1; i >= 1; i--)
+		{
+			GeneralObj obj = (GeneralObj)objList.elementAt(i);
+			if(obj.getType() == 3 && !((TextObj)obj).getGlobalTable() && hitTestObject(obj, x, y))
+				addHitCandidate(hits, i, obj);
+		}
+	}
+
+	private void addGlobalSummaryHits(LinkedList<HitCandidate> hits, int x, int y)
+	{
+		for(int i = objList.size() - 1; i >= 1; i--)
+		{
+			GeneralObj obj = (GeneralObj)objList.elementAt(i);
+			if(obj.getType() == 3 && ((TextObj)obj).getGlobalTable() && hitTestObject(obj, x, y))
 				addHitCandidate(hits, i, obj);
 		}
 	}
