@@ -19,6 +19,16 @@ part of the current codebase.
   `.fzm` files now write `<version>` as the current GitHub release plus build
   number, and generated-HDL status records the release/build that produced the
   HDL so diagrams go stale after a Fizzim upgrade.
+- Added a headless project build command:
+  `java -jar fizzim.jar --build-project <project.fzp>`. It follows the GUI
+  Build All behavior, generates every referenced diagram, respects per-diagram
+  HDL output paths, and records generated-HDL status metadata on success.
+- Removed the wall-clock timestamp from the optional Perl backend version
+  banner so regenerated Verilog does not differ solely because of build time.
+- Added deterministic generated-HDL provenance headers for GUI/CLI generation:
+  Fizzim 2.0, the exact app version/build, and the source diagram name.
+  Optional source SHA-256 checksums are available in HDL generation settings
+  and default off to avoid layout-only diagram edits creating Verilog diffs.
 
 ### FSM Modeling
 

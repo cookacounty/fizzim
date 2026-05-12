@@ -131,6 +131,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private static final String PREF_HDL_USE_MODULE_FILENAME = "hdlUseModuleFilename";
 	private static final String PREF_HDL_OUTPUT_FILENAME = "hdlOutputFilename";
 	private static final String PREF_HDL_EXTRA_ARGS = "hdlExtraArgs";
+	private static final String PREF_HDL_SOURCE_CHECKSUM = "hdlSourceChecksum";
 	private static final String PREF_HDL_COMPARE_ENABLED = "hdlCompareEnabled";
 	private static final String PREF_HDL_COMPARE_COMMAND = "hdlCompareCommand";
 	private static final String PREF_HDL_COMPARE_BACKEND = "hdlCompareBackendPath";
@@ -1615,6 +1616,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		JCheckBox useModuleName = new JCheckBox("Use module name for filename", getHdlUseModuleFilename());
 		JTextField outputFileField = new JTextField(getHdlOutputFilename(), 24);
 		JTextField extraArgsField = new JTextField(getHdlExtraArgs(), 24);
+		JCheckBox sourceChecksum = new JCheckBox("Include source checksum in generated HDL header", getHdlSourceChecksum());
 		JCheckBox compareEnabled = new JCheckBox("Generate comparison HDL and diff", getHdlCompareEnabled());
 		JTextField compareCommandField = new JTextField(getHdlCompareCommand(), 24);
 		JTextField compareBackendField = new JTextField(getHdlCompareBackendPath(), 24);
@@ -1652,6 +1654,8 @@ public class FizzimGui extends javax.swing.JFrame {
 		panel.add(new JLabel("Backend options:"));
 		panel.add(extraArgsField);
 		panel.add(new JLabel(""));
+		panel.add(sourceChecksum);
+		panel.add(new JLabel(""));
 		panel.add(compareEnabled);
 		panel.add(new JLabel("Compare command:"));
 		panel.add(compareCommandField);
@@ -1675,6 +1679,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		USER_PREFS.putBoolean(PREF_HDL_USE_MODULE_FILENAME, useModuleFilename);
 		USER_PREFS.put(PREF_HDL_OUTPUT_FILENAME, outputFilenameSetting);
 		USER_PREFS.put(PREF_HDL_EXTRA_ARGS, extraArgsField.getText().trim());
+		USER_PREFS.putBoolean(PREF_HDL_SOURCE_CHECKSUM, sourceChecksum.isSelected());
 		USER_PREFS.putBoolean(PREF_HDL_COMPARE_ENABLED, compareEnabled.isSelected());
 		USER_PREFS.put(PREF_HDL_COMPARE_COMMAND, blankDefault(compareCommandField.getText(), "java"));
 		USER_PREFS.put(PREF_HDL_COMPARE_BACKEND, blankDefault(compareBackendField.getText(), "FizzimJavaBackend"));
@@ -1927,6 +1932,7 @@ public class FizzimGui extends javax.swing.JFrame {
 			command.add("-cp");
 			command.add(applicationClassPath());
 			command.add(backendPath.trim());
+			addHdlProvenanceArgs(command, fzmFile);
 			command.addAll(splitCommandArgs(backendArgs));
 			command.add(fzmFile.getName());
 		}
@@ -1937,6 +1943,7 @@ public class FizzimGui extends javax.swing.JFrame {
 				throw new IOException("Backend script not found: " + backend.getAbsolutePath());
 			command.add(commandName);
 			command.add(backend.getAbsolutePath());
+			addHdlProvenanceArgs(command, fzmFile);
 			command.addAll(splitCommandArgs(backendArgs));
 			command.add(fzmFile.getName());
 		}
@@ -2173,6 +2180,18 @@ public class FizzimGui extends javax.swing.JFrame {
 		return value.trim();
 	}
 
+	private void addHdlProvenanceArgs(ArrayList<String> command, File fzmFile) {
+		command.add("-fizzimversion");
+		command.add(FizzimVersion.FILE_VERSION);
+		if(fzmFile != null)
+		{
+			command.add("-sourcefile");
+			command.add(fzmFile.getName());
+		}
+		if(getHdlSourceChecksum())
+			command.add("-sourcechecksum");
+	}
+
 	private static String getHdlPerlCommand() {
 		return USER_PREFS.get(PREF_HDL_PERL, "perl");
 	}
@@ -2194,7 +2213,14 @@ public class FizzimGui extends javax.swing.JFrame {
 	}
 
 	private static String getHdlExtraArgs() {
-		return USER_PREFS.get(PREF_HDL_EXTRA_ARGS, "-noaddversion");
+		String args = USER_PREFS.get(PREF_HDL_EXTRA_ARGS, "");
+		if(args != null && args.trim().equals("-noaddversion"))
+			return "";
+		return args == null ? "" : args;
+	}
+
+	private static boolean getHdlSourceChecksum() {
+		return USER_PREFS.getBoolean(PREF_HDL_SOURCE_CHECKSUM, false);
 	}
 
 	private static boolean getHdlCompareEnabled() {
@@ -4609,6 +4635,11 @@ public class FizzimGui extends javax.swing.JFrame {
 	static boolean clbatch_rewrite = false; // command-line -batch_rewrite switch
 
 	public static void main(String args[]) {
+		if(FizzimProjectBuilder.isBuildCommand(args))
+		{
+			System.exit(FizzimProjectBuilder.runCommandLine(args));
+			return;
+		}
 		// If one of the args ends with .fzm or .fzp, assume it is the file
 		// to open.
 		for (String s: args) {

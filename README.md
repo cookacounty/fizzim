@@ -177,13 +177,30 @@ java -jar fizzim.jar
 Generate HDL directly with the Perl backend:
 
 ```sh
-perl fizzim.pl -noaddversion testcases/generic_state_machine.fzm
+perl fizzim.pl -fizzimversion 2.0.2+build.11 -sourcefile generic_state_machine.fzm testcases/generic_state_machine.fzm
 ```
+
+Generated Verilog includes a deterministic provenance header with the Fizzim
+version and source diagram name. The GUI and project build command add this
+automatically. If you want a source-file SHA-256 checksum in the header, enable
+it in `Settings > HDL Generation...`; it is off by default to avoid diffs from
+diagram-only edits.
+
+Build every diagram referenced by a Fizzim project file:
+
+```sh
+java -jar fizzim.jar --build-project testcases/generic_project.fzp
+```
+
+This command uses the same configured HDL backend settings as the GUI
+`Build All` command. Per-diagram HDL output paths are resolved relative to each
+`.fzm` file and the generated-status metadata is written back into each diagram
+after a successful build.
 
 On Windows, the same command can be run from PowerShell if Perl is on `PATH`:
 
 ```powershell
-perl fizzim.pl -noaddversion testcases\generic_state_machine.fzm
+perl fizzim.pl -fizzimversion 2.0.2+build.11 -sourcefile generic_state_machine.fzm testcases\generic_state_machine.fzm
 ```
 
 Run the public backend regression tests:
