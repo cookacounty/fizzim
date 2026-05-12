@@ -995,16 +995,13 @@ class ReplacingTextCellEditor extends DefaultCellEditor {
 				return component;
 			}
 			text.selectAll();
-			SwingUtilities.invokeLater(new Runnable() {
-				public void run() {
-					text.selectAll();
-				}
-			});
 		}
 		return component;
 	}
 
 	public boolean isCellEditable(java.util.EventObject event) {
+		if(event instanceof KeyEvent)
+			return false;
 		if(event instanceof MouseEvent)
 			return ((MouseEvent)event).getClickCount() >= 2;
 		return true;
@@ -1172,19 +1169,15 @@ class PropertyTableNavigation {
 	}
 
 	private static void startEditingWithText(final JTable table, final int row, final int col, final String text) {
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				table.putClientProperty("fizzim.initialEditText", text);
-				if(table.editCellAt(row, col))
-				{
-					Component editor = table.getEditorComponent();
-					if(editor != null)
-						editor.requestFocusInWindow();
-				}
-				else
-					table.putClientProperty("fizzim.initialEditText", null);
-			}
-		});
+		table.putClientProperty("fizzim.initialEditText", text);
+		if(table.editCellAt(row, col))
+		{
+			Component editor = table.getEditorComponent();
+			if(editor != null)
+				editor.requestFocusInWindow();
+		}
+		else
+			table.putClientProperty("fizzim.initialEditText", null);
 	}
 }
 

@@ -78,6 +78,9 @@ part of the current codebase.
   before removing anything, avoiding stale-index crashes in filtered tabs such
   as Outputs, Internals, and Parameters.
 - Global property deletion now keeps the active tab fixed for the entire delete
+- Property table keyboard editing now owns the first typed character directly,
+  avoiding Swing's default key-start path so typing into a selected cell behaves
+  like replacing a selected spreadsheet cell.
   operation and falls back to name/type matching if the selected table row is
   not the same object instance as the global list row.
 - Fixed global property tab-to-list mapping for Inputs and Outputs, so Delete
