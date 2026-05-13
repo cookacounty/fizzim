@@ -873,6 +873,16 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		return isTransitionEndpoint(obj) || isSelectableTextObject(obj);
 	}
 
+	private boolean isCopyableDiagramObject(GeneralObj obj)
+	{
+		return isCopyableTransitionEndpoint(obj) || isMovableTextObject(obj);
+	}
+
+	private boolean isCopyableTransitionEndpoint(GeneralObj obj)
+	{
+		return obj.getType() == 0 || obj.getType() == 4;
+	}
+
 	private boolean isInspectableDiagramObject(GeneralObj obj)
 	{
 		return isSelectableDiagramObject(obj) || obj.getType() == 1 || obj.getType() == 2;
@@ -887,20 +897,11 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		for(int i = 0; i < selectedIndices.size(); i++)
 		{
 			GeneralObj obj = (GeneralObj)objList.get(selectedIndices.get(i).intValue());
-			if(isSelectableDiagramObject(obj))
+			if(isCopyableDiagramObject(obj))
 			{
 				selectedObjects.add(obj);
-				if(isTransitionEndpoint(obj))
+				if(isCopyableTransitionEndpoint(obj))
 					endpointObjects.add(obj);
-				if(obj.getType() == 5)
-				{
-					LinkedList<StateObj> children = getContainedTransitionEndpoints((StateGroupObj)obj);
-					for(int j = 0; j < children.size(); j++)
-					{
-						selectedObjects.add(children.get(j));
-						endpointObjects.add(children.get(j));
-					}
-				}
 			}
 		}
 
@@ -969,7 +970,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			String oldName = source.getName();
 			if(oldName != null && oldName.length() > 0)
 			{
-				String newName = uniqueCopyName(oldName, usedNames);
+				String newName = source.getType() == 4 ? nextForkPasteName(usedNames) : uniqueCopyName(oldName, usedNames);
 				renameObjectForPaste(pasted, newName);
 				nameMap.put(oldName, newName);
 				usedNames.add(newName);
@@ -1035,6 +1036,16 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			candidate = baseName + "_copy" + suffix;
 			suffix++;
 		}
+		return candidate;
+	}
+
+	private String nextForkPasteName(HashSet<String> usedNames)
+	{
+		String candidate;
+		do {
+			candidate = "fork" + createSCounter;
+			createSCounter++;
+		} while(usedNames.contains(candidate));
 		return candidate;
 	}
 

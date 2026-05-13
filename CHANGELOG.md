@@ -36,6 +36,11 @@ part of the current codebase.
   generation so the generated-HDL status metadata is persisted immediately.
 - Setting an HDL output path from the Project pane now applies the change
   without an extra confirmation popup.
+- Disabled state-group copy/paste to avoid pasted groups capturing unrelated
+  states, and deepened transition cloning so pasted transitions no longer share
+  mutable route geometry with existing transitions.
+- Pasted forks now use the next fresh fork name instead of preserving the
+  copied fork name.
 
 ### FSM Modeling
 

@@ -18,6 +18,8 @@ for forks, state groups, and transition actions.
 
 The repo keeps only short reference material here. The wiki is the source of
 truth for detailed usage, lint, backend testing, and legacy documentation.
+Developer notes for specific GUI behaviors are kept in `docs/`, including
+`docs/COPY_PASTE.md` for copy/paste rules.
 
 ## Core Modeling Semantics
 

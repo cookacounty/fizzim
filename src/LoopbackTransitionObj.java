@@ -87,6 +87,50 @@ private static final double BEND_ENDPOINT_PULL = 0.25;
 		color = c;
 	}
 
+	public Object clone() throws CloneNotSupportedException {
+		LoopbackTransitionObj copy = (LoopbackTransitionObj) super.clone();
+		copy.startPt = clonePoint(startPt);
+		copy.endPt = clonePoint(endPt);
+		copy.startCtrlPt = clonePoint(startCtrlPt);
+		copy.endCtrlPt = clonePoint(endCtrlPt);
+		copy.bendStartCtrlPt = clonePoint(bendStartCtrlPt);
+		copy.bendEndCtrlPt = clonePoint(bendEndCtrlPt);
+		copy.bendStartPt = clonePoint(bendStartPt);
+		copy.bendEndPt = clonePoint(bendEndPt);
+		copy.stateBorderPts = clonePoints(stateBorderPts);
+		if(copy.startPt != null && copy.startCtrlPt != null && copy.endCtrlPt != null && copy.endPt != null)
+			copy.loop = new CubicCurve2D.Double(copy.startPt.getX(), copy.startPt.getY(),
+					copy.startCtrlPt.getX(), copy.startCtrlPt.getY(),
+					copy.endCtrlPt.getX(), copy.endCtrlPt.getY(),
+					copy.endPt.getX(), copy.endPt.getY());
+		else
+			copy.loop = loop == null ? null : (CubicCurve2D.Double) loop.clone();
+		copy.attrib = cloneAttributes(attrib);
+		return copy;
+	}
+
+	private Point clonePoint(Point point) {
+		return point == null ? null : new Point(point);
+	}
+
+	private Vector<Point> clonePoints(Vector<Point> points) {
+		if(points == null)
+			return null;
+		Vector<Point> copy = new Vector<Point>(points.size());
+		for(int i = 0; i < points.size(); i++)
+			copy.add(clonePoint(points.get(i)));
+		return copy;
+	}
+
+	private LinkedList<ObjAttribute> cloneAttributes(LinkedList<ObjAttribute> attributes) throws CloneNotSupportedException {
+		if(attributes == null)
+			return null;
+		LinkedList<ObjAttribute> copy = (LinkedList<ObjAttribute>) attributes.clone();
+		for(int i = 0; i < attributes.size(); i++)
+			copy.set(i, (ObjAttribute) attributes.get(i).clone());
+		return copy;
+	}
+
 	public void initTrans(StateObj _state)
 	{
 		if(_state != state)
@@ -203,28 +247,6 @@ private static final double BEND_ENDPOINT_PULL = 0.25;
 		return status == StateObj.CENTER || status == StateObj.TL || status == StateObj.TR
 				|| status == StateObj.BL || status == StateObj.BR;
 	}
-	
-	@SuppressWarnings("unchecked")
-	public Object clone () 
-    throws CloneNotSupportedException
-    {
-		LoopbackTransitionObj copy = (LoopbackTransitionObj)super.clone();
-		copy.loop = (CubicCurve2D.Double)loop.clone();
-		copy.startPt = (Point) startPt.clone();
-		copy.endPt = (Point) endPt.clone();
-		copy.startCtrlPt = (Point) startCtrlPt.clone();
-		copy.endCtrlPt = (Point) endCtrlPt.clone();
-		copy.stateBorderPts = (Vector<Point>) stateBorderPts.clone();
-        if(attrib != null)
-		{
-    		copy.attrib = (LinkedList<ObjAttribute>)copy.attrib.clone();
-    		for(int i = 0; i < attrib.size(); i++)
-    		{
-    			copy.attrib.set(i,(ObjAttribute)attrib.get(i).clone());
-    		}
-		}
-		return copy;	
-    }
 	
 	private void setEndPts(int x, int y)
 	{
