@@ -1157,10 +1157,12 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		if(old.equals(startState))
 		{
 			startState = (StateObj) clone;
+			startS = clone.getName();
 		}
 		if(old.equals(endState))
 		{
 			endState = (StateObj) clone;
+			endS = clone.getName();
 		}
 		
 	}

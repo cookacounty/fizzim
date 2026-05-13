@@ -653,6 +653,7 @@ private static final double BEND_ENDPOINT_PULL = 0.25;
 		if(old.equals(state))
 		{
 			state = (StateObj) clone;
+			startS = clone.getName();
 			
 		}
 		
