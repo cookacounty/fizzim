@@ -36,6 +36,22 @@ part of the current codebase.
   generation so the generated-HDL status metadata is persisted immediately.
 - Setting an HDL output path from the Project pane now applies the change
   without an extra confirmation popup.
+- Disabled state-group copy/paste to avoid pasted groups capturing unrelated
+  states, and deepened transition cloning so pasted transitions no longer share
+  mutable route geometry with existing transitions.
+- Pasted forks now use the next fresh fork name instead of preserving the
+  copied fork name.
+- Added draw.io-style connection-point transition creation on states, state
+  groups, and forks. Dragging from a visible connection point creates a
+  transition to an existing endpoint, or opens a small `New State` / `New Fork`
+  menu when dropped on empty canvas.
+- Tuned connection-point hit testing for zoomed-out editing: normal drags inside
+  a shape prefer moving/selecting the shape, while holding `Alt` suppresses
+  connection-point handles and forces normal move/selection behavior.
+- Added `Help > Shortcuts`, a read-only shortcut reference for canvas navigation,
+  selection, zoom, and connection-point editing.
+- Fixed Space-to-fit so pressing Space over the canvas runs zoom fit instead of
+  activating the last focused toolbar button.
 
 ### FSM Modeling
 

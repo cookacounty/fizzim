@@ -13,6 +13,7 @@ import java.awt.Graphics2D;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.Image;
+import java.awt.MouseInfo;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
@@ -374,6 +375,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		GlobalItemInternals = new javax.swing.JMenuItem();
 		HelpMenu = new javax.swing.JMenu();
 		HelpItemHelp = new javax.swing.JMenuItem();
+		HelpItemShortcuts = new javax.swing.JMenuItem();
 		jSeparator4 = new javax.swing.JSeparator();
 		HelpItemAbout = new javax.swing.JMenuItem();
 
@@ -981,6 +983,15 @@ public class FizzimGui extends javax.swing.JFrame {
 		
 		HelpMenu.add(HelpItemHelp);
 
+		HelpItemShortcuts.setMnemonic(java.awt.event.KeyEvent.VK_S);
+		HelpItemShortcuts.setText("Shortcuts");
+		HelpItemShortcuts.addActionListener(new java.awt.event.ActionListener() {
+			public void actionPerformed(java.awt.event.ActionEvent evt) {
+				HelpItemShortcutsActionPerformed(evt);
+			}
+		});
+		HelpMenu.add(HelpItemShortcuts);
+
 		HelpMenu.add(jSeparator4);
 		
 		HelpItemAbout.setMnemonic(java.awt.event.KeyEvent.VK_A);
@@ -1107,6 +1118,7 @@ public class FizzimGui extends javax.swing.JFrame {
 		GlobalItemInternals.setText(t("menu.interface.internals"));
 		HelpMenu.setText(t("menu.help"));
 		HelpItemHelp.setText(t("menu.help.wiki"));
+		HelpItemShortcuts.setText("Shortcuts");
 		HelpItemAbout.setText(t("menu.help.about"));
 
 		zoomOutButton.setText(t("toolbar.zoomOut"));
@@ -1161,7 +1173,10 @@ public class FizzimGui extends javax.swing.JFrame {
 				Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
 				if(focusOwner == null || SwingUtilities.getWindowAncestor(focusOwner) != FizzimGui.this)
 					return false;
-				if(!isCanvasFocusOwner(focusOwner) || shouldLetFocusedComponentUseSpace(focusOwner))
+				if(shouldLetFocusedComponentUseSpace(focusOwner))
+					return false;
+				Component mouseOwner = getComponentUnderMouse();
+				if(!isCanvasFocusOwner(focusOwner) && !isCanvasFocusOwner(mouseOwner))
 					return false;
 				fitDiagramShortcut();
 				event.consume();
@@ -1169,6 +1184,16 @@ public class FizzimGui extends javax.swing.JFrame {
 			}
 		};
 		KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(spaceFitDispatcher);
+	}
+
+	private Component getComponentUnderMouse() {
+		Point pointer = MouseInfo.getPointerInfo() == null ? null : MouseInfo.getPointerInfo().getLocation();
+		if(pointer == null)
+			return null;
+		SwingUtilities.convertPointFromScreen(pointer, this);
+		if(pointer.x < 0 || pointer.y < 0 || pointer.x >= getWidth() || pointer.y >= getHeight())
+			return null;
+		return SwingUtilities.getDeepestComponentAt(this, pointer.x, pointer.y);
 	}
 
 	private boolean isCanvasFocusOwner(Component focusOwner) {
@@ -1332,6 +1357,31 @@ public class FizzimGui extends javax.swing.JFrame {
 					t("menu.help.wiki"),
 					JOptionPane.INFORMATION_MESSAGE);
 		}
+	}
+
+	protected void HelpItemShortcutsActionPerformed(ActionEvent evt) {
+		String[][] rows = {
+				{"Space", "Fit the current diagram to the canvas viewport when the canvas has focus."},
+				{"Alt", "Suppress connection-point handles and force normal move/selection behavior."},
+				{"Ctrl+Mouse Wheel", "Zoom in or out around the mouse pointer."},
+				{"Mouse Wheel", "Zoom in or out around the mouse pointer."},
+				{"Shift+Mouse Wheel", "Pan horizontally."},
+				{"Right Mouse Drag", "Pan the canvas. A quick right-click still opens the context menu."},
+				{"Ctrl+A", "Select all states, state groups, and forks on the current page."},
+				{"Ctrl+C / Ctrl+V", "Copy and paste the selected diagram objects."},
+				{"Arrow Keys", "Nudge selected states, state groups, and forks by one pixel."},
+				{"Shift+Arrow Keys", "Nudge selected states, state groups, and forks by ten pixels."},
+				{"Shift+Drag Selection", "Add objects to the current selection."},
+				{"Ctrl+Drag Selection", "Toggle objects in the current selection."}
+		};
+		JTable table = new JTable(rows, new String[] {"Shortcut", "Action"});
+		table.setEnabled(false);
+		table.setRowHeight(table.getRowHeight() + 4);
+		table.getColumnModel().getColumn(0).setPreferredWidth(150);
+		table.getColumnModel().getColumn(1).setPreferredWidth(520);
+		JScrollPane scroll = new JScrollPane(table);
+		scroll.setPreferredSize(new Dimension(760, 360));
+		JOptionPane.showMessageDialog(this, scroll, "Shortcuts", JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	protected void FilePrefActionPerformed(ActionEvent evt) {
@@ -4834,6 +4884,7 @@ public class FizzimGui extends javax.swing.JFrame {
 	private javax.swing.JMenu GlobalMenu;
 	private javax.swing.JMenuItem HelpItemAbout;
 	private javax.swing.JMenuItem HelpItemHelp;
+	private javax.swing.JMenuItem HelpItemShortcuts;
 	private javax.swing.JMenu HelpMenu;
 	private javax.swing.JMenuBar MenuBar;
 	private javax.swing.JPanel jPanel1;

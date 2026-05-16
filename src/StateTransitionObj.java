@@ -145,6 +145,57 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		
 		
 	}
+
+	public Object clone() throws CloneNotSupportedException {
+		StateTransitionObj copy = (StateTransitionObj) super.clone();
+		copy.startPt = clonePoint(startPt);
+		copy.endPt = clonePoint(endPt);
+		copy.startCtrlPt = clonePoint(startCtrlPt);
+		copy.endCtrlPt = clonePoint(endCtrlPt);
+		copy.pageS = clonePoint(pageS);
+		copy.pageSC = clonePoint(pageSC);
+		copy.pageE = clonePoint(pageE);
+		copy.pageEC = clonePoint(pageEC);
+		copy.tempStartPt = clonePoint(tempStartPt);
+		copy.tempEndPt = clonePoint(tempEndPt);
+		copy.bendStartCtrlPt = clonePoint(bendStartCtrlPt);
+		copy.bendEndCtrlPt = clonePoint(bendEndCtrlPt);
+		copy.bendStartPt = clonePoint(bendStartPt);
+		copy.bendEndPt = clonePoint(bendEndPt);
+		copy.startBorderPts = clonePoints(startBorderPts);
+		copy.endBorderPts = clonePoints(endBorderPts);
+		if(copy.startPt != null && copy.startCtrlPt != null && copy.endCtrlPt != null && copy.endPt != null)
+			copy.curve = new CubicCurve2D.Double(copy.startPt.getX(), copy.startPt.getY(),
+					copy.startCtrlPt.getX(), copy.startCtrlPt.getY(),
+					copy.endCtrlPt.getX(), copy.endCtrlPt.getY(),
+					copy.endPt.getX(), copy.endPt.getY());
+		else
+			copy.curve = curve == null ? null : (CubicCurve2D.Double) curve.clone();
+		copy.attrib = cloneAttributes(attrib);
+		return copy;
+	}
+
+	private Point clonePoint(Point point) {
+		return point == null ? null : new Point(point);
+	}
+
+	private Vector<Point> clonePoints(Vector<Point> points) {
+		if(points == null)
+			return null;
+		Vector<Point> copy = new Vector<Point>(points.size());
+		for(int i = 0; i < points.size(); i++)
+			copy.add(clonePoint(points.get(i)));
+		return copy;
+	}
+
+	private LinkedList<ObjAttribute> cloneAttributes(LinkedList<ObjAttribute> attributes) throws CloneNotSupportedException {
+		if(attributes == null)
+			return null;
+		LinkedList<ObjAttribute> copy = (LinkedList<ObjAttribute>) attributes.clone();
+		for(int i = 0; i < attributes.size(); i++)
+			copy.set(i, (ObjAttribute) attributes.get(i).clone());
+		return copy;
+	}
 	
 	public void setStub(boolean b)
 	{
@@ -247,6 +298,8 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			int oldE = ePage;
 			startState = start;
 			endState = end;
+			startS = start.getName();
+			endS = end.getName();
 			setEndPts();
 			updateAttributePagesAfterEndpointChange(oldS, oldE);
 			resetAttributeTextOffsets();
@@ -254,6 +307,27 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		}			
 		if(sPage != ePage)
 			drawArea.pageConnUpdate(startState,endState);
+	}
+
+	public void setConnectionPointIndices(int startIndex, int endIndex)
+	{
+		if(startState == null || endState == null || stub)
+			return;
+		startBorderPts = startState.getBorderPts();
+		endBorderPts = endState.getBorderPts();
+		if(startIndex < 0 || startIndex >= startBorderPts.size()
+				|| endIndex < 0 || endIndex >= endBorderPts.size())
+			return;
+
+		startStateIndex = startIndex;
+		endStateIndex = endIndex;
+		startPt = new Point(startBorderPts.get(startStateIndex));
+		endPt = new Point(endBorderPts.get(endStateIndex));
+		startCtrlPt = new Point(startPt.x + (endPt.x - startPt.x) / 3, startPt.y + (endPt.y - startPt.y) / 3);
+		endCtrlPt = new Point(endPt.x - (endPt.x - startPt.x) / 3, endPt.y - (endPt.y - startPt.y) / 3);
+		curve = new CubicCurve2D.Double(startPt.getX(),startPt.getY(),startCtrlPt.getX(),startCtrlPt.getY(),endCtrlPt.getX(),endCtrlPt.getY(),endPt.getX(),endPt.getY());
+		routeModified = false;
+		ready = true;
 	}
 
 	private void updateAttributePagesAfterEndpointChange(int oldS, int oldE)
@@ -410,42 +484,6 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 				|| status == StateObj.BL || status == StateObj.BR;
 	}
 	
-	@SuppressWarnings("unchecked")
-	public Object clone () 
-    throws CloneNotSupportedException
-    {
-		StateTransitionObj copy = (StateTransitionObj)super.clone();
-		
-		copy.startPt = (Point) startPt.clone();
-		copy.pageS = (Point) pageS.clone();
-		copy.curve = (CubicCurve2D.Double)curve.clone();
-		copy.endPt = (Point) endPt.clone();
-		copy.startCtrlPt = (Point) startCtrlPt.clone();
-		copy.endCtrlPt = (Point) endCtrlPt.clone();
-		copy.pageSC = (Point) pageSC.clone();
-		copy.pageE = (Point) pageE.clone();
-		copy.pageEC = (Point) pageEC.clone();
-		copy.startBorderPts = (Vector<Point>) startBorderPts.clone();
-		copy.endBorderPts = (Vector<Point>) endBorderPts.clone();
-
-		if(attrib != null)
-		{
-			copy.attrib = (LinkedList<ObjAttribute>)copy.attrib.clone();
-			for(int i = 0; i < attrib.size(); i++)
-			{
-				copy.attrib.set(i,(ObjAttribute)attrib.get(i).clone());
-			}
-		}
-		
-
-
-		return copy;
-		
-    }
-	
-
-	
-
 	public void setEndPts()
 	{
 		startBorderPts = startState.getBorderPts();
@@ -637,14 +675,16 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		}
 		else
 		{					
+			Point movedStartPt = startBorderPts.get(startStateIndex);
+			Point movedEndPt = endBorderPts.get(endStateIndex);
 
 			//or if multiple states selected, dont need to recalculate
-			if((!recalcCheck()&&!drawArea.getRedraw()) || (startState.getSelectStatus() != 0 && endState.getSelectStatus() != 0))
+			if((!recalcCheck(movedStartPt, movedEndPt)&&!drawArea.getRedraw()) || (startState.getSelectStatus() != 0 && endState.getSelectStatus() != 0))
 			{
 				startStateIndex = tempStartIndex;
 				endStateIndex = tempEndIndex;
-				startPt = startBorderPts.get(startStateIndex);
-				endPt = endBorderPts.get(endStateIndex);
+				startPt = new Point(movedStartPt);
+				endPt = new Point(movedEndPt);
 				//if movement hasnt left the start quadrant, don't recalulate all points
 				startCtrlPt = new Point((int)startPt.getX()+sdx,(int)startPt.getY()+sdy);
 				endCtrlPt = new Point((int)endPt.getX()+edx,(int)endPt.getY()+edy);
@@ -1142,10 +1182,12 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		if(old.equals(startState))
 		{
 			startState = (StateObj) clone;
+			startS = clone.getName();
 		}
 		if(old.equals(endState))
 		{
 			endState = (StateObj) clone;
+			endS = clone.getName();
 		}
 		
 	}
@@ -1337,12 +1379,12 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 
 	}
 	
-	private boolean recalcCheck()
+	private boolean recalcCheck(Point movedStartPt, Point movedEndPt)
 	{
 		double dx1 = tempStartPt.getX()-tempEndPt.getX();
 		double dy1 = tempStartPt.getY()-tempEndPt.getY();
-		double dx2 = startPt.getX()-endPt.getX();
-		double dy2 = startPt.getY()-endPt.getY();
+		double dx2 = movedStartPt.getX()-movedEndPt.getX();
+		double dy2 = movedStartPt.getY()-movedEndPt.getY();
 		if((dx1>=0&&dx2>=-20 || dx1<0&&dx2<20) && (dy1>=0&&dy2>=-20 || dy1<0&&dy2<20))
 			return false;
 		else

@@ -18,6 +18,15 @@ for forks, state groups, and transition actions.
 
 The repo keeps only short reference material here. The wiki is the source of
 truth for detailed usage, lint, backend testing, and legacy documentation.
+Developer notes for specific GUI behaviors are kept in `docs/`, including
+`docs/COPY_PASTE.md` for copy/paste rules.
+
+Canvas transitions can be created by dragging from the blue connection points
+shown on states, state groups, and forks. Dropping on empty canvas opens a
+small menu to create a new state or fork at that location. When zoomed out,
+normal drags inside a shape prefer moving the shape; hold `Alt` while hovering
+or dragging to suppress connection-point handles and force normal move/selection
+behavior.
 
 ## Core Modeling Semantics
 
