@@ -52,6 +52,8 @@ part of the current codebase.
   selection, zoom, and connection-point editing.
 - Fixed Space-to-fit so pressing Space over the canvas runs zoom fit instead of
   activating the last focused toolbar button.
+- Clicking the HDL status indicator now runs HDL generation, matching the
+  toolbar Generate button.
 
 ### FSM Modeling
 

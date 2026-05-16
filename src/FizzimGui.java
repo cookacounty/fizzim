@@ -491,6 +491,12 @@ public class FizzimGui extends javax.swing.JFrame {
 		hdlStatusLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
 		hdlStatusLabel.setPreferredSize(new java.awt.Dimension(112, 22));
 		hdlStatusLabel.setBorder(BorderFactory.createLineBorder(new Color(140, 120, 40)));
+		hdlStatusLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		hdlStatusLabel.addMouseListener(new MouseAdapter() {
+			public void mouseClicked(MouseEvent evt) {
+				ToolsGenerateHdlActionPerformed(null);
+			}
+		});
 		markHdlOutOfSync();
 		zoomPanel.add(hdlStatusLabel);
 		lintStatusLabel.setOpaque(true);
