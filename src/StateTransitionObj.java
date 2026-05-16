@@ -298,6 +298,8 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 			int oldE = ePage;
 			startState = start;
 			endState = end;
+			startS = start.getName();
+			endS = end.getName();
 			setEndPts();
 			updateAttributePagesAfterEndpointChange(oldS, oldE);
 			resetAttributeTextOffsets();
@@ -305,6 +307,27 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		}			
 		if(sPage != ePage)
 			drawArea.pageConnUpdate(startState,endState);
+	}
+
+	public void setConnectionPointIndices(int startIndex, int endIndex)
+	{
+		if(startState == null || endState == null || stub)
+			return;
+		startBorderPts = startState.getBorderPts();
+		endBorderPts = endState.getBorderPts();
+		if(startIndex < 0 || startIndex >= startBorderPts.size()
+				|| endIndex < 0 || endIndex >= endBorderPts.size())
+			return;
+
+		startStateIndex = startIndex;
+		endStateIndex = endIndex;
+		startPt = new Point(startBorderPts.get(startStateIndex));
+		endPt = new Point(endBorderPts.get(endStateIndex));
+		startCtrlPt = new Point(startPt.x + (endPt.x - startPt.x) / 3, startPt.y + (endPt.y - startPt.y) / 3);
+		endCtrlPt = new Point(endPt.x - (endPt.x - startPt.x) / 3, endPt.y - (endPt.y - startPt.y) / 3);
+		curve = new CubicCurve2D.Double(startPt.getX(),startPt.getY(),startCtrlPt.getX(),startCtrlPt.getY(),endCtrlPt.getX(),endCtrlPt.getY(),endPt.getX(),endPt.getY());
+		routeModified = false;
+		ready = true;
 	}
 
 	private void updateAttributePagesAfterEndpointChange(int oldS, int oldE)
@@ -652,14 +675,16 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 		}
 		else
 		{					
+			Point movedStartPt = startBorderPts.get(startStateIndex);
+			Point movedEndPt = endBorderPts.get(endStateIndex);
 
 			//or if multiple states selected, dont need to recalculate
-			if((!recalcCheck()&&!drawArea.getRedraw()) || (startState.getSelectStatus() != 0 && endState.getSelectStatus() != 0))
+			if((!recalcCheck(movedStartPt, movedEndPt)&&!drawArea.getRedraw()) || (startState.getSelectStatus() != 0 && endState.getSelectStatus() != 0))
 			{
 				startStateIndex = tempStartIndex;
 				endStateIndex = tempEndIndex;
-				startPt = startBorderPts.get(startStateIndex);
-				endPt = endBorderPts.get(endStateIndex);
+				startPt = new Point(movedStartPt);
+				endPt = new Point(movedEndPt);
 				//if movement hasnt left the start quadrant, don't recalulate all points
 				startCtrlPt = new Point((int)startPt.getX()+sdx,(int)startPt.getY()+sdy);
 				endCtrlPt = new Point((int)endPt.getX()+edx,(int)endPt.getY()+edy);
@@ -1354,12 +1379,12 @@ public class StateTransitionObj extends TransitionObj  implements Cloneable {
 
 	}
 	
-	private boolean recalcCheck()
+	private boolean recalcCheck(Point movedStartPt, Point movedEndPt)
 	{
 		double dx1 = tempStartPt.getX()-tempEndPt.getX();
 		double dy1 = tempStartPt.getY()-tempEndPt.getY();
-		double dx2 = startPt.getX()-endPt.getX();
-		double dy2 = startPt.getY()-endPt.getY();
+		double dx2 = movedStartPt.getX()-movedEndPt.getX();
+		double dy2 = movedStartPt.getY()-movedEndPt.getY();
 		if((dx1>=0&&dx2>=-20 || dx1<0&&dx2<20) && (dy1>=0&&dy2>=-20 || dy1<0&&dy2<20))
 			return false;
 		else

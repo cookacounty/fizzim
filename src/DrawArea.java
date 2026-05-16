@@ -127,8 +127,63 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	private boolean loading = false;
 	private LinkedList<LintIssue> lastLintIssues = new LinkedList<LintIssue>();
 	private GeneralObj hoverObj = null;
+	private ConnectionPointHit hoverConnectionPoint = null;
+	private ConnectionPointHit dragConnectionStart = null;
+	private ConnectionPointHit dragConnectionTarget = null;
+	private Point dragConnectionMouse = null;
+	private ConnectionPointHit pendingConnectionDropSource = null;
+	private Point pendingConnectionDropPoint = null;
+	private boolean connectionDragActive = false;
+	private boolean connectionPointsSuppressed = false;
+	private boolean diagramVisualsDirty = true;
+	private IdentityHashMap<StateObj, CachedConnectionPoints> connectionPointCache = new IdentityHashMap<StateObj, CachedConnectionPoints>();
+	private static final int CONNECTION_POINT_RADIUS = 4;
+	private static final int CONNECTION_POINT_HIT_RADIUS = 9;
+	private static final int CONNECTION_POINT_GRAVITY_RADIUS = 22;
+	private static final int CONNECTION_POINT_MIN_SPACING = 40;
+	private static final int CONNECTION_POINT_BODY_HIT_RADIUS = 5;
+	private static final Color CONNECTION_POINT_COLOR = new Color(0, 150, 210);
+	private static final Color CONNECTION_POINT_ACTIVE_COLOR = new Color(80, 205, 90);
 	
 	private boolean Redraw = false;
+
+	private static class ConnectionPointHit {
+		GeneralObj endpoint;
+		Point point;
+		int index;
+
+		ConnectionPointHit(GeneralObj endpoint, Point point, int index) {
+			this.endpoint = endpoint;
+			this.point = point;
+			this.index = index;
+		}
+	}
+
+	private static class CachedConnectionPoints {
+		int x0;
+		int y0;
+		int x1;
+		int y1;
+		int type;
+		Vector<ConnectionPointHit> points;
+
+		CachedConnectionPoints(StateObj endpoint, Vector<ConnectionPointHit> points) {
+			int[] coords = endpoint.getCoords();
+			this.x0 = coords[0];
+			this.y0 = coords[1];
+			this.x1 = coords[2];
+			this.y1 = coords[3];
+			this.type = endpoint.getType();
+			this.points = points;
+		}
+
+		boolean matches(StateObj endpoint) {
+			int[] coords = endpoint.getCoords();
+			return type == endpoint.getType()
+					&& x0 == coords[0] && y0 == coords[1]
+					&& x1 == coords[2] && y1 == coords[3];
+		}
+	}
 
 	//default settings for global table
 	private boolean tableVis = true;
@@ -246,13 +301,6 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 				pasteDiagramSelection();
 			}
 		});
-		getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "fitDiagramToViewport");
-		getActionMap().put("fitDiagramToViewport", new AbstractAction() {
-			public void actionPerformed(ActionEvent e) {
-				if(frame instanceof FizzimGui)
-					((FizzimGui)frame).fitDiagramShortcut();
-			}
-		});
 		installNudgeKeyBindings();
 
 	}
@@ -308,9 +356,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		//paint all objects
 		if(objList != null)
 		{
-			refreshTransitionPriorityHighlights();
-			updateStateGroupDefaultEntryMarkers();
-			updateStateGroupHighlights();
+			refreshDiagramVisualsIfNeeded();
 			for (int i = 1; i < objList.size(); i++)
 			{
 				GeneralObj s = (GeneralObj) objList.elementAt(i);
@@ -329,6 +375,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			g2D.setColor(Color.RED);
 			g2D.drawRect(mX0, mY0, mX1-mX0, mY1-mY0);
 		}
+		paintConnectionDrag(g2D);
+		paintVisibleConnectionPoints(g2D);
 		paintSmartGuides(g2D);
 		if(loading)
 		{
@@ -336,6 +384,406 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 			loading = false;
 			repaint();
 		}
+	}
+
+	private void markDiagramVisualsDirty()
+	{
+		diagramVisualsDirty = true;
+		connectionPointCache.clear();
+	}
+
+	private void refreshDiagramVisualsIfNeeded()
+	{
+		if(!diagramVisualsDirty)
+			return;
+		refreshTransitionPriorityHighlights();
+		updateStateGroupDefaultEntryMarkers();
+		updateStateGroupHighlights();
+		diagramVisualsDirty = false;
+	}
+
+	private void paintVisibleConnectionPoints(Graphics2D g2D)
+	{
+		if(connectionPointsSuppressed && !connectionDragActive)
+			return;
+		if(connectionDragActive)
+		{
+			if(dragConnectionStart != null)
+				paintConnectionPoints(g2D, dragConnectionStart.endpoint, dragConnectionStart);
+			GeneralObj targetObj = dragConnectionTarget == null ? findEndpointUnderPoint(dragConnectionMouse) : dragConnectionTarget.endpoint;
+			if(targetObj != null && targetObj != (dragConnectionStart == null ? null : dragConnectionStart.endpoint))
+				paintConnectionPoints(g2D, targetObj, dragConnectionTarget);
+			return;
+		}
+		if(hoverConnectionPoint != null)
+			paintConnectionPoints(g2D, hoverConnectionPoint.endpoint, hoverConnectionPoint);
+		else if(isTransitionEndpoint(hoverObj))
+			paintConnectionPoints(g2D, hoverObj, hoverConnectionPoint);
+	}
+
+	private void paintConnectionPoints(Graphics2D g2D, GeneralObj endpoint, ConnectionPointHit active)
+	{
+		if(endpoint == null || endpoint.getPage() != currPage || !(endpoint instanceof StateObj))
+			return;
+		Stroke oldStroke = g2D.getStroke();
+		Color oldColor = g2D.getColor();
+		Vector<ConnectionPointHit> points = getVisibleConnectionPoints((StateObj)endpoint);
+		for(int i = 0; i < points.size(); i++)
+		{
+			ConnectionPointHit visiblePoint = points.get(i);
+			Point point = visiblePoint.point;
+			boolean isActive = active != null && active.endpoint == endpoint && active.index == visiblePoint.index;
+			int radius = isActive ? CONNECTION_POINT_RADIUS + 2 : CONNECTION_POINT_RADIUS;
+			g2D.setColor(isActive ? CONNECTION_POINT_ACTIVE_COLOR : CONNECTION_POINT_COLOR);
+			g2D.fillOval(point.x - radius, point.y - radius, radius * 2, radius * 2);
+			g2D.setColor(Color.white);
+			g2D.drawOval(point.x - radius, point.y - radius, radius * 2, radius * 2);
+		}
+		g2D.setStroke(oldStroke);
+		g2D.setColor(oldColor);
+	}
+
+	private void paintConnectionDrag(Graphics2D g2D)
+	{
+		if(!connectionDragActive || dragConnectionStart == null || dragConnectionMouse == null)
+			return;
+		Point endPoint = dragConnectionTarget == null ? dragConnectionMouse : dragConnectionTarget.point;
+		Stroke oldStroke = g2D.getStroke();
+		Color oldColor = g2D.getColor();
+		g2D.setColor(new Color(65, 145, 220));
+		g2D.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+		g2D.drawLine(dragConnectionStart.point.x, dragConnectionStart.point.y, endPoint.x, endPoint.y);
+		g2D.setStroke(oldStroke);
+		g2D.setColor(oldColor);
+	}
+
+	private ConnectionPointHit findConnectionPoint(int x, int y, int screenHitRadius, boolean forceHandle)
+	{
+		ConnectionPointHit best = null;
+		int hitRadius = connectionPointModelHitRadius(screenHitRadius);
+		double bestDistance = hitRadius * hitRadius;
+		for(int i = objList.size() - 1; i >= 1; i--)
+		{
+			GeneralObj obj = (GeneralObj)objList.elementAt(i);
+			if(!isTransitionEndpoint(obj) || obj.getPage() != currPage || !(obj instanceof StateObj))
+				continue;
+			if(!forceHandle && containsEndpointPoint(obj, x, y))
+				hitRadius = Math.min(hitRadius, connectionPointModelHitRadius(CONNECTION_POINT_BODY_HIT_RADIUS));
+			ConnectionPointHit candidate = nearestConnectionPoint((StateObj)obj, x, y, hitRadius);
+			if(candidate == null)
+				continue;
+			double distance = candidate.point.distanceSq(x, y);
+			if(distance <= bestDistance)
+			{
+				best = candidate;
+				bestDistance = distance;
+			}
+		}
+		return best;
+	}
+
+	private int connectionPointModelHitRadius(int screenRadius)
+	{
+		int modelRadius = (int)Math.round(screenRadius / Math.max(zoom, 0.01));
+		return Math.max(CONNECTION_POINT_RADIUS + 1, modelRadius);
+	}
+
+	private ConnectionPointHit nearestConnectionPoint(StateObj endpoint, int x, int y, int hitRadius)
+	{
+		if(endpoint.getType() == 4)
+			hitRadius = Math.min(hitRadius, CONNECTION_POINT_RADIUS + 1);
+		Vector<ConnectionPointHit> points = getVisibleConnectionPoints(endpoint);
+		ConnectionPointHit best = null;
+		double bestDistance = hitRadius * hitRadius;
+		for(int i = 0; i < points.size(); i++)
+		{
+			ConnectionPointHit visiblePoint = points.get(i);
+			Point point = visiblePoint.point;
+			double distance = point.distanceSq(x, y);
+			if(distance <= bestDistance)
+			{
+				best = new ConnectionPointHit(endpoint, new Point(point), visiblePoint.index);
+				bestDistance = distance;
+			}
+		}
+		return best;
+	}
+
+	private Vector<ConnectionPointHit> getVisibleConnectionPoints(StateObj endpoint)
+	{
+		CachedConnectionPoints cached = connectionPointCache.get(endpoint);
+		if(cached != null && cached.matches(endpoint))
+			return cached.points;
+		Vector<ConnectionPointHit> visible = buildVisibleConnectionPoints(endpoint);
+		connectionPointCache.put(endpoint, new CachedConnectionPoints(endpoint, visible));
+		return visible;
+	}
+
+	private Vector<ConnectionPointHit> buildVisibleConnectionPoints(StateObj endpoint)
+	{
+		Vector<Point> borderPoints = endpoint.getBorderPts();
+		Vector<ConnectionPointHit> visible = new Vector<ConnectionPointHit>();
+		if(borderPoints.size() == 0)
+			return visible;
+
+		int[] coords = endpoint.getCoords();
+		int x0 = Math.min(coords[0], coords[2]);
+		int y0 = Math.min(coords[1], coords[3]);
+		int x1 = Math.max(coords[0], coords[2]);
+		int y1 = Math.max(coords[1], coords[3]);
+		if(endpoint.getType() == 4)
+		{
+			addNearestVisibleConnectionPoint(endpoint, borderPoints, visible, x1, (y0 + y1) / 2);
+			addNearestVisibleConnectionPoint(endpoint, borderPoints, visible, x1, y1);
+			addNearestVisibleConnectionPoint(endpoint, borderPoints, visible, (x0 + x1) / 2, y1);
+			addNearestVisibleConnectionPoint(endpoint, borderPoints, visible, x0, y1);
+			addNearestVisibleConnectionPoint(endpoint, borderPoints, visible, x0, (y0 + y1) / 2);
+			addNearestVisibleConnectionPoint(endpoint, borderPoints, visible, x0, y0);
+			addNearestVisibleConnectionPoint(endpoint, borderPoints, visible, (x0 + x1) / 2, y0);
+			addNearestVisibleConnectionPoint(endpoint, borderPoints, visible, x1, y0);
+			return visible;
+		}
+
+		int horizontalCount = Math.max(5, Math.min(11, Math.max(1, (x1 - x0) / CONNECTION_POINT_MIN_SPACING) + 2));
+		int verticalCount = Math.max(5, Math.min(11, Math.max(1, (y1 - y0) / CONNECTION_POINT_MIN_SPACING) + 2));
+		for(int i = 0; i < horizontalCount; i++)
+		{
+			double t = horizontalCount == 1 ? 0.5 : (double)i / (horizontalCount - 1);
+			int x = (int)Math.round(x0 + (x1 - x0) * t);
+			addNearestVisibleConnectionPoint(endpoint, borderPoints, visible, x, y0);
+			addNearestVisibleConnectionPoint(endpoint, borderPoints, visible, x, y1);
+		}
+		for(int i = 1; i < verticalCount - 1; i++)
+		{
+			double t = (double)i / (verticalCount - 1);
+			int y = (int)Math.round(y0 + (y1 - y0) * t);
+			addNearestVisibleConnectionPoint(endpoint, borderPoints, visible, x0, y);
+			addNearestVisibleConnectionPoint(endpoint, borderPoints, visible, x1, y);
+		}
+		return visible;
+	}
+
+	private void addNearestVisibleConnectionPoint(StateObj endpoint, Vector<Point> borderPoints, Vector<ConnectionPointHit> visible, int x, int y)
+	{
+		int index = nearestBorderPointIndex(borderPoints, x, y);
+		for(int i = 0; i < visible.size(); i++)
+			if(visible.get(i).index == index)
+				return;
+		visible.add(new ConnectionPointHit(endpoint, new Point(borderPoints.get(index)), index));
+	}
+
+	private int nearestBorderPointIndex(Vector<Point> borderPoints, int x, int y)
+	{
+		int bestIndex = 0;
+		double bestDistance = Double.MAX_VALUE;
+		for(int i = 0; i < borderPoints.size(); i++)
+		{
+			double distance = borderPoints.get(i).distanceSq(x, y);
+			if(distance < bestDistance)
+			{
+				bestDistance = distance;
+				bestIndex = i;
+			}
+		}
+		return bestIndex;
+	}
+
+	private int nearestVisibleConnectionPointIndex(StateObj endpoint, int x, int y)
+	{
+		Vector<ConnectionPointHit> points = getVisibleConnectionPoints(endpoint);
+		int bestIndex = 0;
+		double bestDistance = Double.MAX_VALUE;
+		for(int i = 0; i < points.size(); i++)
+		{
+			ConnectionPointHit point = points.get(i);
+			double distance = point.point.distanceSq(x, y);
+			if(distance < bestDistance)
+			{
+				bestDistance = distance;
+				bestIndex = point.index;
+			}
+		}
+		return bestIndex;
+	}
+
+	private GeneralObj findEndpointUnderPoint(Point point)
+	{
+		if(point == null)
+			return null;
+		for(int i = objList.size() - 1; i >= 1; i--)
+		{
+			GeneralObj obj = (GeneralObj)objList.elementAt(i);
+			if(isTransitionEndpoint(obj) && obj.getPage() == currPage && containsEndpointPoint(obj, point.x, point.y))
+				return obj;
+		}
+		return null;
+	}
+
+	private boolean containsEndpointPoint(GeneralObj obj, int x, int y)
+	{
+		if(obj instanceof ForkObj)
+			return ((ForkObj)obj).containsPoint(x, y);
+		if(obj instanceof StateObj)
+		{
+			int[] coords = ((StateObj)obj).getCoords();
+			return x >= Math.min(coords[0], coords[2]) && x <= Math.max(coords[0], coords[2])
+					&& y >= Math.min(coords[1], coords[3]) && y <= Math.max(coords[1], coords[3]);
+		}
+		return false;
+	}
+
+	private void startConnectionDrag(ConnectionPointHit source, int x, int y)
+	{
+		connectionDragActive = true;
+		dragConnectionStart = source;
+		dragConnectionTarget = null;
+		dragConnectionMouse = new Point(x, y);
+		resetClickCycle();
+		setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+		repaint();
+	}
+
+	private void updateConnectionDrag(int x, int y)
+	{
+		dragConnectionMouse = new Point(x, y);
+		dragConnectionTarget = findConnectionPoint(x, y, CONNECTION_POINT_GRAVITY_RADIUS, true);
+		if(dragConnectionTarget != null && dragConnectionStart != null
+				&& dragConnectionTarget.endpoint == dragConnectionStart.endpoint
+				&& dragConnectionTarget.index == dragConnectionStart.index)
+			dragConnectionTarget = null;
+		setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
+		repaint();
+	}
+
+	private void finishConnectionDrag(MouseEvent e)
+	{
+		if(dragConnectionStart != null && dragConnectionTarget != null)
+		{
+			createDraggedStateTransition(dragConnectionStart, dragConnectionTarget);
+			clearConnectionDragState();
+		}
+		else if(dragConnectionStart != null && dragConnectionMouse != null)
+		{
+			showConnectionDropPopup(dragConnectionStart, new Point(dragConnectionMouse), e);
+			clearConnectionDragState();
+		}
+		else
+			clearConnectionDragState();
+		setCursor(Cursor.getDefaultCursor());
+		repaint();
+	}
+
+	private void clearConnectionDragState()
+	{
+		connectionDragActive = false;
+		dragConnectionStart = null;
+		dragConnectionTarget = null;
+		dragConnectionMouse = null;
+		hoverConnectionPoint = null;
+	}
+
+	private void showConnectionDropPopup(ConnectionPointHit source, Point dropPoint, MouseEvent e)
+	{
+		pendingConnectionDropSource = new ConnectionPointHit(source.endpoint, new Point(source.point), source.index);
+		pendingConnectionDropPoint = new Point(dropPoint);
+
+		JPopupMenu popup = new JPopupMenu();
+		JMenuItem stateItem = new JMenuItem("New State");
+		stateItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				createEndpointAndDraggedStateTransition(false);
+			}
+		});
+		popup.add(stateItem);
+
+		JMenuItem forkItem = new JMenuItem("New Fork");
+		forkItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent evt) {
+				createEndpointAndDraggedStateTransition(true);
+			}
+		});
+		popup.add(forkItem);
+		popup.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+			public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent evt) {}
+			public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent evt) {}
+			public void popupMenuCanceled(javax.swing.event.PopupMenuEvent evt) {
+				pendingConnectionDropSource = null;
+				pendingConnectionDropPoint = null;
+			}
+		});
+		popup.show(e.getComponent(), e.getX(), e.getY());
+	}
+
+	private void createEndpointAndDraggedStateTransition(boolean createFork)
+	{
+		if(pendingConnectionDropSource == null || pendingConnectionDropPoint == null)
+			return;
+		String sourceName = pendingConnectionDropSource.endpoint.getName();
+		int sourceIndex = pendingConnectionDropSource.index;
+		Point sourcePoint = new Point(pendingConnectionDropSource.point);
+		Point dropPoint = new Point(pendingConnectionDropPoint);
+		pendingConnectionDropSource = null;
+		pendingConnectionDropPoint = null;
+
+		setUndoPointAllObjects();
+		StateObj startEndpoint = getStateObj(sourceName);
+		if(startEndpoint == null)
+		{
+			tempList = null;
+			return;
+		}
+
+		StateObj newEndpoint;
+		if(createFork)
+		{
+			newEndpoint = new ForkObj(dropPoint.x, dropPoint.y, createSCounter, currPage, defSTC, grid, gridS);
+			createSCounter++;
+		}
+		else
+		{
+			newEndpoint = new StateObj(dropPoint.x - StateW / 2, dropPoint.y - StateH / 2,
+					dropPoint.x + StateW / 2, dropPoint.y + StateH / 2, createSCounter, currPage, defSC, grid, gridS);
+			createSCounter++;
+			newEndpoint.updateAttrib(globalList, 3);
+		}
+		objList.add(newEndpoint);
+
+		StateTransitionObj trans = new StateTransitionObj(createTCounter, currPage, this, defSTC);
+		createTCounter++;
+		objList.add(trans);
+		trans.updateAttrib(globalList, 4);
+		trans.initTrans(startEndpoint, newEndpoint);
+		trans.setConnectionPointIndices(sourceIndex, nearestVisibleConnectionPointIndex(newEndpoint, sourcePoint.x, sourcePoint.y));
+		assignPriorityForNewTransition(trans);
+		commitUndo();
+		updateCanvasExtents();
+	}
+
+	private void createDraggedStateTransition(ConnectionPointHit source, ConnectionPointHit target)
+	{
+		if(source == null || target == null || !(source.endpoint instanceof StateObj) || !(target.endpoint instanceof StateObj))
+			return;
+		String sourceName = source.endpoint.getName();
+		String targetName = target.endpoint.getName();
+		int sourceIndex = source.index;
+		int targetIndex = target.index;
+		setUndoPointAllObjects();
+		StateObj startEndpoint = getStateObj(sourceName);
+		StateObj endEndpoint = getStateObj(targetName);
+		if(startEndpoint == null || endEndpoint == null)
+		{
+			tempList = null;
+			return;
+		}
+		StateTransitionObj trans = new StateTransitionObj(createTCounter, currPage, this, defSTC);
+		createTCounter++;
+		objList.add(trans);
+		trans.updateAttrib(globalList, 4);
+		trans.initTrans(startEndpoint, endEndpoint);
+		trans.setConnectionPointIndices(sourceIndex, targetIndex);
+		assignPriorityForNewTransition(trans);
+		commitUndo();
+		updateCanvasExtents();
 	}
 
 	private void paintSmartGuides(Graphics2D g2D)
@@ -1103,6 +1551,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	{
 		if(!(frame instanceof FizzimGui) || objList == null)
 			return;
+		markDiagramVisualsDirty();
 
 		int states = 0;
 		int groups = 0;
@@ -1777,6 +2226,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		FizzimGui fgui = (FizzimGui) frame;
 		fgui.updateGlobal(globalList);
 		notifyHdlOutOfSync();
+		markDiagramVisualsDirty();
 		repaint();
 
 	}
@@ -1805,6 +2255,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		FizzimGui fgui = (FizzimGui) frame;
 		fgui.updateGlobal(globalList);
 		notifyHdlOutOfSync();
+		markDiagramVisualsDirty();
 		repaint();
 	}
 	
@@ -2111,6 +2562,7 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		currUndoIndex++;
 		fileModified = true;
 		notifyHdlOutOfSync();
+		markDiagramVisualsDirty();
 		repaint();
 		return true;
 	}
@@ -2226,6 +2678,8 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 	public void mouseExited(MouseEvent e) {
 		//System.out.println("mouseeExited:" + " Button:" + e.getButton() + " Modifiers:" + e.getModifiers() + " Popup Trigger:" + e.isPopupTrigger() + " ControlDown:" + e.isControlDown());
 		updateHoverObject(null);
+		hoverConnectionPoint = null;
+		connectionPointsSuppressed = false;
 	}
 	
 	public void mouseHandle(MouseEvent e) {
@@ -2246,6 +2700,17 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 		pressModelX = x;
 		pressModelY = y;
 		pressTime = e.getWhen();
+		if(!popupMouse && e.getButton() == MouseEvent.BUTTON1 && !e.isControlDown() && !e.isShiftDown()
+				&& !e.isAltDown()
+				&& e.getModifiers() != 20)
+		{
+			ConnectionPointHit sourcePoint = findConnectionPoint(x, y, CONNECTION_POINT_HIT_RADIUS, false);
+			if(sourcePoint != null)
+			{
+				startConnectionDrag(sourcePoint, x, y);
+				return;
+			}
+		}
 		pendingClickCycle = false;
 		pendingClickCycleHits = null;
 		GeneralObj bestMatch = null;
@@ -2496,6 +2961,12 @@ public class DrawArea extends JPanel implements MouseListener, MouseMotionListen
 
 	public void mouseReleased(MouseEvent e) {
 		//System.out.println("mouseReleased:" + " Button:" + e.getButton() + " Modifiers:" + e.getModifiers() + " Popup Trigger:" + e.isPopupTrigger() + " ControlDown:" + e.isControlDown());	
+		if(connectionDragActive)
+		{
+			updateConnectionDrag(modelX(e), modelY(e));
+			finishConnectionDrag(e);
+			return;
+		}
 		boolean showPendingPopup = rightButtonDown && !rightButtonDragged && pendingPopupEvent != null;
 	
 		multipleSelect = false;
@@ -2595,6 +3066,11 @@ public void updateTransitions()
 }
 
 	public void mouseDragged(MouseEvent arg0) {
+		if(connectionDragActive)
+		{
+			updateConnectionDrag(modelX(arg0), modelY(arg0));
+			return;
+		}
 		if(panCanvas(arg0))
 			return;
 		if(panBlankCanvas(arg0))
@@ -2712,7 +3188,9 @@ public void updateTransitions()
 		setToolTipText(null);
 		int x = modelX(arg0);
 		int y = modelY(arg0);
+		connectionPointsSuppressed = arg0.isAltDown();
 		updateHoverObject(findHoverObject(x, y));
+		hoverConnectionPoint = connectionPointsSuppressed ? null : findConnectionPoint(x, y, CONNECTION_POINT_HIT_RADIUS, false);
 		boolean overRouteHandle = false;
 		for (int i = objList.size() - 1; i >= 1; i--)
 		{
@@ -2733,7 +3211,10 @@ public void updateTransitions()
 				break;
 			}
 		}
-		setCursor(Cursor.getPredefinedCursor(overRouteHandle ? Cursor.MOVE_CURSOR : Cursor.DEFAULT_CURSOR));
+		setCursor(Cursor.getPredefinedCursor(connectionPointsSuppressed && isTransitionEndpoint(hoverObj)
+				? Cursor.MOVE_CURSOR
+				: (hoverConnectionPoint != null ? Cursor.CROSSHAIR_CURSOR
+				: (overRouteHandle ? Cursor.MOVE_CURSOR : Cursor.DEFAULT_CURSOR))));
 	}
 
 	public void mouseWheelMoved(MouseWheelEvent e)
@@ -3238,6 +3719,8 @@ public void updateTransitions()
 
 	private boolean isTransitionEndpoint(GeneralObj obj)
     {
+		if(obj == null)
+			return false;
 		return obj.getType() == 0 || obj.getType() == 4 || obj.getType() == 5;
     }
 
@@ -3411,6 +3894,7 @@ public void updateTransitions()
 
     // update state attribute lists when global list is updated
 	public void updateStates() {
+		markDiagramVisualsDirty();
 		String resetName = null;
 		for(int j = 0; j < globalList.get(0).size(); j++)
 		{
@@ -3435,6 +3919,7 @@ public void updateTransitions()
 	
     // update transition attribute lists when global list is updated
 	public void updateTrans() {
+		markDiagramVisualsDirty();
 		ensureTransitionPriorityDefinition();
 		syncTransitionOutputDefaultsWithOutputs();
 		for(int i = 1; i < objList.size(); i++)
@@ -5137,6 +5622,7 @@ public void updateTransitions()
 		updateStates();
 		updateTrans(); // Added by pz, but no sure why (initial paint of flags is incorrect without it)
 		setGrid(grid,gridS);
+		markDiagramVisualsDirty();
 		repaint();
 
 
@@ -5165,6 +5651,7 @@ public void updateTransitions()
 		createTCounter = 0;
 		updateStates();
 		updateTrans(); // Added by pz, but no sure why (initial paint of flags is incorrect without it)
+		markDiagramVisualsDirty();
 		repaint();
 
 	}
@@ -5241,6 +5728,7 @@ public void updateTransitions()
 	public void setCurrPage(int i)
 	{
 		currPage = i;
+		markDiagramVisualsDirty();
 	}
 	
 	public int getMaxH()
